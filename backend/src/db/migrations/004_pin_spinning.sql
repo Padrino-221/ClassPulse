@@ -1,0 +1,2 @@
+ALTER TABLE active_sessions
+  ADD COLUMN pin_spinning BOOLEAN NOT NULL DEFAULT TRUE;
