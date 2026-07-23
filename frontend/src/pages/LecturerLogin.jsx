@@ -50,7 +50,7 @@ export default function LecturerLogin() {
             </div>
             <div className="login-brand-feature">
               <span className="login-brand-feature-icon">&#10003;</span>
-              <span>GPS & WiFi geofencing</span>
+              <span>GPS & Rolling Pin</span>
             </div>
             <div className="login-brand-feature">
               <span className="login-brand-feature-icon">&#10003;</span>

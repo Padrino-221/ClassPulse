@@ -15,7 +15,7 @@ router.post(
     body('class_ids').isArray({ min: 1 }),
     body('class_ids.*').isInt({ min: 1 }),
     body('week_number').isInt({ min: 1 }),
-    body('campus_id').isInt({ min: 1 }),
+    body('building_id').isInt({ min: 1 }),
     body('pin_spinning').optional().isBoolean(),
     body('duration_minutes').optional().isInt({ min: 1, max: 480 }),
   ],
@@ -25,15 +25,15 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { course_code, class_ids, week_number, campus_id, pin_spinning, duration_minutes } = req.body;
+    const { course_code, class_ids, week_number, building_id, pin_spinning, duration_minutes } = req.body;
     const lecturerId = req.user.id;
     const duration = duration_minutes || 120;
     const spinning = pin_spinning !== false;
 
     try {
-      const campus = sessionCache.getCampus(campus_id);
-      if (!campus) {
-        return res.status(404).json({ error: 'Campus not found.' });
+    const building = sessionCache.getBuilding(building_id);
+    if (!building) {
+      return res.status(404).json({ error: 'Building not found.' });
       }
 
       const courseCheck = await pool.query(
@@ -51,71 +51,84 @@ router.post(
         });
       }
 
-      const duplicate = await pool.query(
-        `SELECT session_id FROM active_sessions
-         WHERE course_code = $1 AND class_id = ANY($2) AND campus_id = $3 AND week_number = $4
-         AND is_active = TRUE AND expires_at > NOW()`,
-        [course_code, class_ids, campus_id, week_number]
-      );
-      if (duplicate.rows.length > 0) {
-        return res.status(409).json({ error: 'A session for this course, class(es), campus, and week is already active.' });
-      }
-
+      const client = await pool.connect();
       const created = [];
-      for (const classId of class_ids) {
-        const pinSeed = generateSeed();
-        const staticPin = spinning ? null : getCurrentPin(pinSeed);
+      try {
+        await client.query('BEGIN');
 
-        const result = await pool.query(
-          `INSERT INTO active_sessions (
-             course_code, class_id, lecturer_id, week_number, pin_seed,
-             pin_spinning, campus_id, latitude, longitude, radius_meters, expires_at
-           )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW() + INTERVAL '1 minute' * $11)
-           RETURNING session_id, pin_seed, created_at, expires_at`,
-          [
+        for (const classId of class_ids) {
+          // Prevent duplicate week: one session per course + class + week
+          const duplicate = await client.query(
+            `SELECT session_id FROM active_sessions
+             WHERE course_code = $1 AND class_id = $2 AND week_number = $3
+             FOR UPDATE`,
+            [course_code, classId, week_number]
+          );
+          if (duplicate.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return res.status(409).json({ error: `A session for ${course_code}, week ${week_number} already exists. End it first or choose a different week.` });
+          }
+          const pinSeed = generateSeed();
+          const staticPin = spinning ? null : getCurrentPin(pinSeed);
+
+          const result = await client.query(
+            `INSERT INTO active_sessions (
+               course_code, class_id, lecturer_id, week_number, pin_seed,
+               pin_spinning, building_id, latitude, longitude, radius_meters, expires_at
+             )
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW() + INTERVAL '1 minute' * $11)
+             RETURNING session_id, pin_seed, created_at, expires_at`,
+            [
+              course_code,
+              classId,
+              lecturerId,
+              week_number,
+              pinSeed,
+              spinning,
+              building_id,
+              building.latitude,
+              building.longitude,
+              building.radius,
+              duration,
+            ]
+          );
+
+          const session = result.rows[0];
+
+          sessionCache.set({
+            session_id: session.session_id,
+            pin_seed: session.pin_seed,
+            static_pin: staticPin,
+            pin_spinning: spinning,
             course_code,
-            classId,
-            lecturerId,
+            class_id: classId,
             week_number,
-            pinSeed,
-            spinning,
-            campus_id,
-            campus.latitude,
-            campus.longitude,
-            campus.radius,
-            duration,
-          ]
-        );
+            is_active: true,
+            building_id: building.id,
+            building_name: building.name,
+            building_latitude: building.latitude,
+            building_longitude: building.longitude,
+            building_radius: building.radius,
+          });
 
-        const session = result.rows[0];
+          created.push({
+            session_id: session.session_id,
+            pin: staticPin || getCurrentPin(pinSeed),
+            pin_spinning: spinning,
+            course_code,
+            class_id: classId,
+            building: building.name,
+            created_at: session.created_at,
+            expires_at: session.expires_at,
+          });
+        }
 
-        sessionCache.set({
-          session_id: session.session_id,
-          pin_seed: session.pin_seed,
-          static_pin: staticPin,
-          pin_spinning: spinning,
-          course_code,
-          class_id: classId,
-          week_number,
-          is_active: true,
-          campus_id: campus.id,
-          campus_name: campus.name,
-          campus_latitude: campus.latitude,
-          campus_longitude: campus.longitude,
-          campus_radius: campus.radius,
-        });
-
-        created.push({
-          session_id: session.session_id,
-          pin: staticPin || getCurrentPin(pinSeed),
-          pin_spinning: spinning,
-          course_code,
-          class_id: classId,
-          campus: campus.name,
-          created_at: session.created_at,
-          expires_at: session.expires_at,
-        });
+        await client.query('COMMIT');
+      } catch (txErr) {
+        await client.query('ROLLBACK');
+        throw txErr;
+      } finally {
+        client.release();
       }
 
       res.status(201).json({
@@ -589,12 +602,12 @@ router.get('/session/:id/pin', async (req, res) => {
   }
 });
 
-router.get('/campuses', async (req, res) => {
+router.get('/buildings', async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, name, latitude, longitude, radius FROM campuses ORDER BY name');
-    res.json({ campuses: result.rows });
+    const result = await pool.query('SELECT id, name, latitude, longitude, radius FROM buildings ORDER BY name');
+    res.json({ buildings: result.rows });
   } catch (err) {
-    console.error('List campuses error:', err);
+    console.error('List buildings error:', err);
     res.status(500).json({ error: 'Something went wrong.' });
   }
 });

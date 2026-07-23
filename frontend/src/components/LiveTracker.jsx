@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { UserCheck } from '@phosphor-icons/react';
 import api from '../utils/api';
+import Pagination from './Pagination';
+
+const PAGE_SIZE = 15;
 
 export default function LiveTracker({ sessionId }) {
   const [records, setRecords] = useState([]);
   const [count, setCount] = useState(0);
+  const [page, setPage] = useState(1);
   const intervalRef = useRef(null);
 
   useEffect(() => {
@@ -25,6 +30,10 @@ export default function LiveTracker({ sessionId }) {
     };
   }, [sessionId]);
 
+  const totalPages = Math.ceil(records.length / PAGE_SIZE);
+  const startIdx = (page - 1) * PAGE_SIZE;
+  const pageRecords = records.slice(startIdx, startIdx + PAGE_SIZE);
+
   return (
     <div className="live-tracker">
       <h4>Live ({count} students)</h4>
@@ -40,14 +49,22 @@ export default function LiveTracker({ sessionId }) {
             </tr>
           </thead>
           <tbody>
-            {records.length === 0 && (
+            {pageRecords.length === 0 && (
               <tr>
-                <td colSpan={5}>No students marked yet.</td>
+                <td colSpan={5}>
+                  <div className="entity-empty" style={{ padding: '2rem 1rem' }}>
+                    <div className="entity-empty-icon">
+                      <UserCheck weight="duotone" size={40} />
+                    </div>
+                    <div className="entity-empty-title">No check-ins yet</div>
+                    <div className="entity-empty-desc">Students will appear here as they check in.</div>
+                  </div>
+                </td>
               </tr>
             )}
-            {records.map((r, i) => (
+            {pageRecords.map((r, i) => (
               <tr key={r.record_id}>
-                <td>{i + 1}</td>
+                <td>{startIdx + i + 1}</td>
                 <td>{r.index_number}</td>
                 <td>{r.student_name}</td>
                 <td>
@@ -61,6 +78,7 @@ export default function LiveTracker({ sessionId }) {
           </tbody>
         </table>
       </div>
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   );
 }

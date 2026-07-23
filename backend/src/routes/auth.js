@@ -6,15 +6,62 @@ const { body, validationResult } = require('express-validator');
 const { pool } = require('../config/db');
 const { sendResetEmail } = require('../services/mailer');
 const { verifyToken } = require('../middleware/auth');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const router = express.Router();
 
+// ── Safe table name lookup ──
+const USER_TABLES = {
+  lecturer: { table: 'lecturers', checkRole: 'lecturer' },
+  admin: { table: 'admins', checkRole: 'admin' },
+};
+
+function resolveTable(role) {
+  const entry = USER_TABLES[role];
+  if (!entry) throw new Error(`Invalid role: ${role}`);
+  return entry.table;
+}
+
+// ── Rate limiter for login ──
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: 'Too many login attempts. Wait a minute.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 3,
+  message: { error: 'Too many requests. Try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const resetLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { error: 'Too many reset attempts. Try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const changePasswordLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { error: 'Too many password change attempts. Try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 router.post(
   '/login',
+  loginLimiter,
   [
-    body('email').isEmail().normalizeEmail(),
-    body('password').isString().notEmpty(),
+    body('email').isEmail().normalizeEmail().isLength({ max: 255 }),
+    body('password').isString().isLength({ min: 1, max: 128 }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -63,6 +110,7 @@ router.post(
 
 router.post(
   '/forgot-password',
+  forgotLimiter,
   [body('email').isEmail().normalizeEmail()],
   async (req, res) => {
     const errors = validationResult(req);
@@ -102,9 +150,10 @@ router.post(
 
 router.post(
   '/reset-password',
+  resetLimiter,
   [
     body('token').isString().notEmpty(),
-    body('password').isString().isLength({ min: 6 }),
+    body('password').isString().isLength({ min: 8, max: 128 }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -127,7 +176,7 @@ router.post(
       const rt = result.rows[0];
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      const table = rt.user_type === 'lecturer' ? 'lecturers' : 'admins';
+      const table = resolveTable(rt.user_type);
       await pool.query(`UPDATE ${table} SET password_hash = $1 WHERE id = $2`, [hashedPassword, rt.user_id]);
       await pool.query('UPDATE password_reset_tokens SET used = TRUE WHERE id = $1', [rt.id]);
 
@@ -143,7 +192,7 @@ router.post(
 
 router.get('/profile', verifyToken(), async (req, res) => {
   try {
-    const table = req.user.role === 'admin' ? 'admins' : 'lecturers';
+    const table = resolveTable(req.user.role);
     const result = await pool.query(
       `SELECT id, name, email, created_at FROM ${table} WHERE id = $1`,
       [req.user.id]
@@ -160,8 +209,8 @@ router.put(
   '/profile',
   verifyToken(),
   [
-    body('name').isString().trim().notEmpty(),
-    body('email').isEmail().normalizeEmail(),
+    body('name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
+    body('email').isEmail().normalizeEmail().isLength({ max: 255 }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -169,7 +218,7 @@ router.put(
       return res.status(400).json({ errors: errors.array() });
     }
     try {
-      const table = req.user.role === 'admin' ? 'admins' : 'lecturers';
+      const table = resolveTable(req.user.role);
       const result = await pool.query(
         `UPDATE ${table} SET name = $1, email = $2 WHERE id = $3 RETURNING id, name, email, created_at`,
         [req.body.name, req.body.email, req.user.id]
@@ -192,10 +241,11 @@ router.put(
 
 router.put(
   '/change-password',
+  changePasswordLimiter,
   verifyToken(),
   [
     body('current_password').isString().notEmpty(),
-    body('new_password').isString().isLength({ min: 6 }),
+    body('new_password').isString().isLength({ min: 8, max: 128 }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -203,7 +253,7 @@ router.put(
       return res.status(400).json({ errors: errors.array() });
     }
     try {
-      const table = req.user.role === 'admin' ? 'admins' : 'lecturers';
+      const table = resolveTable(req.user.role);
       const result = await pool.query(
         `SELECT password_hash FROM ${table} WHERE id = $1`,
         [req.user.id]

@@ -10,6 +10,7 @@ import { useToast } from '../components/Toast';
 import {
   BookOpen, Users, UserCheck, GraduationCap, MapPin, Plus, PencilSimple, Trash, MagnifyingGlass,
 } from '@phosphor-icons/react';
+import ReportsPage from './ReportsPage';
 
 const PAGE_SIZE = 20;
 
@@ -18,7 +19,7 @@ const tileIcons = {
   lecturers: <UserCheck weight="duotone" size={22} />,
   classes: <Users weight="duotone" size={22} />,
   students: <GraduationCap weight="duotone" size={22} />,
-  campuses: <MapPin weight="duotone" size={22} />,
+  buildings: <MapPin weight="duotone" size={22} />,
 };
 
 function EditModal({ entityLabel, fields, data, onSave, onClose }) {
@@ -228,21 +229,21 @@ function AddForm({ entityLabel, fields, onSubmit, buttonText = 'Add', extraButto
   );
 }
 
-function CampusesPage() {
+function BuildingsPage() {
   const { searchQuery } = useSearch();
-  const [campuses, setCampuses] = useState([]);
+  const [buildings, setBuildings] = useState([]);
   const [editing, setEditing] = useState(null);
   const toast = useToast();
 
   const load = useCallback(async () => {
-    const res = await api.get('/api/campuses');
-    setCampuses(res.data.campuses);
+    const res = await api.get('/api/buildings');
+    setBuildings(res.data.buildings);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
   const add = async (form) => {
-    await api.post('/api/campuses', {
+    await api.post('/api/buildings', {
       name: form.name,
       latitude: parseFloat(form.latitude),
       longitude: parseFloat(form.longitude),
@@ -252,7 +253,7 @@ function CampusesPage() {
   };
 
   const saveEdit = async (form) => {
-    await api.put(`/api/campuses/${editing.id}`, {
+    await api.put(`/api/buildings/${editing.id}`, {
       name: form.name,
       latitude: parseFloat(form.latitude),
       longitude: parseFloat(form.longitude),
@@ -262,23 +263,23 @@ function CampusesPage() {
   };
 
   const remove = async (id) => {
-    await api.delete(`/api/campuses/${id}`);
-    toast.success('Campus deleted');
+    await api.delete(`/api/buildings/${id}`);
+    toast.success('Building deleted');
     await load();
   };
 
   return (
     <div>
       <AddForm
-        entityLabel="Campus"
+        entityLabel="Building"
         fields={[
-          { name: 'name', label: 'Name', placeholder: 'e.g. Main Campus' },
+          { name: 'name', label: 'Name', placeholder: 'e.g. Main Building' },
           { name: 'latitude', label: 'Latitude', type: 'number', placeholder: 'e.g. 5.650000' },
           { name: 'longitude', label: 'Longitude', type: 'number', placeholder: 'e.g. -0.186000' },
           { name: 'radius', label: 'Radius (m)', type: 'number', min: 100, max: 5000 },
         ]}
         onSubmit={add}
-        buttonText="Add Campus"
+        buttonText="Add Building"
       />
       <EntityTable
         columns={[
@@ -287,14 +288,14 @@ function CampusesPage() {
           { key: 'longitude', label: 'Longitude' },
           { key: 'radius', label: 'Radius (m)' },
         ]}
-        data={campuses}
+        data={buildings}
         onEdit={(row) => setEditing(row)}
         onDelete={remove}
         searchQuery={searchQuery}
       />
       {editing && (
         <EditModal
-          entityLabel="Campus"
+          entityLabel="Building"
           fields={[
             { name: 'name', label: 'Name' },
             { name: 'latitude', label: 'Latitude', type: 'number' },
@@ -310,7 +311,7 @@ function CampusesPage() {
   );
 }
 
-function AdminOverviewPage({ courses, lecturers, classes, students, campuses }) {
+function AdminOverviewPage({ courses, lecturers, classes, students, buildings }) {
   const tiles = [
     {
       to: '/admin/courses',
@@ -341,11 +342,11 @@ function AdminOverviewPage({ courses, lecturers, classes, students, campuses }) 
       desc: 'Manage student rosters, bulk import, and index numbers.',
     },
     {
-      to: '/admin/campuses',
-      icon: tileIcons.campuses,
-      title: 'Campuses',
-      count: campuses.length,
-      desc: 'Define campus locations and geofence radii for attendance verification.',
+      to: '/admin/buildings',
+      icon: tileIcons.buildings,
+      title: 'Buildings',
+      count: buildings.length,
+      desc: 'Define building locations and geofence radii for attendance verification.',
     },
   ];
 
@@ -356,7 +357,7 @@ function AdminOverviewPage({ courses, lecturers, classes, students, campuses }) 
         <div className="page-subtitle">Manage courses, classes, lecturers, and students across the system.</div>
       </div>
 
-      <div className="card" style={{ marginTop: '1.25rem' }}>
+      <div className="card" style={{ marginTop: '0.5rem' }}>
         <div className="card-header">
           <h3>Management</h3>
         </div>
@@ -790,22 +791,22 @@ export default function AdminDashboard() {
   const [lecturers, setLecturers] = useState([]);
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
-  const [campuses, setCampuses] = useState([]);
+  const [buildings, setBuildings] = useState([]);
 
   const load = useCallback(async () => {
     try {
-      const [cRes, lRes, clRes, sRes, campRes] = await Promise.all([
+      const [cRes, lRes, clRes, sRes, bRes] = await Promise.all([
         api.get('/api/admin/courses'),
         api.get('/api/admin/lecturers'),
         api.get('/api/admin/classes'),
         api.get('/api/admin/students'),
-        api.get('/api/campuses'),
+        api.get('/api/buildings'),
       ]);
       setCourses(cRes.data.courses || []);
       setLecturers(lRes.data.lecturers || []);
       setClasses(clRes.data.classes || []);
       setStudents(sRes.data.students || []);
-      setCampuses(campRes.data.campuses || []);
+      setBuildings(bRes.data.buildings || []);
     } catch {}
   }, []);
 
@@ -815,12 +816,13 @@ export default function AdminDashboard() {
     <DashboardLayout>
       <div className="workspace-grid single">
         <Routes>
-          <Route index element={<AdminOverviewPage courses={courses} lecturers={lecturers} classes={classes} students={students} campuses={campuses} />} />
+          <Route index element={<AdminOverviewPage courses={courses} lecturers={lecturers} classes={classes} students={students} buildings={buildings} />} />
           <Route path="courses" element={<CoursesPage />} />
           <Route path="classes" element={<ClassesPage />} />
           <Route path="lecturers" element={<LecturersPage />} />
           <Route path="students" element={<StudentsPage />} />
-          <Route path="campuses" element={<CampusesPage />} />
+          <Route path="buildings" element={<BuildingsPage />} />
+          <Route path="reports" element={<ReportsPage />} />
         </Routes>
       </div>
     </DashboardLayout>

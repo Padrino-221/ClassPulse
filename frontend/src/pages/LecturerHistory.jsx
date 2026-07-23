@@ -5,7 +5,8 @@ import DashboardLayout from '../components/DashboardLayout';
 import AttendanceMatrix from '../components/AttendanceMatrix';
 import SummaryCards from '../components/SummaryCards';
 import Select from '../components/Select';
-import { Users, Calendar, Pulse, CheckCircle, Warning, DownloadSimple } from '@phosphor-icons/react';
+import { Users, Calendar, Pulse, CheckCircle, Warning, DownloadSimple, BookOpen } from '@phosphor-icons/react';
+import EmptyState from '../components/EmptyState';
 
 export default function LecturerHistory() {
   const { searchQuery } = useSearch();
@@ -178,8 +179,12 @@ export default function LecturerHistory() {
         )}
 
         {!filters.course_code && !loading && (
-          <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-            Pick a course and class to see history.
+          <div className="card">
+            <EmptyState
+              icon={<BookOpen weight="duotone" size={64} />}
+              title="Select a course and class"
+              description="Choose a course and class from the filters above to view attendance history."
+            />
           </div>
         )}
       </div>

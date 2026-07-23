@@ -36,9 +36,9 @@ router.get('/lecturers', async (req, res) => {
 router.post(
   '/lecturers',
   [
-    body('name').isString().trim().notEmpty(),
-    body('email').isEmail().normalizeEmail(),
-    body('password').isString().isLength({ min: 6 }),
+    body('name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
+    body('email').isEmail().normalizeEmail().isLength({ max: 255 }),
+    body('password').isString().isLength({ min: 8, max: 128 }),
   ],
   handleValidation,
   async (req, res) => {
@@ -61,8 +61,9 @@ router.post(
 router.put(
   '/lecturers/:id',
   [
-    body('name').isString().trim().notEmpty(),
-    body('email').isEmail().normalizeEmail(),
+    body('name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
+    body('email').isEmail().normalizeEmail().isLength({ max: 255 }),
+    body('password').optional().isString().isLength({ min: 8, max: 128 }),
   ],
   handleValidation,
   async (req, res) => {
@@ -127,8 +128,8 @@ router.get('/courses', async (req, res) => {
 router.post(
   '/courses',
   [
-    body('course_code').isString().trim().notEmpty(),
-    body('course_name').isString().trim().notEmpty(),
+    body('course_code').isString().trim().isLength({ min: 1, max: 20 }).notEmpty(),
+    body('course_name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
     body('total_weeks').isInt({ min: 1, max: 52 }),
     body('lecturer_ids').isArray({ min: 1 }),
     body('lecturer_ids.*').isInt({ min: 1 }),
@@ -166,7 +167,7 @@ router.post(
 router.put(
   '/courses/:code',
   [
-    body('course_name').isString().trim().notEmpty(),
+    body('course_name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
     body('total_weeks').isInt({ min: 1, max: 52 }),
     body('lecturer_ids').isArray({ min: 1 }),
     body('lecturer_ids.*').isInt({ min: 1 }),
@@ -244,7 +245,7 @@ router.get('/classes', async (req, res) => {
 router.post(
   '/classes',
   [
-    body('class_name').isString().trim().notEmpty(),
+    body('class_name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
     body('lecturer_ids').isArray({ min: 1 }),
     body('lecturer_ids.*').isInt({ min: 1 }),
   ],
@@ -279,7 +280,7 @@ router.post(
 router.put(
   '/classes/:id',
   [
-    body('class_name').isString().trim().notEmpty(),
+    body('class_name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
     body('lecturer_ids').isArray({ min: 1 }),
     body('lecturer_ids.*').isInt({ min: 1 }),
   ],
@@ -358,8 +359,8 @@ router.get('/students', async (req, res) => {
 router.post(
   '/students',
   [
-    body('index_number').isString().trim().notEmpty(),
-    body('student_name').isString().trim().notEmpty(),
+    body('index_number').isString().trim().isLength({ min: 1, max: 50 }).notEmpty(),
+    body('student_name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
     body('class_id').isInt({ min: 1 }),
   ],
   handleValidation,
@@ -382,8 +383,8 @@ router.post(
 router.put(
   '/students/:id',
   [
-    body('index_number').isString().trim().notEmpty(),
-    body('student_name').isString().trim().notEmpty(),
+    body('index_number').isString().trim().isLength({ min: 1, max: 50 }).notEmpty(),
+    body('student_name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
   ],
   handleValidation,
   async (req, res) => {
