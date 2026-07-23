@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS active_sessions (
     latitude DECIMAL(9,6) NOT NULL,
     longitude DECIMAL(9,6) NOT NULL,
     radius_meters INTEGER DEFAULT 400,
+    pin_spinning BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT NOW(),
     expires_at TIMESTAMP NOT NULL,
     is_active BOOLEAN DEFAULT TRUE
