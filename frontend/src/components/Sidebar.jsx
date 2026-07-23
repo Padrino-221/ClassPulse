@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Pulse,
@@ -9,6 +9,7 @@ import {
   GraduationCap,
   House,
   MapPin,
+  ChartBar,
   SignOut,
 } from '@phosphor-icons/react';
 
@@ -28,16 +29,25 @@ const navItems = [
       { to: '/admin/classes', label: 'Classes', icon: Users },
       { to: '/admin/lecturers', label: 'Lecturers', icon: UserCheck },
       { to: '/admin/students', label: 'Students', icon: GraduationCap },
-      { to: '/admin/campuses', label: 'Campuses', icon: MapPin },
+      { to: '/admin/buildings', label: 'Buildings', icon: MapPin },
+      { to: '/admin/reports', label: 'Reports', icon: ChartBar },
     ],
   },
 ];
 
-export default function Sidebar() {
+function getUser() {
+  try {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  } catch {
+    return null;
+  }
+}
+
+export default React.memo(function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
+  const user = useMemo(getUser, []);
 
   const isAdminRoute = location.pathname.startsWith('/admin');
 
@@ -61,7 +71,7 @@ export default function Sidebar() {
             return section.section === 'Lecturer' || section.section === 'Settings';
           })
           .map((section) => (
-            <div key={section.section}>
+            <div key={section.section} className="sidebar-nav-section">
               <div className="nav-section-label">{section.section}</div>
               {section.links.map((link) => {
                 const Icon = link.icon;
@@ -93,4 +103,4 @@ export default function Sidebar() {
       </div>
     </aside>
   );
-}
+});

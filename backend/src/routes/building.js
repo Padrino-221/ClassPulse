@@ -7,18 +7,18 @@ const sessionCache = require('../services/sessionCache');
 const router = express.Router();
 router.use(verifyToken('admin'));
 
-// List all campuses
+// List all buildings
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM campuses ORDER BY name');
-    res.json({ campuses: result.rows });
+    const result = await pool.query('SELECT * FROM buildings ORDER BY name');
+    res.json({ buildings: result.rows });
   } catch (err) {
-    console.error('List campuses error:', err);
+    console.error('List buildings error:', err);
     res.status(500).json({ error: 'Something went wrong.' });
   }
 });
 
-// Create campus
+// Create building
 router.post(
   '/',
   [
@@ -37,20 +37,20 @@ router.post(
 
     try {
       const result = await pool.query(
-        'INSERT INTO campuses (name, latitude, longitude, radius) VALUES ($1, $2, $3, $4) RETURNING *',
+        'INSERT INTO buildings (name, latitude, longitude, radius) VALUES ($1, $2, $3, $4) RETURNING *',
         [name, latitude, longitude, radius]
       );
 
-      sessionCache.setCampus(result.rows[0]);
-      res.status(201).json({ campus: result.rows[0] });
+      sessionCache.setBuilding(result.rows[0]);
+      res.status(201).json({ building: result.rows[0] });
     } catch (err) {
-      console.error('Create campus error:', err);
+      console.error('Create building error:', err);
       res.status(500).json({ error: 'Something went wrong.' });
     }
   }
 );
 
-// Update campus
+// Update building
 router.put(
   '/:id',
   [
@@ -70,7 +70,10 @@ router.put(
     const values = [];
     let idx = 1;
 
-    for (const field of ['name', 'latitude', 'longitude', 'radius']) {
+    // Whitelist of allowed field names — prevents SQL injection via dynamic column names
+    const ALLOWED_FIELDS = ['name', 'latitude', 'longitude', 'radius'];
+
+    for (const field of ALLOWED_FIELDS) {
       if (req.body[field] !== undefined) {
         fields.push(`${field} = $${idx}`);
         values.push(req.body[field]);
@@ -86,36 +89,36 @@ router.put(
 
     try {
       const result = await pool.query(
-        `UPDATE campuses SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+        `UPDATE buildings SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
         values
       );
 
       if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Campus not found.' });
+        return res.status(404).json({ error: 'Building not found.' });
       }
 
-      sessionCache.setCampus(result.rows[0]);
-      res.json({ campus: result.rows[0] });
+      sessionCache.setBuilding(result.rows[0]);
+      res.json({ building: result.rows[0] });
     } catch (err) {
-      console.error('Update campus error:', err);
+      console.error('Update building error:', err);
       res.status(500).json({ error: 'Something went wrong.' });
     }
   }
 );
 
-// Delete campus
+// Delete building
 router.delete('/:id', async (req, res) => {
   try {
-    const result = await pool.query('DELETE FROM campuses WHERE id = $1 RETURNING id', [req.params.id]);
+    const result = await pool.query('DELETE FROM buildings WHERE id = $1 RETURNING id', [req.params.id]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Campus not found.' });
+      return res.status(404).json({ error: 'Building not found.' });
     }
 
-    sessionCache.campuses.delete(parseInt(req.params.id));
-    res.json({ message: 'Campus deleted.' });
+    sessionCache.buildings.delete(parseInt(req.params.id));
+    res.json({ message: 'Building deleted.' });
   } catch (err) {
-    console.error('Delete campus error:', err);
+    console.error('Delete building error:', err);
     res.status(500).json({ error: 'Something went wrong.' });
   }
 });

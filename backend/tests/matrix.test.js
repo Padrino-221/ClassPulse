@@ -5,6 +5,8 @@ require('dotenv').config();
 
 const TEST_COURSE = 'TMATRIX';
 const TEST_CLASS_ID = 1;
+const BUILDING_LAT = 5.65;
+const BUILDING_LON = -0.186;
 
 let lecturerToken;
 let lecturerId;
@@ -16,10 +18,23 @@ beforeAll(async () => {
   lecturerToken = loginRes.body.token;
   lecturerId = loginRes.body.user.id;
 
+  // Clean up stale test data
+  await pool.query("DELETE FROM attendance_records WHERE index_number = 'MATRIX001'");
+  await pool.query("DELETE FROM student_roster WHERE index_number = 'MATRIX001'");
+  await pool.query("DELETE FROM active_sessions WHERE course_code = $1", [TEST_COURSE]);
+
   // Create isolated test course
   await pool.query(
     'INSERT INTO courses (course_code, course_name, total_weeks) VALUES ($1, $2, $3) ON CONFLICT (course_code) DO UPDATE SET total_weeks = $3',
     [TEST_COURSE, 'Test Matrix Course', 12]
+  );
+  await pool.query(
+    'INSERT INTO course_lecturers (course_code, lecturer_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [TEST_COURSE, lecturerId]
+  );
+  await pool.query(
+    'INSERT INTO class_lecturers (class_id, lecturer_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [TEST_CLASS_ID, lecturerId]
   );
 
   // Add test student to roster
@@ -27,20 +42,13 @@ beforeAll(async () => {
     "INSERT INTO student_roster (index_number, student_name, class_id) VALUES ($1, $2, $3) ON CONFLICT (index_number) DO NOTHING",
     ['MATRIX001', 'Matrix Student 1', TEST_CLASS_ID]
   );
-
-  // Ensure only our test sessions exist
-  await pool.query(
-    "DELETE FROM active_sessions WHERE course_code = $1", [TEST_COURSE]
-  );
-  await pool.query(
-    "DELETE FROM attendance_records WHERE record_id IN (SELECT ar.record_id FROM attendance_records ar JOIN active_sessions as2 ON as2.session_id = ar.session_id WHERE as2.course_code = $1)",
-    [TEST_COURSE]
-  );
 });
 
 afterAll(async () => {
   await pool.query("DELETE FROM active_sessions WHERE course_code = $1", [TEST_COURSE]);
   await pool.query("DELETE FROM student_roster WHERE index_number = 'MATRIX001'");
+  await pool.query('DELETE FROM course_lecturers WHERE course_code = $1', [TEST_COURSE]);
+  await pool.query('DELETE FROM class_lecturers WHERE class_id = $1 AND lecturer_id = $2', [TEST_CLASS_ID, lecturerId]);
   await pool.query("DELETE FROM courses WHERE course_code = $1", [TEST_COURSE]);
   await pool.end();
 });
@@ -51,13 +59,12 @@ async function createSession(week) {
     .set('Authorization', `Bearer ${lecturerToken}`)
     .send({
       course_code: TEST_COURSE,
-      class_id: TEST_CLASS_ID,
+      class_ids: [TEST_CLASS_ID],
       week_number: week,
-      latitude: 5.6037,
-      longitude: -0.1870,
+      building_id: 1,
       duration_minutes: 30,
     });
-  return res.body.session;
+  return res.body.sessions[0];
 }
 
 async function submitAttendance(pin, indexNumber, name, fp) {
@@ -68,8 +75,8 @@ async function submitAttendance(pin, indexNumber, name, fp) {
       index_number: indexNumber,
       course_code: TEST_COURSE,
       pin,
-      latitude: 5.6037,
-      longitude: -0.1870,
+      latitude: BUILDING_LAT,
+      longitude: BUILDING_LON,
       device_fingerprint: fp,
     });
 }

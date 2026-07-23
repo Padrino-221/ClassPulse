@@ -1,8 +1,8 @@
 -- ClassPulse: University Attendance Management System
--- PostgreSQL Schema (v3 - Campus Geofence + Rolling PIN)
+-- PostgreSQL Schema (v4 - Building Geofence + Rolling PIN)
 
--- 0. Campuses
-CREATE TABLE IF NOT EXISTS campuses (
+-- 0. Buildings (lecturer halls)
+CREATE TABLE IF NOT EXISTS buildings (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     latitude DECIMAL(9,6) NOT NULL,
@@ -69,16 +69,15 @@ CREATE TABLE IF NOT EXISTS student_roster (
     UNIQUE(index_number)
 );
 
-CREATE INDEX IF NOT EXISTS idx_courses_lecturer ON courses(lecturer_id);
 CREATE INDEX IF NOT EXISTS idx_student_roster_class ON student_roster(class_id);
 
--- 6. Active Sessions (v3: campus geofence replaces classroom geofence)
+-- 6. Active Sessions (v4: building geofence replaces classroom geofence)
 CREATE TABLE IF NOT EXISTS active_sessions (
     session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     course_code VARCHAR(20) NOT NULL REFERENCES courses(course_code) ON DELETE CASCADE,
     class_id INTEGER NOT NULL REFERENCES classes(class_id) ON DELETE CASCADE,
     lecturer_id INTEGER NOT NULL REFERENCES lecturers(id) ON DELETE CASCADE,
-    campus_id INTEGER REFERENCES campuses(id) ON DELETE SET NULL,
+    building_id INTEGER REFERENCES buildings(id) ON DELETE SET NULL,
     week_number INTEGER NOT NULL CHECK (week_number > 0),
     pin_seed VARCHAR(255) NOT NULL,
     latitude DECIMAL(9,6) NOT NULL,
@@ -91,7 +90,7 @@ CREATE TABLE IF NOT EXISTS active_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_active_sessions_pin ON active_sessions(pin_seed, course_code);
 CREATE INDEX IF NOT EXISTS idx_active_sessions_lecturer ON active_sessions(lecturer_id);
-CREATE INDEX IF NOT EXISTS idx_active_sessions_course_class_week ON active_sessions(course_code, class_id, week_number);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_active_sessions_course_class_week ON active_sessions(course_code, class_id, week_number);
 
 -- 7. Attendance Records
 CREATE TABLE IF NOT EXISTS attendance_records (
@@ -109,7 +108,11 @@ CREATE TABLE IF NOT EXISTS attendance_records (
 CREATE INDEX IF NOT EXISTS idx_attendance_session ON attendance_records(session_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_session_index ON attendance_records(session_id, index_number);
 CREATE INDEX IF NOT EXISTS idx_attendance_fingerprint ON attendance_records(device_fingerprint_hash);
+CREATE INDEX IF NOT EXISTS idx_attendance_fingerprint_session ON attendance_records(device_fingerprint_hash, session_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_timestamp ON attendance_records(timestamp);
+
+-- Composite index for active sessions query (is_active + expires_at)
+CREATE INDEX IF NOT EXISTS idx_active_sessions_active_expires ON active_sessions(is_active, expires_at);
 
 -- 8. Password Reset Tokens
 CREATE TABLE IF NOT EXISTS password_reset_tokens (

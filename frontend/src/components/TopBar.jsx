@@ -1,18 +1,26 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useSearch } from '../context/SearchContext';
 import { useNavigate } from 'react-router-dom';
 import { MagnifyingGlass, Moon, Sun, CaretDown } from '@phosphor-icons/react';
 
-export default function TopBar() {
+function getUser() {
+  try {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  } catch {
+    return null;
+  }
+}
+
+export default React.memo(function TopBar() {
   const { theme, toggleTheme } = useTheme();
   const { searchQuery, setSearchQuery } = useSearch();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
+  const user = useMemo(getUser, []);
 
   useEffect(() => {
     function handleClick(e) {
@@ -87,4 +95,4 @@ export default function TopBar() {
       </div>
     </header>
   );
-}
+});

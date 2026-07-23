@@ -22,42 +22,42 @@ export default function Attend() {
   const [messageType, setMessageType] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const [campusValidating, setCampusValidating] = useState(false);
-  const [campusInfo, setCampusInfo] = useState(null);
-  const [campusError, setCampusError] = useState(null);
+  const [buildingValidating, setBuildingValidating] = useState(false);
+  const [buildingInfo, setBuildingInfo] = useState(null);
+  const [buildingError, setBuildingError] = useState(null);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (e.target.name === 'course_code' || e.target.name === 'pin') {
-      setCampusInfo(null);
-      setCampusError(null);
+      setBuildingInfo(null);
+      setBuildingError(null);
     }
   };
 
-  const validateCampus = useCallback(async () => {
+  const validateBuilding = useCallback(async () => {
     const { course_code, pin } = form;
     if (!course_code || !pin || pin.length < 4) return;
 
-    setCampusValidating(true);
-    setCampusError(null);
-    setCampusInfo(null);
+    setBuildingValidating(true);
+    setBuildingError(null);
+    setBuildingInfo(null);
 
     try {
-      const res = await api.get('/api/attendance/campus-info', {
+      const res = await api.get('/api/attendance/building-info', {
         params: { course_code, pin },
       });
-      setCampusInfo(res.data);
+      setBuildingInfo(res.data);
     } catch (err) {
       const errorMsg = err.response?.data?.error || 'Session not found.';
-      setCampusError(errorMsg);
+      setBuildingError(errorMsg);
     } finally {
-      setCampusValidating(false);
+      setBuildingValidating(false);
     }
   }, [form.course_code, form.pin]);
 
   const handleBlur = (e) => {
     if (e.target.name === 'pin' || e.target.name === 'course_code') {
-      validateCampus();
+      validateBuilding();
     }
   };
 
@@ -75,7 +75,7 @@ export default function Attend() {
     form.index_number &&
     form.course_code &&
     form.pin &&
-    campusInfo &&
+    buildingInfo &&
     !submitting &&
     !isLocallyLocked;
 
@@ -113,7 +113,7 @@ export default function Attend() {
       const sessionKey = { course_code: form.course_code, pin: form.pin };
       setSubmittedSessions([...submittedSessions, sessionKey]);
       setForm({ name: '', index_number: '', course_code: '', pin: '' });
-      setCampusInfo(null);
+      setBuildingInfo(null);
     } catch (err) {
       console.error('Attendance error:', err);
       const errorMsg =
@@ -226,22 +226,22 @@ export default function Attend() {
             </div>
           </div>
 
-          {campusValidating && (
-            <div className="attend-campus-status attend-campus-loading">
-              <span className="attend-campus-spinner" />
+          {buildingValidating && (
+            <div className="attend-building-status attend-building-loading">
+              <span className="attend-building-spinner" />
               Verifying session...
             </div>
           )}
-          {campusInfo && (
-            <div className="attend-campus-status attend-campus-ok">
+          {buildingInfo && (
+            <div className="attend-building-status attend-building-ok">
               <Check weight="bold" size={14} />
-              {campusInfo.campus_name} &middot; Week {campusInfo.week_number}
+              {buildingInfo.building_name} &middot; Week {buildingInfo.week_number}
             </div>
           )}
-          {campusError && (
-            <div className="attend-campus-status attend-campus-err">
+          {buildingError && (
+            <div className="attend-building-status attend-building-err">
               <XCircle weight="duotone" size={14} />
-              {campusError}
+              {buildingError}
             </div>
           )}
 

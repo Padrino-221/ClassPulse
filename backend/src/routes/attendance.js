@@ -19,19 +19,19 @@ const attendanceLimiter = rateLimit({
 });
 
 // ---- POST /check-in ----
-// Campus geofence + rolling PIN. No auth required for students.
+// Building geofence + rolling PIN. No auth required for students.
 router.post(
   '/check-in',
   attendanceLimiter,
   [
-    body('name').isString().trim().notEmpty(),
-    body('index_number').isString().trim().notEmpty(),
-    body('course_code').isString().trim().notEmpty(),
+    body('name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
+    body('index_number').isString().trim().isLength({ min: 1, max: 50 }).notEmpty(),
+    body('course_code').isString().trim().isLength({ min: 1, max: 20 }).notEmpty(),
     body('pin').isString().trim().isLength({ min: 4, max: 6 }),
     body('latitude').isFloat({ min: -90, max: 90 }),
     body('longitude').isFloat({ min: -180, max: 180 }),
-    body('accuracy').isFloat({ min: 0 }),
-    body('device_fingerprint').isString().notEmpty(),
+    body('accuracy').optional().isFloat({ min: 0 }),
+    body('device_fingerprint').isString().isLength({ min: 1, max: 512 }).notEmpty(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -42,6 +42,11 @@ router.post(
     const { name, index_number, course_code, pin, latitude, longitude, accuracy, device_fingerprint } = req.body;
 
     try {
+      // 0. Reject poor accuracy readings (only if provided)
+      if (accuracy !== undefined && parseFloat(accuracy) > 100) {
+        return res.status(400).json({ error: `GPS accuracy is too low (${Math.round(parseFloat(accuracy))}m). Move outdoors or near a window.` });
+      }
+
       // 1. Name-to-index validation against roster
       const studentCheck = await pool.query(
         'SELECT student_name FROM student_roster WHERE index_number = $1',
@@ -63,26 +68,26 @@ router.post(
         return res.status(404).json({ error: 'Session not found or expired.' });
       }
 
-      // 3. Campus geofence check
-      if (!session.campus_latitude || !session.campus_longitude || !session.campus_radius) {
-        console.error(`Session ${session.session_id} has no campus geofence configured.`);
-        return res.status(500).json({ error: 'Campus location not configured. Contact your lecturer.' });
+      // 3. Building geofence check
+      if (!session.building_latitude || !session.building_longitude || !session.building_radius) {
+        console.error(`Session ${session.session_id} has no building geofence configured.`);
+        return res.status(500).json({ error: 'Building location not configured. Contact your lecturer.' });
       }
 
       const { within, distance } = isWithinRange(
         parseFloat(latitude),
         parseFloat(longitude),
-        session.campus_latitude,
-        session.campus_longitude,
-        session.campus_radius
+        session.building_latitude,
+        session.building_longitude,
+        session.building_radius
       );
 
       if (!within) {
         console.log(
-          `Geofence reject: student ${index_number} is ${distance}m from campus (limit: ${session.campus_radius}m)`
+          `Geofence reject: student ${index_number} is ${distance}m from building (limit: ${session.building_radius}m)`
         );
         return res.status(403).json({
-          error: `You are ${distance}m from campus. Must be within ${session.campus_radius}m.`,
+          error: `You are ${distance}m from the building. Must be within ${session.building_radius}m.`,
         });
       }
 
@@ -116,7 +121,7 @@ router.post(
         message: 'Attendance recorded successfully.',
         record: insertResult.rows[0],
         session_id: session.session_id,
-        campus: session.campus_name,
+        building: session.building_name,
         distance,
       });
     } catch (err) {
@@ -129,9 +134,17 @@ router.post(
   }
 );
 
-// ---- GET /campus-info ----
-// Public endpoint: returns active session campus info for the attend page.
-router.get('/campus-info', async (req, res) => {
+// ---- GET /building-info ----
+// Public endpoint: returns active session building info for the attend page.
+const buildingInfoLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { error: 'Too many requests.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.get('/building-info', buildingInfoLimiter, async (req, res) => {
   const { course_code, pin } = req.query;
 
   if (!course_code || !pin) {
@@ -141,35 +154,35 @@ router.get('/campus-info', async (req, res) => {
   try {
     const session = sessionCache.findActiveByPinAndCourse(pin, course_code, validatePin);
 
-    if (!session || !session.campus_name) {
+    if (!session || !session.building_name) {
       return res.status(404).json({ error: 'No active session found.' });
     }
 
     res.json({
-      campus_name: session.campus_name,
+      building_name: session.building_name,
       course_code: session.course_code,
       week_number: session.week_number,
     });
   } catch (err) {
-    console.error('Campus info error:', err);
+    console.error('Building info error:', err);
     res.status(500).json({ error: 'Something went wrong.' });
   }
 });
 
 // ---- POST / (legacy) ----
-// Kept for backward compatibility. Uses campus geofence when available, falls back to session coords.
+// Kept for backward compatibility. Uses building geofence when available, falls back to session coords.
 router.post(
   '/',
   attendanceLimiter,
   [
-    body('name').isString().trim().notEmpty(),
-    body('index_number').isString().trim().notEmpty(),
-    body('course_code').isString().trim().notEmpty(),
+    body('name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
+    body('index_number').isString().trim().isLength({ min: 1, max: 50 }).notEmpty(),
+    body('course_code').isString().trim().isLength({ min: 1, max: 20 }).notEmpty(),
     body('pin').isString().trim().isLength({ min: 4, max: 6 }),
     body('latitude').isFloat({ min: -90, max: 90 }),
     body('longitude').isFloat({ min: -180, max: 180 }),
     body('accuracy').optional().isFloat({ min: 0 }),
-    body('device_fingerprint').isString().notEmpty(),
+    body('device_fingerprint').isString().isLength({ min: 1, max: 512 }).notEmpty(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -180,6 +193,11 @@ router.post(
     const { name, index_number, course_code, pin, latitude, longitude, accuracy, device_fingerprint } = req.body;
 
     try {
+      // Reject poor accuracy readings (GPS > 100m is unreliable) — only if provided
+      if (accuracy !== undefined && parseFloat(accuracy) > 100) {
+        return res.status(400).json({ error: `GPS accuracy is too low (${Math.round(parseFloat(accuracy))}m). Move outdoors or near a window.` });
+      }
+
       const studentCheck = await pool.query(
         'SELECT student_name FROM student_roster WHERE index_number = $1',
         [index_number]
@@ -199,10 +217,10 @@ router.post(
         return res.status(404).json({ error: 'Session not found or expired.' });
       }
 
-      // Use campus geofence if available, otherwise fall back to session coordinates
-      const refLat = session.campus_latitude || session.latitude;
-      const refLon = session.campus_longitude || session.longitude;
-      const refRadius = session.campus_radius || session.radius_meters || 400;
+      // Use building geofence if available, otherwise fall back to session coordinates
+      const refLat = session.building_latitude || session.latitude;
+      const refLon = session.building_longitude || session.longitude;
+      const refRadius = session.building_radius || session.radius_meters || 400;
 
       const { within, distance } = isWithinRange(
         parseFloat(latitude),
@@ -262,8 +280,8 @@ router.post(
   verifyToken('lecturer'),
   [
     body('session_id').isUUID(),
-    body('index_number').isString().trim().notEmpty(),
-    body('student_name').isString().trim().notEmpty(),
+    body('index_number').isString().trim().isLength({ min: 1, max: 50 }).notEmpty(),
+    body('student_name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
   ],
   async (req, res) => {
     const errors = validationResult(req);

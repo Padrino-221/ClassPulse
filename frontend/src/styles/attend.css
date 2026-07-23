@@ -8,6 +8,25 @@
   padding: 1rem;
   background: linear-gradient(155deg, #0730A3 0%, #05237E 40%, #031A5E 100%);
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+.attend-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M30 60h20c3 0 6 2 6 5v22c0-3-3-5-6-5H30V60z'/%3E%3Cpath d='M56 60h20c3 0 6 2 6 5v22c0-3-3-5-6-5H56V60z'/%3E%3Cpath d='M50 50v64'/%3E%3Cpath d='M130 32l-6 6 18 18 6-6c2-2 2-5 0-7l-12-12c-2-2-5-2-7 0z'/%3E%3Cpath d='M118 56l18 18'/%3E%3Cpath d='M260 48l-32-12-32 12 32 12z'/%3E%3Cpath d='M228 48v19c0 6 13 12 32 12s32-6 32-12V48'/%3E%3Cpath d='M284 48v16'/%3E%3Ccircle cx='200' cy='128' r='13'/%3E%3Cpath d='M193 141h14'/%3E%3Cpath d='M195 146h10'/%3E%3Cpath d='M188 118l-3-6'/%3E%3Cpath d='M212 118l3-6'/%3E%3Cpath d='M200 110v-6'/%3E%3Crect x='40' y='128' width='23' height='33' rx='2'/%3E%3Cline x1='45' y1='135' x2='58' y2='135'/%3E%3Cline x1='45' y1='140' x2='52' y2='140'/%3E%3Cline x1='45' y1='145' x2='56' y2='145'/%3E%3Cline x1='45' y1='150' x2='52' y2='150'/%3E%3Ccircle cx='112' cy='208' r='17'/%3E%3Cellipse cx='112' cy='208' rx='8' ry='17'/%3E%3Cline x1='95' y1='208' x2='129' y2='208'/%3E%3Cpath d='M97 199h30'/%3E%3Cpath d='M97 217h30'/%3E%3Ccircle cx='268' cy='192' r='3'/%3E%3Cellipse cx='268' cy='192' rx='23' ry='8'/%3E%3Cpath d='M48 248h65v7H48z'/%3E%3Cline x1='58' y1='248' x2='58' y2='252'/%3E%3Cline x1='68' y1='248' x2='68' y2='254'/%3E%3Cline x1='78' y1='248' x2='78' y2='252'/%3E%3Cline x1='88' y1='248' x2='88' y2='254'/%3E%3Cpath d='M200 268l-5 10-11 1-8 8 1-11-8-8 11-1z'/%3E%3Cpath d='M300 280l-3 7-8 1-6 6 1-8-6-6 8-1z'/%3E%3Cpath d='M148 280h17v-16l8-13h-33l8 13v16z'/%3E%3Cline x1='148' y1='287' x2='165' y2='287'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 320px 320px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.attend-page > * {
+  position: relative;
+  z-index: 1;
 }
 
 [data-theme='dark'] .attend-page {
@@ -217,8 +236,8 @@
   text-transform: uppercase;
 }
 
-/* Campus validation badge */
-.attend-campus-status {
+/* Building validation badge */
+.attend-building-status {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -228,22 +247,22 @@
   font-weight: 500;
 }
 
-.attend-campus-loading {
+.attend-building-loading {
   background: var(--warning-bg);
   color: var(--warning);
 }
 
-.attend-campus-ok {
+.attend-building-ok {
   background: var(--success-bg);
   color: var(--success);
 }
 
-.attend-campus-err {
+.attend-building-err {
   background: var(--error-bg);
   color: var(--error);
 }
 
-.attend-campus-spinner {
+.attend-building-spinner {
   width: 14px;
   height: 14px;
   border: 2px solid rgba(0, 0, 0, 0.15);

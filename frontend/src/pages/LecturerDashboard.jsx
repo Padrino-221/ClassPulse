@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Pulse, CheckCircle, BookOpen, Users } from '@phosphor-icons/react';
+import { Pulse, CheckCircle, BookOpen, Users, CalendarBlank } from '@phosphor-icons/react';
 import api from '../utils/api';
 import { useSearch } from '../context/SearchContext';
 import DashboardLayout from '../components/DashboardLayout';
@@ -8,9 +8,11 @@ import LiveTracker from '../components/LiveTracker';
 import ManualOverrideModal from '../components/ManualOverrideModal';
 import MultiSelect from '../components/MultiSelect';
 import Select from '../components/Select';
+import EmptyState from '../components/EmptyState';
 import Pagination from '../components/Pagination';
+import AlertModal from '../components/AlertModal';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 15;
 
 function RollingPinDisplay({ sessionId, pinSpinning }) {
   const [pin, setPin] = useState('');
@@ -55,14 +57,19 @@ function RollingPinDisplay({ sessionId, pinSpinning }) {
   }, [pinSpinning]);
 
   if (loading) {
-    return <div className="pin-card"><span className="pin-label">Session PIN</span><span className="pin-value">---</span></div>;
+    return (
+      <div className="pin-hero">
+        <span className="pin-hero-label">Session PIN</span>
+        <span className="pin-hero-value">---</span>
+      </div>
+    );
   }
 
   if (!pinSpinning) {
     return (
-      <div className="pin-card">
-        <span className="pin-label">Session PIN (static)</span>
-        <span className="pin-value">{pin}</span>
+      <div className="pin-hero">
+        <span className="pin-hero-label">Session PIN (static)</span>
+        <span className="pin-hero-value">{pin}</span>
       </div>
     );
   }
@@ -72,35 +79,19 @@ function RollingPinDisplay({ sessionId, pinSpinning }) {
   const barColor = secondsLeft <= 10 ? 'var(--error)' : secondsLeft <= 20 ? 'var(--warning)' : 'var(--brand)';
 
   return (
-    <div className="pin-card">
-      <span className="pin-label">Session PIN (rolling — refreshes every 60s)</span>
-      <span className="pin-value">{pin}</span>
-      <div style={{ marginTop: '0.75rem', width: '100%' }}>
-        <div style={{
-          width: '100%',
-          height: '6px',
-          background: 'var(--border-light)',
-          borderRadius: 'var(--radius-full)',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            width: `${barWidth}%`,
-            height: '100%',
-            background: barColor,
-            borderRadius: 'var(--radius-full)',
-            transition: 'width 1s linear, background 0.3s',
-          }} />
+    <div className="pin-hero">
+      <span className="pin-hero-label">Session PIN (rolling — refreshes every 60s)</span>
+      <span className="pin-hero-value">{pin}</span>
+      <div className="pin-hero-timer">
+        <div className="pin-hero-bar-track">
+          <div
+            className="pin-hero-bar-fill"
+            style={{ width: `${barWidth}%`, background: barColor }}
+          />
         </div>
-        <div style={{
-          textAlign: 'center',
-          marginTop: '0.375rem',
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          color: barColor,
-          fontVariantNumeric: 'tabular-nums',
-        }}>
+        <span className="pin-hero-countdown" style={{ color: barColor }}>
           {secondsLeft}s left
-        </div>
+        </span>
       </div>
     </div>
   );
@@ -110,7 +101,7 @@ export default function LecturerDashboard() {
   const { searchQuery } = useSearch();
   const [courses, setCourses] = useState([]);
   const [classes, setClasses] = useState([]);
-  const [campuses, setCampuses] = useState([]);
+  const [buildings, setBuildings] = useState([]);
   const [activeSessions, setActiveSessions] = useState([]);
   const [manualSessionId, setManualSessionId] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -121,25 +112,26 @@ export default function LecturerDashboard() {
     course_code: '',
     class_ids: [],
     week_number: '',
-    campus_id: '',
+    building_id: '',
     pin_spinning: true,
   });
   const [activating, setActivating] = useState(false);
   const [error, setError] = useState('');
+  const [alertMsg, setAlertMsg] = useState('');
 
   const loadData = useCallback(async (page) => {
     try {
-      const [coursesRes, classesRes, sessionsRes, campusesRes] = await Promise.all([
+      const [coursesRes, classesRes, sessionsRes, buildingsRes] = await Promise.all([
         api.get('/api/lecturer/courses'),
         api.get('/api/lecturer/classes'),
         api.get('/api/lecturer/sessions', { params: { limit: PAGE_SIZE, offset: ((page || 1) - 1) * PAGE_SIZE } }),
-        api.get('/api/lecturer/campuses'),
+        api.get('/api/lecturer/buildings'),
       ]);
       setCourses(coursesRes.data.courses);
       setClasses(classesRes.data.classes);
       setSessions(sessionsRes.data.sessions);
       setTotal(sessionsRes.data.total || 0);
-      setCampuses(campusesRes.data.campuses);
+      setBuildings(buildingsRes.data.buildings);
 
       const active = sessionsRes.data.sessions?.filter((s) => s.is_active) || [];
       setActiveSessions(active);
@@ -157,8 +149,8 @@ export default function LecturerDashboard() {
   };
 
   const activateSession = async () => {
-    if (!form.campus_id) {
-      setError('Select a campus.');
+    if (!form.building_id) {
+      setError('Select a building.');
       return;
     }
     if (form.class_ids.length === 0) {
@@ -172,13 +164,18 @@ export default function LecturerDashboard() {
         course_code: form.course_code,
         class_ids: form.class_ids,
         week_number: parseInt(form.week_number),
-        campus_id: parseInt(form.campus_id),
+        building_id: parseInt(form.building_id),
         pin_spinning: form.pin_spinning,
       });
       setForm((prev) => ({ ...prev, class_ids: [] }));
       loadData();
     } catch (err) {
-      setError(err.response?.data?.error || "Couldn't start session.");
+      const msg = err.response?.data?.error || "Couldn't start session.";
+      if (err.response?.status === 409) {
+        setAlertMsg(msg);
+      } else {
+        setError(msg);
+      }
     } finally {
       setActivating(false);
     }
@@ -278,10 +275,10 @@ export default function LecturerDashboard() {
                     <input type="number" name="week_number" min="1" max="52" value={form.week_number} onChange={handleChange} placeholder="e.g. 1" />
                   </div>
                   <div className="form-group">
-                    <label>Campus</label>
-                    <Select name="campus_id" value={form.campus_id} onChange={handleChange}>
-                      <option value="">Select Campus</option>
-                      {campuses.map((c) => (
+                    <label>Building</label>
+                    <Select name="building_id" value={form.building_id} onChange={handleChange}>
+                      <option value="">Select Building</option>
+                      {buildings.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
                         </option>
@@ -301,7 +298,7 @@ export default function LecturerDashboard() {
                 <button
                   className="submit-btn session-form-submit"
                   onClick={activateSession}
-                  disabled={activating || !form.course_code || form.class_ids.length === 0 || !form.week_number || !form.campus_id}
+                  disabled={activating || !form.course_code || form.class_ids.length === 0 || !form.week_number || !form.building_id}
                 >
                     {activating ? 'Starting...' : 'Start Session'}
                 </button>
@@ -326,11 +323,11 @@ export default function LecturerDashboard() {
                     <button className="btn-danger" onClick={() => deactivateSession(s.session_id)}>End</button>
                   </div>
                 </div>
-                <div className="session-active-body">
-                  <div className="session-active-pin">
+                <div className="session-active-body-stacked">
+                  <div className="session-active-pin-top">
                     <RollingPinDisplay sessionId={s.session_id} pinSpinning={s.pin_spinning !== false} />
                   </div>
-                  <div className="session-active-live">
+                  <div className="session-active-live-bottom">
                     <LiveTracker sessionId={s.session_id} />
                   </div>
                 </div>
@@ -359,7 +356,15 @@ export default function LecturerDashboard() {
               </thead>
               <tbody>
                 {filteredSessions.length === 0 && (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No sessions yet</td></tr>
+                  <tr><td colSpan={6}>
+                    <div className="entity-empty" style={{ padding: '2rem 1rem' }}>
+                      <div className="entity-empty-icon">
+                        <CalendarBlank weight="duotone" size={40} />
+                      </div>
+                      <div className="entity-empty-title">No sessions yet</div>
+                      <div className="entity-empty-desc">Your past sessions will appear here.</div>
+                    </div>
+                  </td></tr>
                 )}
                 {filteredSessions.map((s) => (
                   <tr key={s.session_id}>
@@ -388,6 +393,10 @@ export default function LecturerDashboard() {
           onClose={() => setManualSessionId(null)}
           onSuccess={() => { setManualSessionId(null); loadData(); }}
         />
+      )}
+
+      {alertMsg && (
+        <AlertModal type="warning" message={alertMsg} onClose={() => setAlertMsg('')} />
       )}
     </DashboardLayout>
   );
