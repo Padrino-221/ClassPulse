@@ -7,6 +7,7 @@ import SummaryCards from '../components/SummaryCards';
 import Select from '../components/Select';
 import { Users, Calendar, Pulse, CheckCircle, Warning, DownloadSimple, BookOpen } from '@phosphor-icons/react';
 import EmptyState from '../components/EmptyState';
+import Spinner from '../components/Spinner';
 
 export default function LecturerHistory() {
   const { searchQuery } = useSearch();
@@ -139,7 +140,7 @@ export default function LecturerHistory() {
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
             >
               <DownloadSimple weight="duotone" size={16} />
-              {exporting ? 'Exporting...' : 'Export'}
+              {exporting ? <><Spinner size={14} /> Exporting...</> : 'Export'}
             </button>
           </div>
           <div className="card-body">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import api from '../utils/api';
+import Spinner from '../components/Spinner';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -80,7 +81,7 @@ export default function ResetPassword() {
             />
           </div>
           <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? 'Resetting...' : 'Reset Password'}
+            {loading ? <><Spinner size={14} /> Resetting...</> : 'Reset Password'}
           </button>
         </form>
 

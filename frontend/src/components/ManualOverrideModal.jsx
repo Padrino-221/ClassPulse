@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '../utils/api';
+import Spinner from './Spinner';
 
 export default function ManualOverrideModal({ sessionId, onClose, onSuccess }) {
   const [form, setForm] = useState({ index_number: '', student_name: '' });
@@ -60,7 +61,7 @@ export default function ManualOverrideModal({ sessionId, onClose, onSuccess }) {
           </div>
           <div className="modal-actions">
             <button type="submit" className="submit-btn" disabled={loading}>
-              {loading ? 'Marking...' : 'Mark'}
+              {loading ? <><Spinner size={14} /> Marking...</> : 'Mark'}
             </button>
             <button type="button" className="btn-secondary" onClick={onClose}>
               Cancel
