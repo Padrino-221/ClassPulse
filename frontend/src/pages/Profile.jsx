@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { useToast } from '../components/Toast';
 import DashboardLayout from '../components/DashboardLayout';
+import Spinner from '../components/Spinner';
 import { User, ShieldCheck } from '@phosphor-icons/react';
 
 export default function Profile() {
@@ -109,7 +110,7 @@ export default function Profile() {
                   />
                 </div>
                 <button type="submit" className="submit-btn" disabled={saving} style={{ width: 'auto' }}>
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {saving ? <><Spinner size={14} /> Saving...</> : 'Save Changes'}
                 </button>
               </form>
             </div>
@@ -163,7 +164,7 @@ export default function Profile() {
                   />
                 </div>
                 <button type="submit" className="submit-btn" disabled={changingPw} style={{ width: 'auto' }}>
-                  {changingPw ? 'Changing...' : 'Change Password'}
+                  {changingPw ? <><Spinner size={14} /> Changing...</> : 'Change Password'}
                 </button>
               </form>
             </div>

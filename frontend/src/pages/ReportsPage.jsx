@@ -3,6 +3,7 @@ import { ArrowLineUp, CalendarBlank, Users, GraduationCap, Download } from '@pho
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
 import api from '../utils/api';
 import Select from '../components/Select';
+import Spinner from '../components/Spinner';
 import { useToast } from '../components/Toast';
 
 const BRAND = '#0730A3';
@@ -109,6 +110,7 @@ export default function ReportsPage() {
   const [selectedClass, setSelectedClass] = useState('');
   const [summary, setSummary] = useState(null);
   const [weekly, setWeekly] = useState([]);
+  const [exporting, setExporting] = useState(false);
 
   const loadFilters = useCallback(async () => {
     try {
@@ -151,6 +153,7 @@ export default function ReportsPage() {
   }, [loadSummary, loadWeekly]);
 
   const handleExport = () => {
+    setExporting(true);
     const params = new URLSearchParams();
     if (selectedCourse) params.set('course_code', selectedCourse);
     if (selectedClass) params.set('class_id', selectedClass);
@@ -170,7 +173,8 @@ export default function ReportsPage() {
         URL.revokeObjectURL(a.href);
         toast.success('Report downloaded.');
       })
-      .catch(() => toast.error('Export failed.'));
+      .catch(() => toast.error('Export failed.'))
+      .finally(() => setExporting(false));
   };
 
   const overall = summary?.overall || {};
@@ -207,9 +211,9 @@ export default function ReportsPage() {
             </Select>
           </div>
         </div>
-        <button className="btn-secondary report-export-btn" onClick={handleExport}>
+        <button className="btn-secondary report-export-btn" onClick={handleExport} disabled={exporting}>
           <Download weight="duotone" size={16} />
-          Export CSV
+          {exporting ? <><Spinner size={14} /> Exporting...</> : 'Export CSV'}
         </button>
       </div>
 

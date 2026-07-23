@@ -11,6 +11,7 @@ import Select from '../components/Select';
 import EmptyState from '../components/EmptyState';
 import Pagination from '../components/Pagination';
 import AlertModal from '../components/AlertModal';
+import Spinner from '../components/Spinner';
 
 const PAGE_SIZE = 15;
 
@@ -300,7 +301,7 @@ export default function LecturerDashboard() {
                   onClick={activateSession}
                   disabled={activating || !form.course_code || form.class_ids.length === 0 || !form.week_number || !form.building_id}
                 >
-                    {activating ? 'Starting...' : 'Start Session'}
+                    {activating ? <><Spinner size={14} /> Starting...</> : 'Start Session'}
                 </button>
               </div>
             </div>

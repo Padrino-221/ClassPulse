@@ -11,6 +11,7 @@ import {
   BookOpen, Users, UserCheck, GraduationCap, MapPin, Plus, PencilSimple, Trash, MagnifyingGlass,
 } from '@phosphor-icons/react';
 import ReportsPage from './ReportsPage';
+import Spinner from '../components/Spinner';
 
 const PAGE_SIZE = 20;
 
@@ -94,7 +95,7 @@ function EditModal({ entityLabel, fields, data, onSave, onClose }) {
           ))}
           <div className="modal-actions">
             <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="submit-btn" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+            <button type="submit" className="submit-btn" disabled={saving}>{saving ? <><Spinner size={14} /> Saving...</> : 'Save Changes'}</button>
           </div>
         </form>
       </div>

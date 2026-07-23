@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
+import Spinner from '../components/Spinner';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -46,7 +47,7 @@ export default function ForgotPassword() {
             />
           </div>
           <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? 'Sending...' : 'Send Reset Link'}
+            {loading ? <><Spinner size={14} /> Sending...</> : 'Send Reset Link'}
           </button>
         </form>
 
