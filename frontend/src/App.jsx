@@ -10,6 +10,7 @@ const LecturerDashboard = React.lazy(() => import('./pages/LecturerDashboard'));
 const LecturerHistory = React.lazy(() => import('./pages/LecturerHistory'));
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
 const Profile = React.lazy(() => import('./pages/Profile'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
 
 function PageLoader() {
   return (
@@ -68,7 +69,7 @@ export default function App() {
           }
         />
         <Route path="/" element={<Navigate to="/attend" replace />} />
-        <Route path="*" element={<Navigate to="/attend" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   );
