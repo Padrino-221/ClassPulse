@@ -13,12 +13,33 @@ const WARNING = '#D97706';
 
 function StatCard({ icon, label, value, sub }) {
   return (
-    <div className="report-stat-card">
-      <div className="report-stat-icon">{icon}</div>
-      <div className="report-stat-body">
-        <div className="report-stat-value">{value}</div>
-        <div className="report-stat-label">{label}</div>
-        {sub && <div className="report-stat-sub">{sub}</div>}
+    <div style={{
+      background: '#fff',
+      borderRadius: '12px',
+      padding: '1.5rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '1rem',
+      border: '1px solid #f0f0f0',
+    }}>
+      <div style={{
+        width: '48px',
+        height: '48px',
+        borderRadius: '12px',
+        background: '#eff6ff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: BRAND,
+        flexShrink: 0,
+      }}>
+        {icon}
+      </div>
+      <div>
+        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1a1a2e', lineHeight: 1.2 }}>{value}</div>
+        <div style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 500, marginTop: '2px' }}>{label}</div>
+        {sub && <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '2px' }}>{sub}</div>}
       </div>
     </div>
   );
@@ -27,8 +48,14 @@ function StatCard({ icon, label, value, sub }) {
 function CourseBarChart({ data }) {
   if (data.length === 0) return null;
   return (
-    <div className="report-chart-card">
-      <h4>Attendance by Course</h4>
+    <div style={{
+      background: '#fff',
+      borderRadius: '12px',
+      padding: '1.5rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+      border: '1px solid #f0f0f0',
+    }}>
+      <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 600, color: '#1a1a2e' }}>Attendance by Course</h4>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data} layout="vertical" margin={{ left: 20, right: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
@@ -45,8 +72,14 @@ function CourseBarChart({ data }) {
 function ClassBarChart({ data }) {
   if (data.length === 0) return null;
   return (
-    <div className="report-chart-card">
-      <h4>Attendance by Class</h4>
+    <div style={{
+      background: '#fff',
+      borderRadius: '12px',
+      padding: '1.5rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+      border: '1px solid #f0f0f0',
+    }}>
+      <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 600, color: '#1a1a2e' }}>Attendance by Class</h4>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data} layout="vertical" margin={{ left: 20, right: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
@@ -74,8 +107,14 @@ function WeeklyLineChart({ data }) {
   const colors = [BRAND, SUCCESS, WARNING, '#8B5CF6', '#EC4899', '#06B6D4'];
 
   return (
-    <div className="report-chart-card">
-      <h4>Weekly Attendance Trend</h4>
+    <div style={{
+      background: '#fff',
+      borderRadius: '12px',
+      padding: '1.5rem',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+      border: '1px solid #f0f0f0',
+    }}>
+      <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 600, color: '#1a1a2e' }}>Weekly Attendance Trend</h4>
       <ResponsiveContainer width="100%" height={320}>
         <LineChart data={data} margin={{ left: 10, right: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
@@ -183,16 +222,28 @@ export default function ReportsPage() {
     : 0;
 
   return (
-    <div>
-      <div className="page-header">
-        <div className="page-title">Reports</div>
-        <div className="page-subtitle">Attendance summary across courses and classes.</div>
+    <div style={{ padding: '0', maxWidth: '1200px' }}>
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1a1a2e', marginBottom: '0.25rem' }}>Reports</div>
+        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Attendance summary across courses and classes.</div>
       </div>
 
       {/* Filters + Export */}
-      <div className="report-filters">
-        <div className="report-filter-group">
-          <div className="form-group" style={{ marginBottom: 0, minWidth: 180 }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        background: '#fff',
+        borderRadius: '12px',
+        padding: '1rem 1.25rem',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+        border: '1px solid #f0f0f0',
+        marginBottom: '1.25rem',
+      }}>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', flex: 1 }}>
+          <div className="form-group" style={{ marginBottom: 0, minWidth: 180, flex: 1 }}>
             <label>Course</label>
             <Select value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)}>
               <option value="">All Courses</option>
@@ -201,7 +252,7 @@ export default function ReportsPage() {
               ))}
             </Select>
           </div>
-          <div className="form-group" style={{ marginBottom: 0, minWidth: 180 }}>
+          <div className="form-group" style={{ marginBottom: 0, minWidth: 180, flex: 1 }}>
             <label>Class</label>
             <Select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
               <option value="">All Classes</option>
@@ -211,20 +262,52 @@ export default function ReportsPage() {
             </Select>
           </div>
         </div>
-        <button className="btn-secondary report-export-btn" onClick={handleExport} disabled={exporting}>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.5rem 1rem',
+            background: '#fff',
+            color: BRAND,
+            border: `1px solid ${BRAND}`,
+            borderRadius: '8px',
+            fontWeight: 600,
+            fontSize: '0.8125rem',
+            cursor: exporting ? 'not-allowed' : 'pointer',
+            opacity: exporting ? 0.7 : 1,
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+          }}
+        >
           <Download weight="duotone" size={16} />
           {exporting ? <><Spinner size={14} /> Exporting...</> : 'Export CSV'}
         </button>
       </div>
 
       {loading ? (
-        <div className="entity-empty" style={{ padding: '3rem 1rem' }}>
-          <div className="entity-empty-title">Loading report data...</div>
+        <div style={{
+          background: '#fff',
+          borderRadius: '12px',
+          padding: '3rem',
+          textAlign: 'center',
+          color: '#6b7280',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+          border: '1px solid #f0f0f0',
+        }}>
+          Loading report data...
         </div>
       ) : (
         <>
           {/* Summary Cards */}
-          <div className="report-stats-grid">
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '1rem',
+            marginBottom: '1.25rem',
+          }}>
             <StatCard
               icon={<CalendarBlank weight="duotone" size={22} />}
               label="Total Sessions"
@@ -249,58 +332,76 @@ export default function ReportsPage() {
           </div>
 
           {/* Charts */}
-          <div className="report-charts-grid">
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '1.25rem',
+            marginBottom: '1.25rem',
+          }}>
             <CourseBarChart data={summary?.courses || []} />
             <ClassBarChart data={summary?.classes || []} />
           </div>
 
-          <WeeklyLineChart data={weekly} />
+          <div style={{ marginBottom: '1.25rem' }}>
+            <WeeklyLineChart data={weekly} />
+          </div>
 
           {/* Per-Class Table */}
-          <div className="card" style={{ marginTop: '1.25rem' }}>
-            <div className="card-header">
-              <h3>Per-Class Breakdown</h3>
+          <div style={{
+            background: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            border: '1px solid #f0f0f0',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '1rem 1.5rem',
+              borderBottom: '1px solid #f0f0f0',
+            }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#1a1a2e' }}>Per-Class Breakdown</h3>
             </div>
-            <div className="card-body">
-              <div className="table-container">
-                <table className="matrix-table">
-                  <thead>
+            <div style={{ padding: '0', overflowX: 'auto' }}>
+              <table className="matrix-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>Class</th>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>Students</th>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>Sessions</th>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>Check-ins</th>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>Avg Attendance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(summary?.classes || []).length === 0 && (
                     <tr>
-                      <th>Class</th>
-                      <th>Students</th>
-                      <th>Sessions</th>
-                      <th>Check-ins</th>
-                      <th>Avg Attendance</th>
+                      <td colSpan={5} style={{ padding: '2rem 1.5rem', textAlign: 'center', color: '#6b7280' }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>No data available</div>
+                        <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.25rem' }}>Create sessions and record attendance to see reports.</div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {(summary?.classes || []).length === 0 && (
-                      <tr>
-                        <td colSpan={5}>
-                          <div className="entity-empty" style={{ padding: '2rem 1rem' }}>
-                            <div className="entity-empty-title">No data available</div>
-                            <div className="entity-empty-desc">Create sessions and record attendance to see reports.</div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                    {(summary?.classes || []).map((c) => (
-                      <tr key={c.class_id}>
-                        <td>{c.class_name}</td>
-                        <td>{c.total_students}</td>
-                        <td>{c.total_sessions}</td>
-                        <td>{c.total_checkins}</td>
-                        <td>
-                          <span className={`badge ${c.avg_attendance_pct >= 70 ? 'badge-success' : c.avg_attendance_pct >= 50 ? 'badge-warning' : ''}`}
-                            style={c.avg_attendance_pct < 50 ? { background: 'var(--error-bg)', color: 'var(--error)' } : {}}>
-                            {c.avg_attendance_pct}%
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  )}
+                  {(summary?.classes || []).map((c) => (
+                    <tr key={c.class_id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: '#1a1a2e', fontWeight: 500 }}>{c.class_name}</td>
+                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: '#374151' }}>{c.total_students}</td>
+                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: '#374151' }}>{c.total_sessions}</td>
+                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: '#374151' }}>{c.total_checkins}</td>
+                      <td style={{ padding: '0.75rem 1.5rem' }}>
+                        <span className={`badge ${c.avg_attendance_pct >= 70 ? 'badge-success' : c.avg_attendance_pct >= 50 ? 'badge-warning' : ''}`}
+                          style={{
+                            ...(c.avg_attendance_pct < 50 ? { background: 'var(--error-bg)', color: 'var(--error)' } : {}),
+                            padding: '0.25rem 0.625rem',
+                            borderRadius: '6px',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                          }}>
+                          {c.avg_attendance_pct}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </>

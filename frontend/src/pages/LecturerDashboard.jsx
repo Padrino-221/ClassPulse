@@ -57,40 +57,84 @@ function RollingPinDisplay({ sessionId, pinSpinning }) {
     };
   }, [pinSpinning]);
 
+  const barWidth = expiresIn > 0 ? ((expiresIn / 60000) * 100) : 0;
+  const secondsLeft = Math.ceil(expiresIn / 1000);
+
+  const pinLabel = loading
+    ? 'Session PIN'
+    : !pinSpinning
+      ? 'Session PIN (static)'
+      : 'Session PIN (rolling — refreshes every 60s)';
+
   if (loading) {
     return (
-      <div className="pin-hero">
-        <span className="pin-hero-label">Session PIN</span>
-        <span className="pin-hero-value">---</span>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '2rem 1.5rem',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: '16px',
+        color: '#fff',
+      }}>
+        <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.85, marginBottom: '0.75rem' }}>
+          {pinLabel}
+        </span>
+        <span style={{ fontSize: '3rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.15em' }}>---</span>
       </div>
     );
   }
 
   if (!pinSpinning) {
     return (
-      <div className="pin-hero">
-        <span className="pin-hero-label">Session PIN (static)</span>
-        <span className="pin-hero-value">{pin}</span>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '2rem 1.5rem',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: '16px',
+        color: '#fff',
+      }}>
+        <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.85, marginBottom: '0.75rem' }}>
+          {pinLabel}
+        </span>
+        <span style={{ fontSize: '3rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.15em' }}>{pin}</span>
       </div>
     );
   }
 
-  const barWidth = expiresIn > 0 ? ((expiresIn / 60000) * 100) : 0;
-  const secondsLeft = Math.ceil(expiresIn / 1000);
-  const barColor = secondsLeft <= 10 ? 'var(--error)' : secondsLeft <= 20 ? 'var(--warning)' : 'var(--brand)';
+  const barColor = secondsLeft <= 10 ? '#ef4444' : secondsLeft <= 20 ? '#f59e0b' : '#667eea';
 
   return (
-    <div className="pin-hero">
-      <span className="pin-hero-label">Session PIN (rolling — refreshes every 60s)</span>
-      <span className="pin-hero-value">{pin}</span>
-      <div className="pin-hero-timer">
-        <div className="pin-hero-bar-track">
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      padding: '2rem 1.5rem',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      borderRadius: '16px',
+      color: '#fff',
+    }}>
+      <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.85, marginBottom: '0.75rem' }}>
+        {pinLabel}
+      </span>
+      <span style={{ fontSize: '3rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.15em' }}>
+        {pin}
+      </span>
+      <div style={{ width: '100%', marginTop: '1rem' }}>
+        <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.2)', borderRadius: '3px', overflow: 'hidden' }}>
           <div
-            className="pin-hero-bar-fill"
-            style={{ width: `${barWidth}%`, background: barColor }}
+            style={{
+              width: `${barWidth}%`,
+              height: '100%',
+              background: barColor,
+              borderRadius: '3px',
+              transition: 'width 1s linear',
+            }}
           />
         </div>
-        <span className="pin-hero-countdown" style={{ color: barColor }}>
+        <span style={{ display: 'block', textAlign: 'center', marginTop: '0.5rem', fontSize: '0.85rem', color: barColor, fontWeight: 600 }}>
           {secondsLeft}s left
         </span>
       </div>
@@ -239,20 +283,73 @@ export default function LecturerDashboard() {
 
   const hasActive = activeSessions.length > 0;
 
+  const cardStyle = {
+    background: '#fff',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
+    border: '1px solid #e5e7eb',
+    overflow: 'hidden',
+  };
+
+  const cardHeaderStyle = {
+    padding: '1.25rem 1.5rem',
+    borderBottom: '1px solid #f3f4f6',
+  };
+
+  const cardBodyStyle = {
+    padding: '1.5rem',
+  };
+
+  const labelStyle = {
+    display: 'block',
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: '#374151',
+    marginBottom: '0.4rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+  };
+
+  const inputStyle = {
+    width: '100%',
+    padding: '0.6rem 0.85rem',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    fontSize: '0.9rem',
+    color: '#111827',
+    background: '#fff',
+    outline: 'none',
+    transition: 'border-color 0.15s',
+  };
+
   return (
     <DashboardLayout>
-      {error && <div className="message error">{error}</div>}
+      {error && (
+        <div style={{
+          background: '#fef2f2',
+          color: '#991b1b',
+          border: '1px solid #fecaca',
+          borderRadius: '10px',
+          padding: '0.85rem 1.25rem',
+          marginBottom: '1.25rem',
+          fontSize: '0.9rem',
+          fontWeight: 500,
+        }}>
+          {error}
+        </div>
+      )}
 
       {!hasActive ? (
         <>
           <SummaryCards cards={summaryCards} />
-          <div className="card session-form-card">
-              <div className="card-header">
-                  <h3>New Session</h3>
-              </div>
-              <div className="card-body session-form-stack">
-                <div className="form-group">
-                  <label>Course</label>
+          <div style={{ ...cardStyle, marginTop: '1.25rem' }}>
+            <div style={cardHeaderStyle}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#111827' }}>New Session</h3>
+            </div>
+            <div style={cardBodyStyle}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem', maxWidth: '600px' }}>
+                <div>
+                  <label style={labelStyle}>Course</label>
                   <Select name="course_code" value={form.course_code} onChange={handleChange}>
                     <option value="">Select Course</option>
                     {courses.map((c) => (
@@ -262,7 +359,7 @@ export default function LecturerDashboard() {
                     ))}
                   </Select>
                 </div>
-                <div className="form-group">
+                <div>
                   <MultiSelect
                     label="Classes"
                     options={classes.map((c) => ({ value: c.class_id, label: c.class_name }))}
@@ -270,13 +367,22 @@ export default function LecturerDashboard() {
                     onChange={(val) => setForm((prev) => ({ ...prev, class_ids: val }))}
                   />
                 </div>
-                <div className="form-row">
-                  <div className="form-group" style={{ flex: '0 0 100px' }}>
-                    <label>Week</label>
-                    <input type="number" name="week_number" min="1" max="52" value={form.week_number} onChange={handleChange} placeholder="e.g. 1" />
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div style={{ flex: '0 0 120px' }}>
+                    <label style={labelStyle}>Week</label>
+                    <input
+                      type="number"
+                      name="week_number"
+                      min="1"
+                      max="52"
+                      value={form.week_number}
+                      onChange={handleChange}
+                      placeholder="e.g. 1"
+                      style={inputStyle}
+                    />
                   </div>
-                  <div className="form-group">
-                    <label>Building</label>
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Building</label>
                     <Select name="building_id" value={form.building_id} onChange={handleChange}>
                       <option value="">Select Building</option>
                       {buildings.map((c) => (
@@ -287,48 +393,140 @@ export default function LecturerDashboard() {
                     </Select>
                   </div>
                 </div>
-                <label className="toggle-row">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', marginTop: '0.25rem' }}>
                   <input
                     type="checkbox"
                     checked={form.pin_spinning}
                     onChange={(e) => setForm((prev) => ({ ...prev, pin_spinning: e.target.checked }))}
+                    style={{ width: '18px', height: '18px', accentColor: '#667eea' }}
                   />
-                  <span className="toggle-track" />
-                  <span className="toggle-label">Rolling PIN</span>
+                  <span style={{ fontSize: '0.9rem', color: '#374151', fontWeight: 500 }}>Rolling PIN</span>
                 </label>
                 <button
-                  className="submit-btn session-form-submit"
                   onClick={activateSession}
                   disabled={activating || !form.course_code || form.class_ids.length === 0 || !form.week_number || !form.building_id}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    padding: '0.7rem 1.5rem',
+                    background: activating || !form.course_code || form.class_ids.length === 0 || !form.week_number || !form.building_id ? '#93c5fd' : '#3b82f6',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    cursor: activating || !form.course_code || form.class_ids.length === 0 || !form.week_number || !form.building_id ? 'not-allowed' : 'pointer',
+                    transition: 'background 0.15s',
+                    marginTop: '0.5rem',
+                    alignSelf: 'flex-start',
+                  }}
                 >
-                    {activating ? <><Spinner size={14} /> Starting...</> : 'Start Session'}
+                  {activating ? <><Spinner size={14} /> Starting...</> : 'Start Session'}
                 </button>
               </div>
             </div>
+          </div>
         </>
       ) : (
         <>
           <SummaryCards cards={summaryCards} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1.25rem' }}>
             {activeSessions.map((s) => (
-              <div key={s.session_id} className="card active-session-card">
-                <div className="session-active-header">
-                  <div className="session-active-info">
-                    <span className="session-active-title">{s.course_code} &middot; {s.class_name}</span>
-                    <span className="session-active-chip">Week {s.week_number}</span>
-                    <span className="session-active-chip">Ends {new Date(s.expires_at).toLocaleTimeString()}</span>
-                    {s.pin_spinning === false && <span className="session-active-chip chip-static">Static PIN</span>}
+              <div key={s.session_id} style={cardStyle}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '1rem 1.5rem',
+                  borderBottom: '1px solid #f3f4f6',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#111827' }}>
+                      {s.course_code} &middot; {s.class_name}
+                    </span>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '0.2rem 0.65rem',
+                      background: '#eff6ff',
+                      color: '#3b82f6',
+                      borderRadius: '20px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                    }}>
+                      Week {s.week_number}
+                    </span>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '0.2rem 0.65rem',
+                      background: '#f3f4f6',
+                      color: '#6b7280',
+                      borderRadius: '20px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                    }}>
+                      Ends {new Date(s.expires_at).toLocaleTimeString()}
+                    </span>
+                    {s.pin_spinning === false && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '0.2rem 0.65rem',
+                        background: '#fef3c7',
+                        color: '#92400e',
+                        borderRadius: '20px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                      }}>
+                        Static PIN
+                      </span>
+                    )}
                   </div>
-                  <div className="session-active-actions">
-                    <button className="btn-secondary" onClick={() => setManualSessionId(s.session_id)}>Manual</button>
-                    <button className="btn-danger" onClick={() => deactivateSession(s.session_id)}>End</button>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      onClick={() => setManualSessionId(s.session_id)}
+                      style={{
+                        padding: '0.45rem 1rem',
+                        background: '#f3f4f6',
+                        color: '#374151',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      Manual
+                    </button>
+                    <button
+                      onClick={() => deactivateSession(s.session_id)}
+                      style={{
+                        padding: '0.45rem 1rem',
+                        background: '#ef4444',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      End
+                    </button>
                   </div>
                 </div>
-                <div className="session-active-body-stacked">
-                  <div className="session-active-pin-top">
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: '1.5rem' }}>
                     <RollingPinDisplay sessionId={s.session_id} pinSpinning={s.pin_spinning !== false} />
                   </div>
-                  <div className="session-active-live-bottom">
+                  <div style={{ borderTop: '1px solid #f3f4f6' }}>
                     <LiveTracker sessionId={s.session_id} />
                   </div>
                 </div>
@@ -338,53 +536,84 @@ export default function LecturerDashboard() {
         </>
       )}
 
-      <div className="card" style={{ marginTop: '1.25rem' }}>
-        <div className="card-header">
-          <h3>Past Sessions</h3>
+      <div style={{ ...cardStyle, marginTop: '1.25rem' }}>
+        <div style={cardHeaderStyle}>
+          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#111827' }}>Past Sessions</h3>
         </div>
-        <div className="card-body">
-          <div className="table-container">
-            <table className="matrix-table">
+        <div style={cardBodyStyle}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
               <thead>
                 <tr>
-                  <th>Course</th>
-                  <th>Class</th>
-                  <th>Week</th>
-                  <th>Status</th>
-                  <th>Marked</th>
-                  <th>Date</th>
+                  {['Course', 'Class', 'Week', 'Status', 'Marked', 'Date'].map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        textAlign: 'left',
+                        padding: '0.75rem 1rem',
+                        borderBottom: '2px solid #e5e7eb',
+                        color: '#6b7280',
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {filteredSessions.length === 0 && (
-                  <tr><td colSpan={6}>
-                    <div className="entity-empty" style={{ padding: '2rem 1rem' }}>
-                      <div className="entity-empty-icon">
-                        <CalendarBlank weight="duotone" size={40} />
+                  <tr>
+                    <td colSpan={6}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3rem 1rem', color: '#9ca3af' }}>
+                        <CalendarBlank weight="duotone" size={40} style={{ marginBottom: '0.75rem', opacity: 0.5 }} />
+                        <div style={{ fontWeight: 600, color: '#6b7280', marginBottom: '0.25rem' }}>No sessions yet</div>
+                        <div style={{ fontSize: '0.85rem' }}>Your past sessions will appear here.</div>
                       </div>
-                      <div className="entity-empty-title">No sessions yet</div>
-                      <div className="entity-empty-desc">Your past sessions will appear here.</div>
-                    </div>
-                  </td></tr>
+                    </td>
+                  </tr>
                 )}
-                {filteredSessions.map((s) => (
-                  <tr key={s.session_id}>
-                    <td>{s.course_code}</td>
-                    <td>{s.class_name}</td>
-                    <td>Week {s.week_number}</td>
-                    <td>
-                      <span className={`badge ${s.is_active ? 'badge-success' : ''}`}>
+                {filteredSessions.map((s, idx) => (
+                  <tr
+                    key={s.session_id}
+                    style={{
+                      background: idx % 2 === 0 ? '#fff' : '#fafbfc',
+                      transition: 'background 0.1s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f0f4ff'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = idx % 2 === 0 ? '#fff' : '#fafbfc'}
+                  >
+                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f3f4f6', color: '#111827', fontWeight: 500 }}>{s.course_code}</td>
+                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{s.class_name}</td>
+                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>Week {s.week_number}</td>
+                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f3f4f6' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '0.2rem 0.6rem',
+                        borderRadius: '20px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        background: s.is_active ? '#dcfce7' : '#f3f4f6',
+                        color: s.is_active ? '#166534' : '#6b7280',
+                      }}>
                         {s.is_active ? 'Active' : 'Closed'}
                       </span>
                     </td>
-                    <td>{s.attendance_count}</td>
-                    <td>{new Date(s.created_at).toLocaleDateString()}</td>
+                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{s.attendance_count}</td>
+                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f3f4f6', color: '#6b7280' }}>{new Date(s.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <Pagination page={sessionPage} totalPages={totalPages} onPageChange={handleSessionPageChange} />
+          <div style={{ marginTop: '1rem' }}>
+            <Pagination page={sessionPage} totalPages={totalPages} onPageChange={handleSessionPageChange} />
+          </div>
         </div>
       </div>
 

@@ -76,94 +76,231 @@ export default function Profile() {
 
   return (
     <DashboardLayout>
-      <div className="workspace-grid single">
-        <div className="page-header">
-          <div className="page-title">My Profile</div>
-          <div className="page-subtitle">Manage your account settings.</div>
+      <div style={{ maxWidth: '1000px' }}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1a1a2e', marginBottom: '0.25rem' }}>My Profile</div>
+          <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Manage your account settings.</div>
         </div>
 
-        <div className="profile-grid">
-          <div className="card">
-            <div className="card-header">
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <User weight="duotone" size={18} /> Personal Information
-              </h3>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '1.5rem',
+          alignItems: 'start',
+        }}>
+          {/* Personal Information */}
+          <div style={{
+            background: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            border: '1px solid #f0f0f0',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '1rem 1.5rem',
+              borderBottom: '1px solid #f0f0f0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}>
+              <User weight="duotone" size={18} style={{ color: BRAND }} />
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#1a1a2e' }}>Personal Information</h3>
             </div>
-            <div className="card-body">
+            <div style={{ padding: '1.5rem' }}>
               <form onSubmit={handleSaveProfile}>
-                <div className="form-group">
-                  <label>Full Name</label>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#374151' }}>Full Name</label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: '8px',
+                      border: '1px solid #d1d5db',
+                      fontSize: '0.875rem',
+                      outline: 'none',
+                      transition: 'border-color 0.15s ease',
+                      boxSizing: 'border-box',
+                    }}
                   />
                 </div>
-                <div className="form-group">
-                  <label>Email</label>
+                <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#374151' }}>Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: '8px',
+                      border: '1px solid #d1d5db',
+                      fontSize: '0.875rem',
+                      outline: 'none',
+                      transition: 'border-color 0.15s ease',
+                      boxSizing: 'border-box',
+                    }}
                   />
                 </div>
-                <button type="submit" className="submit-btn" disabled={saving} style={{ width: 'auto' }}>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.5rem 1.25rem',
+                    background: BRAND,
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    fontSize: '0.8125rem',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    opacity: saving ? 0.7 : 1,
+                    transition: 'all 0.15s ease',
+                  }}
+                >
                   {saving ? <><Spinner size={14} /> Saving...</> : 'Save Changes'}
                 </button>
               </form>
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-header">
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShieldCheck weight="duotone" size={18} /> Change Password
-              </h3>
+          {/* Change Password */}
+          <div style={{
+            background: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            border: '1px solid #f0f0f0',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '1rem 1.5rem',
+              borderBottom: '1px solid #f0f0f0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}>
+              <ShieldCheck weight="duotone" size={18} style={{ color: BRAND }} />
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#1a1a2e' }}>Change Password</h3>
             </div>
-            <div className="card-body">
+            <div style={{ padding: '1.5rem' }}>
               <form onSubmit={handleChangePassword}>
-                <div className="form-group">
-                  <label>Current Password</label>
-                  <div className="password-field">
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#374151' }}>Current Password</label>
+                  <div className="password-field" style={{ position: 'relative' }}>
                     <input
                       type={showCurrent ? 'text' : 'password'}
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       required
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '8px',
+                        border: '1px solid #d1d5db',
+                        fontSize: '0.875rem',
+                        outline: 'none',
+                        transition: 'border-color 0.15s ease',
+                        boxSizing: 'border-box',
+                      }}
                     />
-                    <button type="button" className="password-toggle" onClick={() => setShowCurrent((p) => !p)}>
+                    <button type="button" onClick={() => setShowCurrent((p) => !p)} style={{
+                      position: 'absolute',
+                      right: '0.5rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: '#6b7280',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      fontWeight: 500,
+                    }}>
                       {showCurrent ? 'Hide' : 'Show'}
                     </button>
                   </div>
                 </div>
-                <div className="form-group">
-                  <label>New Password</label>
-                  <div className="password-field">
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#374151' }}>New Password</label>
+                  <div className="password-field" style={{ position: 'relative' }}>
                     <input
                       type={showNew ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       minLength={6}
                       required
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '8px',
+                        border: '1px solid #d1d5db',
+                        fontSize: '0.875rem',
+                        outline: 'none',
+                        transition: 'border-color 0.15s ease',
+                        boxSizing: 'border-box',
+                      }}
                     />
-                    <button type="button" className="password-toggle" onClick={() => setShowNew((p) => !p)}>
+                    <button type="button" onClick={() => setShowNew((p) => !p)} style={{
+                      position: 'absolute',
+                      right: '0.5rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: '#6b7280',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      fontWeight: 500,
+                    }}>
                       {showNew ? 'Hide' : 'Show'}
                     </button>
                   </div>
                 </div>
-                <div className="form-group">
-                  <label>Confirm New Password</label>
+                <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#374151' }}>Confirm New Password</label>
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     minLength={6}
                     required
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: '8px',
+                      border: '1px solid #d1d5db',
+                      fontSize: '0.875rem',
+                      outline: 'none',
+                      transition: 'border-color 0.15s ease',
+                      boxSizing: 'border-box',
+                    }}
                   />
                 </div>
-                <button type="submit" className="submit-btn" disabled={changingPw} style={{ width: 'auto' }}>
+                <button
+                  type="submit"
+                  disabled={changingPw}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.5rem 1.25rem',
+                    background: BRAND,
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    fontSize: '0.8125rem',
+                    cursor: changingPw ? 'not-allowed' : 'pointer',
+                    opacity: changingPw ? 0.7 : 1,
+                    transition: 'all 0.15s ease',
+                  }}
+                >
                   {changingPw ? <><Spinner size={14} /> Changing...</> : 'Change Password'}
                 </button>
               </form>
@@ -174,3 +311,5 @@ export default function Profile() {
     </DashboardLayout>
   );
 }
+
+const BRAND = '#0730A3';

@@ -125,28 +125,71 @@ export default function LecturerHistory() {
 
   return (
     <DashboardLayout>
+      {/* Summary Cards */}
       <SummaryCards cards={summaryCards} />
 
-      {error && <div className="message error">{error}</div>}
+      {error && (
+        <div style={{
+          background: '#fef2f2',
+          color: '#dc2626',
+          padding: '0.75rem 1rem',
+          borderRadius: '8px',
+          fontSize: '0.8125rem',
+          fontWeight: 500,
+          marginBottom: '1rem',
+          border: '1px solid #fecaca',
+        }}>
+          {error}
+        </div>
+      )}
 
-      <div className="workspace-grid single">
-        <div className="card filters-card">
-          <div className="card-header">
-            <h3>History</h3>
+      <div style={{ maxWidth: '100%' }}>
+        {/* Filter Card */}
+        <div style={{
+          background: '#fff',
+          borderRadius: '12px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+          border: '1px solid #f0f0f0',
+          overflow: 'hidden',
+          marginBottom: '1.25rem',
+        }}>
+          <div style={{
+            padding: '1rem 1.5rem',
+            borderBottom: '1px solid #f0f0f0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+          }}>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#1a1a2e' }}>History</h3>
             <button
-              className="btn-primary"
               onClick={handleExport}
               disabled={!filters.course_code || !filters.class_id || exporting}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.5rem 1rem',
+                background: (!filters.course_code || !filters.class_id) ? '#e5e7eb' : BRAND,
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 600,
+                fontSize: '0.8125rem',
+                cursor: (!filters.course_code || !filters.class_id || exporting) ? 'not-allowed' : 'pointer',
+                opacity: exporting ? 0.7 : 1,
+                transition: 'all 0.15s ease',
+              }}
             >
               <DownloadSimple weight="duotone" size={16} />
               {exporting ? <><Spinner size={14} /> Exporting...</> : 'Export'}
             </button>
           </div>
-          <div className="card-body">
-            <div className="form-row">
-              <div className="form-group">
-                <label>Course</label>
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#374151' }}>Course</label>
                 <Select name="course_code" value={filters.course_code} onChange={handleFilterChange}>
                   <option value="">All Courses</option>
                   {courses.map((c) => (
@@ -156,8 +199,8 @@ export default function LecturerHistory() {
                   ))}
                 </Select>
               </div>
-              <div className="form-group">
-                <label>Class / Cohort</label>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#374151' }}>Class / Cohort</label>
                 <Select name="class_id" value={filters.class_id} onChange={handleFilterChange}>
                   <option value="">All Classes</option>
                   {classes.map((c) => (
@@ -169,18 +212,42 @@ export default function LecturerHistory() {
           </div>
         </div>
 
-        {loading && <div className="loading-indicator">Loading...</div>}
+        {loading && (
+          <div style={{
+            background: '#fff',
+            borderRadius: '12px',
+            padding: '3rem',
+            textAlign: 'center',
+            color: '#6b7280',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            border: '1px solid #f0f0f0',
+          }}>
+            Loading...
+          </div>
+        )}
 
         {filteredHistoryData && !loading && (
-          <div className="card">
-            <div className="card-body" style={{ padding: 0 }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            border: '1px solid #f0f0f0',
+            overflow: 'hidden',
+          }}>
+            <div style={{ padding: 0 }}>
               <AttendanceMatrix data={filteredHistoryData} />
             </div>
           </div>
         )}
 
         {!filters.course_code && !loading && (
-          <div className="card">
+          <div style={{
+            background: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            border: '1px solid #f0f0f0',
+            overflow: 'hidden',
+          }}>
             <EmptyState
               icon={<BookOpen weight="duotone" size={64} />}
               title="Select a course and class"
@@ -192,3 +259,5 @@ export default function LecturerHistory() {
     </DashboardLayout>
   );
 }
+
+const BRAND = '#0730A3';
