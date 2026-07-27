@@ -3,7 +3,7 @@ import useGeolocation from '../hooks/useGeolocation';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { generateFingerprint } from '../utils/fingerprint';
 import api from '../utils/api';
-import { ShieldCheck, CheckCircle, XCircle, Check } from '@phosphor-icons/react';
+import { ShieldCheck, CheckCircle, XCircle, Check, Pulse } from '@phosphor-icons/react';
 import '../styles/attend.css';
 
 export default function Attend() {
@@ -384,7 +384,7 @@ export default function Attend() {
       <div style={styles.page}>
         <div style={styles.card}>
           <div style={styles.brand}>
-            <div style={styles.logo}>CP</div>
+            <div style={styles.logo}><Pulse weight="fill" size={28} /></div>
             <h1 style={styles.brandTitle}>ClassPulse</h1>
             <p style={styles.tagline}>Mark your attendance</p>
           </div>

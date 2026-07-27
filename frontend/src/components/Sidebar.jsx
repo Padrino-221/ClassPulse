@@ -60,7 +60,7 @@ export default React.memo(function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <div className="sidebar-brand-icon">CP</div>
+        <div className="sidebar-brand-icon"><Pulse weight="fill" size={24} /></div>
         <span className="sidebar-brand-text">ClassPulse</span>
       </div>
 

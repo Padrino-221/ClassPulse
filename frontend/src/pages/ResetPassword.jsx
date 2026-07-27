@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import { Pulse } from '@phosphor-icons/react';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
 
@@ -173,7 +174,7 @@ export default function ResetPassword() {
         <div style={styles.page}>
           <div style={styles.card}>
             <div style={styles.header}>
-              <div style={styles.logo}>CP</div>
+              <div style={styles.logo}><Pulse weight="fill" size={28} /></div>
               <h1 style={styles.title}>ClassPulse</h1>
             </div>
             <div style={styles.invalidCard}>
@@ -209,7 +210,7 @@ export default function ResetPassword() {
       <div style={styles.page}>
         <div style={styles.card}>
           <div style={styles.header}>
-            <div style={styles.logo}>CP</div>
+            <div style={styles.logo}><Pulse weight="fill" size={28} /></div>
             <h1 style={styles.title}>ClassPulse</h1>
             <p style={styles.subtitle}>Set New Password</p>
           </div>

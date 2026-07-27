@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../utils/api';
-import { Eye, EyeSlash } from '@phosphor-icons/react';
+import { Eye, EyeSlash, Pulse } from '@phosphor-icons/react';
 
 const carouselContent = [
   {
@@ -518,7 +518,7 @@ export default function LecturerLogin() {
           </div>
 
           <div style={styles.brandHeader}>
-            <div style={styles.logoBox}>CP</div>
+            <div style={styles.logoBox}><Pulse weight="fill" size={24} /></div>
             <span style={styles.logoText}>ClassPulse</span>
           </div>
 
