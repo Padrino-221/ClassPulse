@@ -36,9 +36,9 @@
   --shadow-xl: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.06);
   --shadow-2xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
   --radius-xl: 24px;
   --radius-full: 9999px;
 
@@ -99,9 +99,9 @@
   --shadow-xl: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
   --shadow-2xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.35);
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
   --radius-xl: 24px;
   --radius-full: 9999px;
 
@@ -177,10 +177,10 @@ body {
 }
 
 .sidebar-brand-icon {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   background: var(--sidebar-brand-icon-bg);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -222,8 +222,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5625rem 0.875rem;
-  border-radius: 10px;
+  padding: 0.625rem 1rem;
+  border-radius: var(--radius-full);
   color: var(--sidebar-text);
   text-decoration: none;
   font-size: 0.8125rem;
@@ -241,7 +241,6 @@ body {
   background: var(--sidebar-active-bg);
   color: var(--sidebar-active-text);
   font-weight: 600;
-  border-radius: 10px;
 }
 
 .sidebar-link.active::before {
@@ -280,9 +279,9 @@ body {
   align-items: center;
   gap: 0.625rem;
   width: 100%;
-  padding: 0.5rem 0.875rem;
+  padding: 0.625rem 1rem;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-full);
   background: transparent;
   color: var(--sidebar-text-muted);
   font-size: 0.8125rem;
@@ -365,9 +364,9 @@ body {
 }
 
 .theme-toggle-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
   border: 1px solid var(--border);
   background: var(--bg-card);
   color: var(--text-secondary);
@@ -389,7 +388,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  padding: 0.375rem 0.75rem 0.375rem 0.375rem;
+  padding: 0.375rem 0.875rem 0.375rem 0.375rem;
   border-radius: var(--radius-full);
   border: 1px solid var(--border);
   background: var(--bg-card);
@@ -441,7 +440,7 @@ body {
   min-width: 180px;
   background: var(--bg-card);
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: 0.375rem;
   z-index: 100;
   box-shadow: var(--shadow-lg);
@@ -455,7 +454,7 @@ body {
   background: none;
   color: var(--text-primary);
   font-size: 0.8125rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   text-align: left;
   font-family: inherit;
@@ -479,14 +478,14 @@ body {
 /* Cards */
 .card {
   background: var(--bg-card);
-  border-radius: var(--radius-md);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
-  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+  border: 1px solid var(--border-light);
   transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
 }
 
 [data-theme='dark'] .card {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  border-color: var(--border);
 }
 
 .card-header {
@@ -509,34 +508,38 @@ body {
 /* Metric / KPI cards */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
 .metric-card {
   position: relative;
-  padding: 1.25rem;
+  padding: 1.25rem 1.5rem;
   cursor: default;
   display: flex;
   align-items: center;
   gap: 1rem;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--bg-card);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
-  border: none;
+  box-shadow: none;
+  border: 1px solid var(--border-light);
   transition: all 0.2s ease;
+}
+
+[data-theme='dark'] .metric-card {
+  border-color: var(--border);
 }
 
 .metric-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  border-color: var(--brand);
 }
 
 .metric-card-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg);
   background: var(--kpi-icon-bg);
   display: flex;
   align-items: center;
@@ -557,16 +560,20 @@ body {
 }
 
 .metric-value {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 800;
   color: var(--text-primary);
-  line-height: 1.2;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .metric-label {
-  font-size: 0.8125rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 600;
   color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 0.125rem;
 }
 
 .metric-change {
@@ -628,10 +635,10 @@ body {
 
 .toggle-track {
   position: relative;
-  width: 38px;
+  width: 40px;
   height: 22px;
   background: var(--border);
-  border-radius: 11px;
+  border-radius: 12px;
   transition: background 0.2s ease;
 }
 
@@ -863,10 +870,10 @@ input, select, button, textarea {
 
 .form-group input,
 .form-group select {
-  height: 40px;
-  padding: 0 0.75rem;
+  height: 42px;
+  padding: 0 0.875rem;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
   background: var(--bg-input);
   color: var(--text-primary);
@@ -937,10 +944,10 @@ input, select, button, textarea {
 .custom-select {
   width: 100%;
   min-width: 0;
-  height: 40px;
-  padding: 0 2.25rem 0 0.75rem;
+  height: 42px;
+  padding: 0 2.25rem 0 0.875rem;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
   background: var(--bg-input);
   color: var(--text-primary);
@@ -997,7 +1004,7 @@ input, select, button, textarea {
   list-style: none;
   background: var(--bg-card);
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   max-height: 240px;
   overflow-y: auto;
   box-shadow: var(--shadow-lg);
@@ -1007,7 +1014,7 @@ input, select, button, textarea {
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   color: var(--text-primary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: background 0.15s ease;
 }
@@ -1030,12 +1037,12 @@ input, select, button, textarea {
 /* Buttons */
 .submit-btn {
   width: 100%;
-  height: 40px;
-  padding: 0 1.25rem;
+  height: 42px;
+  padding: 0 1.5rem;
   background: var(--brand);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-full);
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
@@ -1045,6 +1052,7 @@ input, select, button, textarea {
 .submit-btn:hover:not(:disabled) {
   background: var(--brand-dark);
   box-shadow: 0 4px 12px rgba(var(--brand-rgb), 0.3);
+  transform: translateY(-1px);
 }
 
 .submit-btn:disabled {
@@ -1053,14 +1061,14 @@ input, select, button, textarea {
 }
 
 .btn-secondary {
-  height: 40px;
-  padding: 0 1.25rem;
+  height: 42px;
+  padding: 0 1.5rem;
   background: var(--bg-hover);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-full);
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
   display: inline-flex;
@@ -1071,17 +1079,18 @@ input, select, button, textarea {
 .btn-secondary:hover {
   background: var(--border-light);
   border-color: var(--text-muted);
+  transform: translateY(-1px);
 }
 
 .btn-danger {
-  height: 40px;
-  padding: 0 1.25rem;
+  height: 42px;
+  padding: 0 1.5rem;
   background: var(--error);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-full);
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
   display: inline-flex;
@@ -1092,20 +1101,22 @@ input, select, button, textarea {
 .btn-danger:hover {
   opacity: 0.9;
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  transform: translateY(-1px);
 }
 
 .btn-small {
-  padding: 0.25rem 0.625rem;
+  padding: 0.375rem 0.875rem;
   font-size: 0.75rem;
+  border-radius: var(--radius-full);
 }
 
 .btn-primary {
-  height: 40px;
-  padding: 0 1.25rem;
+  height: 42px;
+  padding: 0 1.5rem;
   background: var(--brand);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-full);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -1118,6 +1129,7 @@ input, select, button, textarea {
 .btn-primary:hover:not(:disabled) {
   background: var(--brand-dark);
   box-shadow: 0 4px 12px rgba(var(--brand-rgb), 0.3);
+  transform: translateY(-1px);
 }
 
 .btn-primary:disabled {
@@ -1128,7 +1140,7 @@ input, select, button, textarea {
 /* Messages */
 .message {
   padding: 0.875rem 1.125rem;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   margin-bottom: 1rem;
   font-size: 0.8125rem;
   font-weight: 500;
@@ -1154,10 +1166,12 @@ input, select, button, textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.625rem;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .badge-success {
@@ -1337,12 +1351,12 @@ input, select, button, textarea {
 
 .login-submit-btn {
   width: 100%;
-  height: 42px;
-  padding: 0 1.25rem;
+  height: 44px;
+  padding: 0 1.5rem;
   background: var(--brand);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-full);
   font-size: 0.9375rem;
   font-weight: 600;
   cursor: pointer;
@@ -1353,6 +1367,7 @@ input, select, button, textarea {
 .login-submit-btn:hover:not(:disabled) {
   background: var(--brand-dark);
   box-shadow: 0 4px 12px rgba(var(--brand-rgb), 0.3);
+  transform: translateY(-1px);
 }
 
 .login-submit-btn:disabled {
@@ -1409,11 +1424,15 @@ input, select, button, textarea {
 .login-card {
   background: var(--bg-card);
   padding: 2.5rem;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
-  border: none;
+  box-shadow: none;
+  border: 1px solid var(--border-light);
+}
+
+[data-theme='dark'] .login-card {
+  border-color: var(--border);
 }
 
 .login-card h1 {
@@ -1458,10 +1477,14 @@ input, select, button, textarea {
 /* Tables */
 .table-container {
   overflow-x: auto;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--bg-card);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
-  border: none;
+  box-shadow: none;
+  border: 1px solid var(--border-light);
+}
+
+[data-theme='dark'] .table-container {
+  border-color: var(--border);
 }
 
 .matrix-table {
@@ -1590,12 +1613,16 @@ input, select, button, textarea {
 .modal-content {
   background: var(--bg-card);
   padding: 2rem;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   width: 100%;
   max-width: 440px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
-  border: none;
+  border: 1px solid var(--border-light);
   animation: alert-pop 0.2s cubic-bezier(0.21, 1.02, 0.73, 1);
+}
+
+[data-theme='dark'] .modal-content {
+  border-color: var(--border);
 }
 
 .modal-content h3 {
@@ -1629,7 +1656,7 @@ input, select, button, textarea {
   padding: 1.25rem;
   background: var(--brand-light);
   border: 1px solid rgba(var(--brand-rgb), 0.2);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
 }
 
 .pin-label {
@@ -1676,14 +1703,16 @@ input, select, button, textarea {
 .session-active-chip {
   display: inline-flex;
   align-items: center;
-  padding: 0.1875rem 0.625rem;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
   color: var(--text-secondary);
   background: var(--bg-hover);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-full);
   white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .session-active-chip.chip-static {
@@ -1735,7 +1764,7 @@ input, select, button, textarea {
   padding: 1.5rem 2rem;
   background: var(--brand-light);
   border: 2px solid rgba(var(--brand-rgb), 0.2);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   min-width: 300px;
 }
 
@@ -1798,15 +1827,15 @@ input, select, button, textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
-  height: 32px;
-  padding: 0 0.5rem;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 0.625rem;
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-secondary);
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-full);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -1832,8 +1861,8 @@ input, select, button, textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
-  height: 32px;
+  min-width: 34px;
+  height: 34px;
   font-size: 0.8125rem;
   color: var(--text-muted);
   font-weight: 600;
@@ -1854,8 +1883,8 @@ input, select, button, textarea {
 
 .alert-modal {
   background: var(--bg-card);
-  border: none;
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
   padding: 2rem 2rem 1.5rem;
   max-width: 380px;
   width: 100%;
@@ -1866,6 +1895,10 @@ input, select, button, textarea {
   gap: 1rem;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
   animation: alert-pop 0.2s cubic-bezier(0.21, 1.02, 0.73, 1);
+}
+
+[data-theme='dark'] .alert-modal {
+  border-color: var(--border);
 }
 
 .alert-icon {
@@ -1913,7 +1946,7 @@ input, select, button, textarea {
   color: var(--text-inverse);
   background: var(--brand);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-full);
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -1921,6 +1954,7 @@ input, select, button, textarea {
 .alert-btn:hover {
   background: var(--brand-dark);
   box-shadow: 0 4px 12px rgba(var(--brand-rgb), 0.3);
+  transform: translateY(-1px);
 }
 
 @keyframes alert-pop {
@@ -1942,9 +1976,13 @@ input, select, button, textarea {
   margin-bottom: 1.5rem;
   padding: 1rem 1.25rem;
   background: var(--bg-card);
-  border: none;
-  border-radius: var(--radius-md);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .inline-form {
+  border-color: var(--border);
 }
 
 .inline-form .form-group {
@@ -1961,18 +1999,18 @@ input, select, button, textarea {
 .multiselect-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.375rem;
+  gap: 0.5rem;
 }
 
 .multiselect-option {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.375rem 0.625rem;
+  padding: 0.5rem 0.875rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -2053,7 +2091,7 @@ input, select, button, textarea {
 .ms-dropdown {
   background: var(--bg-card);
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   z-index: 9000;
   overflow: hidden;
@@ -2259,23 +2297,27 @@ input, select, button, textarea {
   gap: 1rem;
   padding: 1.25rem 1.5rem;
   background: var(--bg-card);
-  border: none;
-  border-radius: var(--radius-md);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
   text-decoration: none;
   color: inherit;
   transition: all 0.2s ease;
 }
 
+[data-theme='dark'] .admin-tile {
+  border-color: var(--border);
+}
+
 .admin-tile:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  border-color: var(--brand);
 }
 
 .admin-tile-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
   background: var(--kpi-icon-bg);
   display: flex;
   align-items: center;
@@ -2316,11 +2358,15 @@ input, select, button, textarea {
 /* Entity Toolbar (Add Form wrapper) */
 .entity-toolbar {
   background: var(--bg-card);
-  border: none;
-  border-radius: var(--radius-md);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
   margin-bottom: 1.25rem;
   overflow: hidden;
+}
+
+[data-theme='dark'] .entity-toolbar {
+  border-color: var(--border);
 }
 
 .entity-toolbar-header {
@@ -2368,13 +2414,13 @@ input, select, button, textarea {
 
 /* Icon Action Buttons */
 .icon-btn {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg-card);
   color: var(--text-secondary);
   cursor: pointer;
@@ -2544,11 +2590,15 @@ input, select, button, textarea {
   gap: 1rem;
   padding: 1rem 1.25rem;
   background: var(--bg-card);
-  border: none;
-  border-radius: var(--radius-md);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
+}
+
+[data-theme='dark'] .report-filters {
+  border-color: var(--border);
 }
 
 .report-filter-group {
@@ -2577,18 +2627,22 @@ input, select, button, textarea {
   gap: 0.75rem;
   padding: 1rem 1.25rem;
   background: var(--bg-card);
-  border: none;
-  border-radius: var(--radius-md);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .report-stat-card {
+  border-color: var(--border);
 }
 
 .report-stat-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
   background: var(--brand-light);
   color: var(--brand);
   flex-shrink: 0;
@@ -2627,10 +2681,14 @@ input, select, button, textarea {
 
 .report-chart-card {
   background: var(--bg-card);
-  border: none;
-  border-radius: var(--radius-md);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
   padding: 1.25rem;
+}
+
+[data-theme='dark'] .report-chart-card {
+  border-color: var(--border);
 }
 
 .report-chart-card h4 {

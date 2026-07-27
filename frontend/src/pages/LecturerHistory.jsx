@@ -130,10 +130,10 @@ export default function LecturerHistory() {
 
       {error && (
         <div style={{
-          background: '#fef2f2',
-          color: '#dc2626',
+          background: 'var(--error-bg, #fef2f2)',
+          color: 'var(--error, #dc2626)',
           padding: '0.75rem 1rem',
-          borderRadius: '8px',
+          borderRadius: 'var(--radius-md, 14px)',
           fontSize: '0.8125rem',
           fontWeight: 500,
           marginBottom: '1rem',
@@ -146,23 +146,23 @@ export default function LecturerHistory() {
       <div style={{ maxWidth: '100%' }}>
         {/* Filter Card */}
         <div style={{
-          background: '#fff',
-          borderRadius: '12px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-          border: '1px solid #f0f0f0',
+          background: 'var(--bg-card, #fff)',
+          borderRadius: 'var(--radius-lg, 18px)',
+          boxShadow: 'none',
+          border: '1px solid var(--border-light, #f0f0f0)',
           overflow: 'hidden',
           marginBottom: '1.25rem',
         }}>
           <div style={{
             padding: '1rem 1.5rem',
-            borderBottom: '1px solid #f0f0f0',
+            borderBottom: '1px solid var(--border-light, #f0f0f0)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: '0.75rem',
           }}>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#1a1a2e' }}>History</h3>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary, #1a1a2e)' }}>History</h3>
             <button
               onClick={handleExport}
               disabled={!filters.course_code || !filters.class_id || exporting}
@@ -174,7 +174,7 @@ export default function LecturerHistory() {
                 background: (!filters.course_code || !filters.class_id) ? '#e5e7eb' : BRAND,
                 color: '#fff',
                 border: 'none',
-                borderRadius: '8px',
+                borderRadius: 'var(--radius-full, 9999px)',
                 fontWeight: 600,
                 fontSize: '0.8125rem',
                 cursor: (!filters.course_code || !filters.class_id || exporting) ? 'not-allowed' : 'pointer',
@@ -214,13 +214,13 @@ export default function LecturerHistory() {
 
         {loading && (
           <div style={{
-            background: '#fff',
-            borderRadius: '12px',
+            background: 'var(--bg-card, #fff)',
+            borderRadius: 'var(--radius-lg, 18px)',
             padding: '3rem',
             textAlign: 'center',
-            color: '#6b7280',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            border: '1px solid #f0f0f0',
+            color: 'var(--text-secondary, #6b7280)',
+            boxShadow: 'none',
+            border: '1px solid var(--border-light, #f0f0f0)',
           }}>
             Loading...
           </div>
@@ -228,10 +228,10 @@ export default function LecturerHistory() {
 
         {filteredHistoryData && !loading && (
           <div style={{
-            background: '#fff',
-            borderRadius: '12px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            border: '1px solid #f0f0f0',
+            background: 'var(--bg-card, #fff)',
+            borderRadius: 'var(--radius-lg, 18px)',
+            boxShadow: 'none',
+            border: '1px solid var(--border-light, #f0f0f0)',
             overflow: 'hidden',
           }}>
             <div style={{ padding: 0 }}>
@@ -242,10 +242,10 @@ export default function LecturerHistory() {
 
         {!filters.course_code && !loading && (
           <div style={{
-            background: '#fff',
-            borderRadius: '12px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            border: '1px solid #f0f0f0',
+            background: 'var(--bg-card, #fff)',
+            borderRadius: 'var(--radius-lg, 18px)',
+            boxShadow: 'none',
+            border: '1px solid var(--border-light, #f0f0f0)',
             overflow: 'hidden',
           }}>
             <EmptyState

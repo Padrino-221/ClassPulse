@@ -1,30 +1,12 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 require('dotenv').config();
 
-let transporter = null;
+let resend = null;
 
-async function getTransporter() {
-  if (transporter) return transporter;
-
-  if (process.env.SMTP_USER) {
-    const port = parseInt(process.env.SMTP_PORT || '465');
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: port,
-      secure: port === 465,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    });
-  } else {
-    const testAccount = await nodemailer.createTestAccount();
-    transporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: { user: testAccount.user, pass: testAccount.pass },
-    });
-    console.log('Ethereal email:', testAccount.user);
-  }
-  return transporter;
+function getResendClient() {
+  if (resend) return resend;
+  resend = new Resend(process.env.RESEND_API_KEY);
+  return resend;
 }
 
 function resetTemplate(resetUrl, userName) {
@@ -151,23 +133,27 @@ function resetTemplate(resetUrl, userName) {
 }
 
 async function sendResetEmail(to, token, userType, userName = null) {
-  const transport = await getTransporter();
+  const client = getResendClient();
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
 
-  const info = await transport.sendMail({
-    from: process.env.FROM_EMAIL || 'classpulse@noreply.com',
+  const { data, error } = await client.emails.send({
+    from: process.env.FROM_EMAIL || 'ClassPulse <onboarding@resend.dev>',
     to,
     subject: 'ClassPulse - Reset Your Password',
     html: resetTemplate(resetUrl, userName),
   });
 
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('Reset email URL:', resetUrl);
-    console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+  if (error) {
+    console.error('Email send error:', error);
+    throw new Error(error.message || 'Failed to send email');
   }
 
-  return info;
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Reset email URL:', resetUrl);
+  }
+
+  return data;
 }
 
 module.exports = { sendResetEmail };

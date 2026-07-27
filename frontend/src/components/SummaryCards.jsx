@@ -4,28 +4,29 @@ const styles = {
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '20px',
-    marginBottom: '28px',
+    gap: '1rem',
+    marginBottom: '1.5rem',
   },
   card: {
-    background: '#ffffff',
-    borderRadius: '12px',
-    padding: '22px',
+    background: 'var(--bg-card, #ffffff)',
+    borderRadius: 'var(--radius-lg, 18px)',
+    padding: '1.25rem 1.5rem',
     display: 'flex',
     alignItems: 'center',
-    gap: '16px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-    border: '1px solid #f0f0f0',
+    gap: '1rem',
+    boxShadow: 'none',
+    border: '1px solid var(--border-light, #f0f0f0)',
+    transition: 'all 0.2s ease',
   },
   iconCircle: {
-    width: '48px',
-    height: '48px',
-    borderRadius: '50%',
+    width: '52px',
+    height: '52px',
+    borderRadius: 'var(--radius-lg, 18px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    fontSize: '20px',
+    fontSize: '22px',
   },
   text: {
     display: 'flex',
@@ -33,15 +34,18 @@ const styles = {
     gap: '2px',
   },
   value: {
-    fontSize: '26px',
-    fontWeight: 700,
-    color: '#1a1a2e',
-    lineHeight: 1.2,
+    fontSize: '2rem',
+    fontWeight: 800,
+    color: 'var(--text-primary, #1a1a2e)',
+    lineHeight: 1.1,
+    letterSpacing: '-0.02em',
   },
   label: {
-    fontSize: '13px',
-    color: '#8c8c9a',
-    fontWeight: 500,
+    fontSize: '0.6875rem',
+    color: 'var(--text-secondary, #8c8c9a)',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
   },
   responsive: `
     @media (max-width: 1100px) {
@@ -72,8 +76,8 @@ export default function SummaryCards({ cards }) {
           <div
             style={{
               ...styles.iconCircle,
-              background: card.bg || '#f0f4ff',
-              color: card.color || '#4a6cf7',
+              background: card.bg || 'var(--kpi-icon-bg, #f0f4ff)',
+              color: card.color || 'var(--brand, #4a6cf7)',
             }}
           >
             {card.icon}

@@ -14,20 +14,20 @@ const WARNING = '#D97706';
 function StatCard({ icon, label, value, sub }) {
   return (
     <div style={{
-      background: '#fff',
-      borderRadius: '12px',
-      padding: '1.5rem',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+      background: 'var(--bg-card, #fff)',
+      borderRadius: 'var(--radius-lg, 18px)',
+      padding: '1.25rem 1.5rem',
+      boxShadow: 'none',
       display: 'flex',
       alignItems: 'center',
       gap: '1rem',
-      border: '1px solid #f0f0f0',
+      border: '1px solid var(--border-light, #f0f0f0)',
     }}>
       <div style={{
         width: '48px',
         height: '48px',
-        borderRadius: '12px',
-        background: '#eff6ff',
+        borderRadius: 'var(--radius-lg, 18px)',
+        background: 'var(--kpi-icon-bg, #eff6ff)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -37,9 +37,9 @@ function StatCard({ icon, label, value, sub }) {
         {icon}
       </div>
       <div>
-        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1a1a2e', lineHeight: 1.2 }}>{value}</div>
-        <div style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 500, marginTop: '2px' }}>{label}</div>
-        {sub && <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '2px' }}>{sub}</div>}
+        <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary, #1a1a2e)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>{value}</div>
+        <div style={{ fontSize: '0.6875rem', color: 'var(--text-secondary, #6b7280)', fontWeight: 600, marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+        {sub && <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted, #9ca3af)', marginTop: '2px' }}>{sub}</div>}
       </div>
     </div>
   );
@@ -49,13 +49,13 @@ function CourseBarChart({ data }) {
   if (data.length === 0) return null;
   return (
     <div style={{
-      background: '#fff',
-      borderRadius: '12px',
-      padding: '1.5rem',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-      border: '1px solid #f0f0f0',
+      background: 'var(--bg-card, #fff)',
+      borderRadius: 'var(--radius-lg, 18px)',
+      padding: '1.25rem 1.5rem',
+      boxShadow: 'none',
+      border: '1px solid var(--border-light, #f0f0f0)',
     }}>
-      <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 600, color: '#1a1a2e' }}>Attendance by Course</h4>
+      <h4 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary, #1a1a2e)' }}>Attendance by Course</h4>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data} layout="vertical" margin={{ left: 20, right: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
@@ -73,13 +73,13 @@ function ClassBarChart({ data }) {
   if (data.length === 0) return null;
   return (
     <div style={{
-      background: '#fff',
-      borderRadius: '12px',
-      padding: '1.5rem',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-      border: '1px solid #f0f0f0',
+      background: 'var(--bg-card, #fff)',
+      borderRadius: 'var(--radius-lg, 18px)',
+      padding: '1.25rem 1.5rem',
+      boxShadow: 'none',
+      border: '1px solid var(--border-light, #f0f0f0)',
     }}>
-      <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 600, color: '#1a1a2e' }}>Attendance by Class</h4>
+      <h4 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary, #1a1a2e)' }}>Attendance by Class</h4>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data} layout="vertical" margin={{ left: 20, right: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
@@ -108,13 +108,13 @@ function WeeklyLineChart({ data }) {
 
   return (
     <div style={{
-      background: '#fff',
-      borderRadius: '12px',
-      padding: '1.5rem',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-      border: '1px solid #f0f0f0',
+      background: 'var(--bg-card, #fff)',
+      borderRadius: 'var(--radius-lg, 18px)',
+      padding: '1.25rem 1.5rem',
+      boxShadow: 'none',
+      border: '1px solid var(--border-light, #f0f0f0)',
     }}>
-      <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 600, color: '#1a1a2e' }}>Weekly Attendance Trend</h4>
+      <h4 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary, #1a1a2e)' }}>Weekly Attendance Trend</h4>
       <ResponsiveContainer width="100%" height={320}>
         <LineChart data={data} margin={{ left: 10, right: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
@@ -235,11 +235,11 @@ export default function ReportsPage() {
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '1rem',
-        background: '#fff',
-        borderRadius: '12px',
+        background: 'var(--bg-card, #fff)',
+        borderRadius: 'var(--radius-lg, 18px)',
         padding: '1rem 1.25rem',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-        border: '1px solid #f0f0f0',
+        boxShadow: 'none',
+        border: '1px solid var(--border-light, #f0f0f0)',
         marginBottom: '1.25rem',
       }}>
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', flex: 1 }}>
@@ -269,11 +269,11 @@ export default function ReportsPage() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.5rem',
-            padding: '0.5rem 1rem',
+            padding: '0.5rem 1.25rem',
             background: '#fff',
             color: BRAND,
             border: `1px solid ${BRAND}`,
-            borderRadius: '8px',
+            borderRadius: 'var(--radius-full, 9999px)',
             fontWeight: 600,
             fontSize: '0.8125rem',
             cursor: exporting ? 'not-allowed' : 'pointer',
@@ -289,13 +289,13 @@ export default function ReportsPage() {
 
       {loading ? (
         <div style={{
-          background: '#fff',
-          borderRadius: '12px',
+          background: 'var(--bg-card, #fff)',
+          borderRadius: 'var(--radius-lg, 18px)',
           padding: '3rem',
           textAlign: 'center',
-          color: '#6b7280',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-          border: '1px solid #f0f0f0',
+          color: 'var(--text-secondary, #6b7280)',
+          boxShadow: 'none',
+          border: '1px solid var(--border-light, #f0f0f0)',
         }}>
           Loading report data...
         </div>
@@ -348,27 +348,27 @@ export default function ReportsPage() {
 
           {/* Per-Class Table */}
           <div style={{
-            background: '#fff',
-            borderRadius: '12px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            border: '1px solid #f0f0f0',
+            background: 'var(--bg-card, #fff)',
+            borderRadius: 'var(--radius-lg, 18px)',
+            boxShadow: 'none',
+            border: '1px solid var(--border-light, #f0f0f0)',
             overflow: 'hidden',
           }}>
             <div style={{
               padding: '1rem 1.5rem',
-              borderBottom: '1px solid #f0f0f0',
+              borderBottom: '1px solid var(--border-light, #f0f0f0)',
             }}>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#1a1a2e' }}>Per-Class Breakdown</h3>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary, #1a1a2e)' }}>Per-Class Breakdown</h3>
             </div>
             <div style={{ padding: '0', overflowX: 'auto' }}>
               <table className="matrix-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
-                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>Class</th>
-                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>Students</th>
-                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>Sessions</th>
-                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>Check-ins</th>
-                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>Avg Attendance</th>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #fafafa)', borderBottom: '1px solid var(--border-light, #f0f0f0)' }}>Class</th>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #fafafa)', borderBottom: '1px solid var(--border-light, #f0f0f0)' }}>Students</th>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #fafafa)', borderBottom: '1px solid var(--border-light, #f0f0f0)' }}>Sessions</th>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #fafafa)', borderBottom: '1px solid var(--border-light, #f0f0f0)' }}>Check-ins</th>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #fafafa)', borderBottom: '1px solid var(--border-light, #f0f0f0)' }}>Avg Attendance</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -381,19 +381,19 @@ export default function ReportsPage() {
                     </tr>
                   )}
                   {(summary?.classes || []).map((c) => (
-                    <tr key={c.class_id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: '#1a1a2e', fontWeight: 500 }}>{c.class_name}</td>
-                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: '#374151' }}>{c.total_students}</td>
-                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: '#374151' }}>{c.total_sessions}</td>
-                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: '#374151' }}>{c.total_checkins}</td>
+                    <tr key={c.class_id} style={{ borderBottom: '1px solid var(--border-light, #f0f0f0)' }}>
+                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-primary, #1a1a2e)', fontWeight: 600 }}>{c.class_name}</td>
+                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary, #374151)' }}>{c.total_students}</td>
+                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary, #374151)' }}>{c.total_sessions}</td>
+                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary, #374151)' }}>{c.total_checkins}</td>
                       <td style={{ padding: '0.75rem 1.5rem' }}>
                         <span className={`badge ${c.avg_attendance_pct >= 70 ? 'badge-success' : c.avg_attendance_pct >= 50 ? 'badge-warning' : ''}`}
                           style={{
                             ...(c.avg_attendance_pct < 50 ? { background: 'var(--error-bg)', color: 'var(--error)' } : {}),
-                            padding: '0.25rem 0.625rem',
-                            borderRadius: '6px',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: 'var(--radius-full, 9999px)',
+                            fontSize: '0.6875rem',
+                            fontWeight: 700,
                           }}>
                           {c.avg_attendance_pct}%
                         </span>
