@@ -35,8 +35,8 @@ export default function LiveTracker({ sessionId }) {
   const pageRecords = records.slice(startIdx, startIdx + PAGE_SIZE);
 
   return (
-    <div className="live-tracker">
-      <h4>Live ({count} students)</h4>
+    <div className="live-tracker" style={{ paddingTop: '0.5rem' }}>
+      <h4 style={{ marginTop: 0, marginLeft: '1rem' }}>Live ({count} students)</h4>
       <div className="table-container">
         <table className="matrix-table">
           <thead>

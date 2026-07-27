@@ -73,14 +73,14 @@ function RollingPinDisplay({ sessionId, pinSpinning }) {
         flexDirection: 'column',
         alignItems: 'center',
         padding: '2rem 1.5rem',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%)',
         borderRadius: '16px',
         color: '#fff',
       }}>
         <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.85, marginBottom: '0.75rem' }}>
           {pinLabel}
         </span>
-        <span style={{ fontSize: '3rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.15em' }}>---</span>
+        <span style={{ fontSize: '4.5rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.15em' }}>---</span>
       </div>
     );
   }
@@ -92,19 +92,19 @@ function RollingPinDisplay({ sessionId, pinSpinning }) {
         flexDirection: 'column',
         alignItems: 'center',
         padding: '2rem 1.5rem',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%)',
         borderRadius: '16px',
         color: '#fff',
       }}>
         <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.85, marginBottom: '0.75rem' }}>
           {pinLabel}
         </span>
-        <span style={{ fontSize: '3rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.15em' }}>{pin}</span>
+        <span style={{ fontSize: '4.5rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.15em' }}>{pin}</span>
       </div>
     );
   }
 
-  const barColor = secondsLeft <= 10 ? '#ef4444' : secondsLeft <= 20 ? '#f59e0b' : '#667eea';
+  const barColor = secondsLeft <= 10 ? '#ef4444' : secondsLeft <= 20 ? '#f59e0b' : '#60a5fa';
 
   return (
     <div style={{
@@ -112,31 +112,44 @@ function RollingPinDisplay({ sessionId, pinSpinning }) {
       flexDirection: 'column',
       alignItems: 'center',
       padding: '2rem 1.5rem',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%)',
       borderRadius: '16px',
       color: '#fff',
     }}>
       <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.85, marginBottom: '0.75rem' }}>
         {pinLabel}
       </span>
-      <span style={{ fontSize: '3rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.15em' }}>
+      <span style={{ fontSize: '4.5rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.15em' }}>
         {pin}
       </span>
-      <div style={{ width: '100%', marginTop: '1rem' }}>
-        <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.2)', borderRadius: '3px', overflow: 'hidden' }}>
+      <div style={{ width: '100%', marginTop: '1.25rem' }}>
+        <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.25)', borderRadius: '4px', overflow: 'hidden' }}>
           <div
             style={{
               width: `${barWidth}%`,
               height: '100%',
               background: barColor,
-              borderRadius: '3px',
+              borderRadius: '4px',
               transition: 'width 1s linear',
             }}
           />
         </div>
-        <span style={{ display: 'block', textAlign: 'center', marginTop: '0.5rem', fontSize: '0.85rem', color: barColor, fontWeight: 600 }}>
-          {secondsLeft}s left
-        </span>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          marginTop: '0.75rem',
+          padding: '0.375rem 0.75rem',
+          background: 'rgba(255,255,255,0.15)',
+          borderRadius: '8px',
+          width: 'fit-content',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+        }}>
+          <span style={{ fontSize: '1rem', color: '#fff', fontWeight: 700 }}>
+            {secondsLeft}s left
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -284,16 +297,16 @@ export default function LecturerDashboard() {
   const hasActive = activeSessions.length > 0;
 
   const cardStyle = {
-    background: '#fff',
-    borderRadius: '12px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
-    border: '1px solid #e5e7eb',
+    background: 'var(--bg-card, #fff)',
+    borderRadius: 'var(--radius-lg, 18px)',
+    boxShadow: 'none',
+    border: '1px solid var(--border-light, #e5e7eb)',
     overflow: 'hidden',
   };
 
   const cardHeaderStyle = {
-    padding: '1.25rem 1.5rem',
-    borderBottom: '1px solid #f3f4f6',
+    padding: '1.125rem 1.5rem',
+    borderBottom: '1px solid var(--border-light, #f3f4f6)',
   };
 
   const cardBodyStyle = {
@@ -302,24 +315,25 @@ export default function LecturerDashboard() {
 
   const labelStyle = {
     display: 'block',
-    fontSize: '0.8rem',
+    fontSize: '0.75rem',
     fontWeight: 600,
-    color: '#374151',
-    marginBottom: '0.4rem',
+    color: 'var(--text-secondary, #374151)',
+    marginBottom: '0.5rem',
     textTransform: 'uppercase',
     letterSpacing: '0.04em',
   };
 
   const inputStyle = {
     width: '100%',
-    padding: '0.6rem 0.85rem',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '0.9rem',
-    color: '#111827',
-    background: '#fff',
+    padding: '0.625rem 0.875rem',
+    border: '1px solid var(--border, #d1d5db)',
+    borderRadius: 'var(--radius-md, 14px)',
+    fontSize: '0.875rem',
+    color: 'var(--text-primary, #111827)',
+    background: 'var(--bg-input, #fff)',
     outline: 'none',
     transition: 'border-color 0.15s',
+    height: '42px',
   };
 
   return (
@@ -410,15 +424,15 @@ export default function LecturerDashboard() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '0.5rem',
-                    padding: '0.7rem 1.5rem',
+                    padding: '0.625rem 1.5rem',
                     background: activating || !form.course_code || form.class_ids.length === 0 || !form.week_number || !form.building_id ? '#93c5fd' : '#3b82f6',
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '0.9rem',
+                    borderRadius: 'var(--radius-full, 9999px)',
+                    fontSize: '0.875rem',
                     fontWeight: 600,
                     cursor: activating || !form.course_code || form.class_ids.length === 0 || !form.week_number || !form.building_id ? 'not-allowed' : 'pointer',
-                    transition: 'background 0.15s',
+                    transition: 'all 0.15s',
                     marginTop: '0.5rem',
                     alignSelf: 'flex-start',
                   }}
@@ -440,35 +454,39 @@ export default function LecturerDashboard() {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '1rem 1.5rem',
-                  borderBottom: '1px solid #f3f4f6',
+                  borderBottom: '1px solid var(--border-light, #f3f4f6)',
                   flexWrap: 'wrap',
                   gap: '0.75rem',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#111827' }}>
+                    <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary, #111827)' }}>
                       {s.course_code} &middot; {s.class_name}
                     </span>
                     <span style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      padding: '0.2rem 0.65rem',
-                      background: '#eff6ff',
-                      color: '#3b82f6',
-                      borderRadius: '20px',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
+                      padding: '0.25rem 0.75rem',
+                      background: 'var(--brand-light, #eff6ff)',
+                      color: 'var(--brand, #3b82f6)',
+                      borderRadius: 'var(--radius-full, 9999px)',
+                      fontSize: '0.6875rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.03em',
                     }}>
                       Week {s.week_number}
                     </span>
                     <span style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      padding: '0.2rem 0.65rem',
-                      background: '#f3f4f6',
-                      color: '#6b7280',
-                      borderRadius: '20px',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
+                      padding: '0.25rem 0.75rem',
+                      background: 'var(--bg-hover, #f3f4f6)',
+                      color: 'var(--text-secondary, #6b7280)',
+                      borderRadius: 'var(--radius-full, 9999px)',
+                      fontSize: '0.6875rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.03em',
                     }}>
                       Ends {new Date(s.expires_at).toLocaleTimeString()}
                     </span>
@@ -476,12 +494,14 @@ export default function LecturerDashboard() {
                       <span style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        padding: '0.2rem 0.65rem',
-                        background: '#fef3c7',
-                        color: '#92400e',
-                        borderRadius: '20px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
+                        padding: '0.25rem 0.75rem',
+                        background: 'var(--warning-bg, #fef3c7)',
+                        color: 'var(--warning, #92400e)',
+                        borderRadius: 'var(--radius-full, 9999px)',
+                        fontSize: '0.6875rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.03em',
                       }}>
                         Static PIN
                       </span>
@@ -491,15 +511,15 @@ export default function LecturerDashboard() {
                     <button
                       onClick={() => setManualSessionId(s.session_id)}
                       style={{
-                        padding: '0.45rem 1rem',
-                        background: '#f3f4f6',
-                        color: '#374151',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
+                        padding: '0.5rem 1rem',
+                        background: 'var(--bg-hover, #f3f4f6)',
+                        color: 'var(--text-primary, #374151)',
+                        border: '1px solid var(--border, #d1d5db)',
+                        borderRadius: 'var(--radius-full, 9999px)',
+                        fontSize: '0.75rem',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        transition: 'background 0.15s',
+                        transition: 'all 0.15s',
                       }}
                     >
                       Manual
@@ -507,15 +527,15 @@ export default function LecturerDashboard() {
                     <button
                       onClick={() => deactivateSession(s.session_id)}
                       style={{
-                        padding: '0.45rem 1rem',
-                        background: '#ef4444',
+                        padding: '0.5rem 1rem',
+                        background: 'var(--error, #ef4444)',
                         color: '#fff',
                         border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
+                        borderRadius: 'var(--radius-full, 9999px)',
+                        fontSize: '0.75rem',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        transition: 'background 0.15s',
+                        transition: 'all 0.15s',
                       }}
                     >
                       End
@@ -526,7 +546,7 @@ export default function LecturerDashboard() {
                   <div style={{ padding: '1.5rem' }}>
                     <RollingPinDisplay sessionId={s.session_id} pinSpinning={s.pin_spinning !== false} />
                   </div>
-                  <div style={{ borderTop: '1px solid #f3f4f6' }}>
+                  <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
                     <LiveTracker sessionId={s.session_id} />
                   </div>
                 </div>

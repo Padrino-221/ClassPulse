@@ -7,9 +7,11 @@ async function getTransporter() {
   if (transporter) return transporter;
 
   if (process.env.SMTP_USER) {
+    const port = parseInt(process.env.SMTP_PORT || '465');
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
+      port: port,
+      secure: port === 465,
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
     });
   } else {
