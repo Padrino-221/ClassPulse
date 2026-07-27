@@ -29,10 +29,7 @@ services:
       - key: FROM_EMAIL
         value: ClassPulse <onboarding@resend.dev>
       - key: FRONTEND_URL
-        fromService:
-          name: classpulse-frontend
-          type: static_site
-          property: url
+        value: https://classpulse-wbr6.onrender.com
 
   # ── Frontend (Static Site) ──
   - type: static_site
