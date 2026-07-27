@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const cron = require('node-cron');
 require('dotenv').config();
 
 const { pool } = require('./config/db');
@@ -118,6 +119,24 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 if (require.main === module) {
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`ClassPulse API running on port ${PORT} on all interfaces`);
+
+    // Self-ping every 14 minutes to prevent Render free tier from sleeping
+    if (process.env.NODE_ENV === 'production') {
+      cron.schedule('*/14 * * * *', async () => {
+        try {
+          const http = require('http');
+          const url = `http://localhost:${PORT}/api/ping`;
+          http.get(url, (res) => {
+            console.log(`[Keep-alive] Self-ping: ${res.statusCode}`);
+          }).on('error', (err) => {
+            console.error(`[Keep-alive] Self-ping failed: ${err.message}`);
+          });
+        } catch (err) {
+          console.error(`[Keep-alive] Error: ${err.message}`);
+        }
+      });
+      console.log('Keep-alive cron scheduled (every 14 minutes)');
+    }
   });
   app._server = server;
 }
