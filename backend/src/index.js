@@ -54,6 +54,11 @@ app.use(cors({
 
 app.use(express.json({ limit: '1mb' }));
 
+// ── Health check (no DB) ──
+app.get('/api/ping', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // ── Health check (verifies DB connectivity) ──
 app.get('/api/health', async (req, res) => {
   try {
