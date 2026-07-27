@@ -562,7 +562,7 @@ export default function LecturerDashboard() {
         </div>
         <div style={cardBodyStyle}>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+            <table className="table-bordered" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
               <thead>
                 <tr>
                   {['Course', 'Class', 'Week', 'Status', 'Marked', 'Date'].map((h) => (
@@ -572,6 +572,7 @@ export default function LecturerDashboard() {
                         textAlign: 'left',
                         padding: '0.75rem 1rem',
                         borderBottom: '2px solid #e5e7eb',
+                        borderRight: '1px solid #e5e7eb',
                         color: '#6b7280',
                         fontWeight: 600,
                         fontSize: '0.75rem',
@@ -607,10 +608,10 @@ export default function LecturerDashboard() {
                     onMouseEnter={(e) => e.currentTarget.style.background = '#f0f4ff'}
                     onMouseLeave={(e) => e.currentTarget.style.background = idx % 2 === 0 ? '#fff' : '#fafbfc'}
                   >
-                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f3f4f6', color: '#111827', fontWeight: 500 }}>{s.course_code}</td>
-                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{s.class_name}</td>
-                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>Week {s.week_number}</td>
-                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f3f4f6' }}>
+                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb', color: '#111827', fontWeight: 500 }}>{s.course_code}</td>
+                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb', color: '#374151' }}>{s.class_name}</td>
+                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb', color: '#374151' }}>Week {s.week_number}</td>
+                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb' }}>
                       <span style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -624,8 +625,8 @@ export default function LecturerDashboard() {
                         {s.is_active ? 'Active' : 'Closed'}
                       </span>
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{s.attendance_count}</td>
-                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f3f4f6', color: '#6b7280' }}>{new Date(s.created_at).toLocaleDateString()}</td>
+                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb', color: '#374151' }}>{s.attendance_count}</td>
+                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e5e7eb', color: '#6b7280' }}>{new Date(s.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>

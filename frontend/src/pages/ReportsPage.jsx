@@ -4,12 +4,14 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import api from '../utils/api';
 import Select from '../components/Select';
 import Spinner from '../components/Spinner';
+import Pagination from '../components/Pagination';
 import { useToast } from '../components/Toast';
 
 const BRAND = '#0730A3';
 const BRAND_LIGHT = '#3B5FCC';
 const SUCCESS = '#16A34A';
 const WARNING = '#D97706';
+const PAGE_SIZE = 10;
 
 function StatCard({ icon, label, value, sub }) {
   return (
@@ -150,6 +152,7 @@ export default function ReportsPage() {
   const [summary, setSummary] = useState(null);
   const [weekly, setWeekly] = useState([]);
   const [exporting, setExporting] = useState(false);
+  const [classPage, setClassPage] = useState(1);
 
   const loadFilters = useCallback(async () => {
     try {
@@ -380,7 +383,12 @@ export default function ReportsPage() {
                       </td>
                     </tr>
                   )}
-                  {(summary?.classes || []).map((c) => (
+                  {(() => {
+                    const classes = summary?.classes || [];
+                    const totalPages = Math.ceil(classes.length / PAGE_SIZE);
+                    const startIdx = (classPage - 1) * PAGE_SIZE;
+                    const pageClasses = classes.slice(startIdx, startIdx + PAGE_SIZE);
+                    return pageClasses.map((c) => (
                     <tr key={c.class_id} style={{ borderBottom: '1px solid var(--border-light, #f0f0f0)' }}>
                       <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-primary, #1a1a2e)', fontWeight: 600 }}>{c.class_name}</td>
                       <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary, #374151)' }}>{c.total_students}</td>
@@ -399,9 +407,17 @@ export default function ReportsPage() {
                         </span>
                       </td>
                     </tr>
-                  ))}
+                    ));
+                  })()}
                 </tbody>
               </table>
+            </div>
+            <div style={{ padding: '1rem 1.5rem' }}>
+              <Pagination
+                page={classPage}
+                totalPages={Math.ceil((summary?.classes || []).length / PAGE_SIZE)}
+                onPageChange={setClassPage}
+              />
             </div>
           </div>
         </>

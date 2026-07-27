@@ -1492,6 +1492,9 @@ input, select, button, textarea {
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.875rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
 .matrix-table th,
@@ -1499,7 +1502,13 @@ input, select, button, textarea {
   padding: 0.75rem 1rem;
   text-align: left;
   border-bottom: 1px solid var(--border-light);
+  border-right: 1px solid var(--border-light);
   white-space: nowrap;
+}
+
+.matrix-table th:last-child,
+.matrix-table td:last-child {
+  border-right: none;
 }
 
 .matrix-table th {
@@ -1553,6 +1562,16 @@ input, select, button, textarea {
   left: 0;
   background: var(--bg-card);
   z-index: 1;
+}
+
+/* Generic table borders */
+.table-bordered th,
+.table-bordered td {
+  border: 1px solid var(--border-light);
+}
+
+.table-bordered th {
+  background: var(--bg-global);
 }
 
 .matrix-table tbody tr:nth-child(even) .sticky-col {
