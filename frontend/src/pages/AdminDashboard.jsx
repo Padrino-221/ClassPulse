@@ -66,15 +66,15 @@ function EditModal({ entityLabel, fields, data, onSave, onClose }) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          backgroundColor: '#fff', borderRadius: '16px', boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
+          backgroundColor: 'var(--bg-card, #fff)', borderRadius: 'var(--radius-xl, 24px)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
           width: '100%', maxWidth: '520px', maxHeight: '90vh', overflow: 'auto',
-          padding: '2rem', margin: '1rem',
+          padding: '2rem', margin: '1rem', border: '1px solid var(--border-light, #f0f0f0)',
         }}
       >
-        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1a1a2e', marginBottom: '0.25rem' }}>
+        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary, #1a1a2e)', marginBottom: '0.25rem', letterSpacing: '-0.02em' }}>
           Edit {entityLabel}
         </div>
-        <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '1.25rem' }}>
+        <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary, #6b7280)', marginBottom: '1.25rem' }}>
           Update the record details below.
         </div>
         {error && (
@@ -118,19 +118,19 @@ function EditModal({ entityLabel, fields, data, onSave, onClose }) {
                       max={f.max}
                       required
                       style={{
-                        width: '100%', padding: '0.625rem 0.875rem', fontSize: '0.9rem',
-                        border: '1.5px solid #e5e7eb', borderRadius: '10px', outline: 'none',
-                        backgroundColor: '#f9fafb', transition: 'all 0.2s',
+                        width: '100%', padding: '0.625rem 0.875rem', fontSize: '0.875rem',
+                        border: '1px solid var(--border, #e5e7eb)', borderRadius: 'var(--radius-md, 14px)', outline: 'none',
+                        backgroundColor: 'var(--bg-input, #f9fafb)', transition: 'all 0.2s', height: '42px',
                       }}
                       onFocus={(e) => {
-                        e.target.style.borderColor = '#3b82f6';
+                        e.target.style.borderColor = 'var(--brand, #3b82f6)';
                         e.target.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.15)';
-                        e.target.style.backgroundColor = '#fff';
+                        e.target.style.backgroundColor = 'var(--bg-card, #fff)';
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = '#e5e7eb';
+                        e.target.style.borderColor = 'var(--border, #e5e7eb)';
                         e.target.style.boxShadow = 'none';
-                        e.target.style.backgroundColor = '#f9fafb';
+                        e.target.style.backgroundColor = 'var(--bg-input, #f9fafb)';
                       }}
                     />
                   )}
@@ -138,17 +138,17 @@ function EditModal({ entityLabel, fields, data, onSave, onClose }) {
               )}
             </div>
           ))}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #f3f4f6' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-light, #f3f4f6)' }}>
             <button
               type="button"
               onClick={onClose}
               style={{
-                padding: '0.6rem 1.25rem', fontSize: '0.85rem', fontWeight: 600,
-                color: '#6b7280', backgroundColor: '#f3f4f6', border: 'none',
-                borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s',
+                padding: '0.625rem 1.25rem', fontSize: '0.8125rem', fontWeight: 600,
+                color: 'var(--text-secondary, #6b7280)', backgroundColor: 'var(--bg-hover, #f3f4f6)', border: 'none',
+                borderRadius: 'var(--radius-full, 9999px)', cursor: 'pointer', transition: 'all 0.2s',
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+              onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--border, #e5e7eb)'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-hover, #f3f4f6)'}
             >
               Cancel
             </button>
@@ -156,14 +156,14 @@ function EditModal({ entityLabel, fields, data, onSave, onClose }) {
               type="submit"
               disabled={saving}
               style={{
-                padding: '0.6rem 1.5rem', fontSize: '0.85rem', fontWeight: 600,
-                color: '#fff', backgroundColor: '#3b82f6', border: 'none',
-                borderRadius: '10px', cursor: 'pointer', display: 'flex',
+                padding: '0.625rem 1.5rem', fontSize: '0.8125rem', fontWeight: 600,
+                color: '#fff', backgroundColor: 'var(--brand, #3b82f6)', border: 'none',
+                borderRadius: 'var(--radius-full, 9999px)', cursor: 'pointer', display: 'flex',
                 alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s',
                 opacity: saving ? 0.7 : 1,
               }}
-              onMouseEnter={(e) => !saving && (e.target.style.backgroundColor = '#2563eb')}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#3b82f6'}
+              onMouseEnter={(e) => !saving && (e.target.style.backgroundColor = 'var(--brand-dark, #2563eb)')}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--brand, #3b82f6)'}
             >
               {saving ? <><Spinner size={14} /> Saving...</> : 'Save Changes'}
             </button>
@@ -192,17 +192,17 @@ function EntityTable({ columns, data, onDelete, onEdit, emptyMsg = 'No data.', s
   return (
     <div style={{ marginTop: '1rem' }}>
       <div style={{
-        backgroundColor: '#fff', borderRadius: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-        overflow: 'hidden',
+        backgroundColor: 'var(--bg-card, #fff)', borderRadius: 'var(--radius-lg, 18px)', boxShadow: 'none',
+        overflow: 'hidden', border: '1px solid var(--border-light, #f0f0f0)',
       }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
           <thead>
-            <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+            <tr style={{ backgroundColor: 'var(--bg-global, #f9fafb)', borderBottom: '1px solid var(--border-light, #f3f4f6)' }}>
               {columns.map((col) => (
                 <th key={col.key} style={{
-                  padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600,
-                  color: '#6b7280', fontSize: '0.75rem', textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
+                  padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 700,
+                  color: 'var(--text-muted, #6b7280)', fontSize: '0.6875rem', textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
                 }}>
                   {col.label}
                 </th>
@@ -236,12 +236,12 @@ function EntityTable({ columns, data, onDelete, onEdit, emptyMsg = 'No data.', s
               <tr
                 key={row.id || row.class_id || row.course_code || i}
                 style={{
-                  backgroundColor: i % 2 === 0 ? '#fff' : '#fafbfc',
-                  borderBottom: '1px solid #f3f4f6',
+                  backgroundColor: i % 2 === 0 ? 'var(--bg-card, #fff)' : 'var(--bg-global, #fafbfc)',
+                  borderBottom: '1px solid var(--border-light, #f3f4f6)',
                   transition: 'background-color 0.15s',
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f7ff'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = i % 2 === 0 ? '#fff' : '#fafbfc'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-hover, #f0f7ff)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = i % 2 === 0 ? 'var(--bg-card, #fff)' : 'var(--bg-global, #fafbfc)'}
               >
                 {columns.map((col) => (
                   <td key={col.key} style={{ padding: '0.75rem 1rem', color: '#1f2937' }}>
@@ -257,17 +257,17 @@ function EntityTable({ columns, data, onDelete, onEdit, emptyMsg = 'No data.', s
                           onClick={() => onEdit(row)}
                           style={{
                             width: '32px', height: '32px', display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', border: 'none', borderRadius: '8px',
-                            backgroundColor: '#eff6ff', color: '#3b82f6', cursor: 'pointer',
+                            justifyContent: 'center', border: '1px solid var(--border, #e5e7eb)', borderRadius: 'var(--radius-md, 14px)',
+                            backgroundColor: 'var(--brand-light, #eff6ff)', color: 'var(--brand, #3b82f6)', cursor: 'pointer',
                             transition: 'all 0.2s',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#3b82f6';
+                            e.currentTarget.style.backgroundColor = 'var(--brand, #3b82f6)';
                             e.currentTarget.style.color = '#fff';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#eff6ff';
-                            e.currentTarget.style.color = '#3b82f6';
+                            e.currentTarget.style.backgroundColor = 'var(--brand-light, #eff6ff)';
+                            e.currentTarget.style.color = 'var(--brand, #3b82f6)';
                           }}
                         >
                           <PencilSimple weight="duotone" size={14} />
@@ -279,17 +279,17 @@ function EntityTable({ columns, data, onDelete, onEdit, emptyMsg = 'No data.', s
                           onClick={() => onDelete(row.id || row.class_id || row.course_code)}
                           style={{
                             width: '32px', height: '32px', display: 'flex', alignItems: 'center',
-                            justifyContent: 'center', border: 'none', borderRadius: '8px',
-                            backgroundColor: '#fef2f2', color: '#dc2626', cursor: 'pointer',
+                            justifyContent: 'center', border: '1px solid var(--border, #e5e7eb)', borderRadius: 'var(--radius-md, 14px)',
+                            backgroundColor: 'var(--error-bg, #fef2f2)', color: 'var(--error, #dc2626)', cursor: 'pointer',
                             transition: 'all 0.2s',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#dc2626';
+                            e.currentTarget.style.backgroundColor = 'var(--error, #dc2626)';
                             e.currentTarget.style.color = '#fff';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#fef2f2';
-                            e.currentTarget.style.color = '#dc2626';
+                            e.currentTarget.style.backgroundColor = 'var(--error-bg, #fef2f2)';
+                            e.currentTarget.style.color = 'var(--error, #dc2626)';
                           }}
                         >
                           <Trash weight="duotone" size={14} />
@@ -310,6 +310,7 @@ function EntityTable({ columns, data, onDelete, onEdit, emptyMsg = 'No data.', s
 function AddForm({ entityLabel, fields, onSubmit, buttonText = 'Add', extraButtons }) {
   const [form, setForm] = useState(() => fields.reduce((acc, f) => ({ ...acc, [f.name]: '' }), {}));
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
 
   const handleChange = (e) => setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -317,6 +318,7 @@ function AddForm({ entityLabel, fields, onSubmit, buttonText = 'Add', extraButto
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     try {
       await onSubmit(form);
       toast.success(`${entityLabel} added successfully`);
@@ -325,25 +327,27 @@ function AddForm({ entityLabel, fields, onSubmit, buttonText = 'Add', extraButto
       const msg = err.response?.data?.error || "Couldn't add.";
       setError(msg);
       toast.error(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div style={{
-      backgroundColor: '#fff', borderRadius: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-      marginBottom: '1rem', overflow: 'hidden',
+      backgroundColor: 'var(--bg-card, #fff)', borderRadius: 'var(--radius-lg, 18px)', boxShadow: 'none',
+      marginBottom: '1rem', overflow: 'hidden', border: '1px solid var(--border-light, #f0f0f0)',
     }}>
       <div style={{
-        padding: '0.875rem 1.25rem', borderBottom: '1px solid #f3f4f6',
+        padding: '0.875rem 1.25rem', borderBottom: '1px solid var(--border-light, #f3f4f6)',
         display: 'flex', alignItems: 'center', gap: '0.5rem',
       }}>
         <div style={{
-          width: '28px', height: '28px', borderRadius: '8px', backgroundColor: '#eff6ff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6',
+          width: '32px', height: '32px', borderRadius: 'var(--radius-md, 14px)', backgroundColor: 'var(--brand-light, #eff6ff)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand, #3b82f6)',
         }}>
           <Plus weight="duotone" size={16} />
         </div>
-        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1f2937' }}>
+        <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary, #1f2937)' }}>
           New {entityLabel}
         </span>
       </div>
@@ -369,9 +373,9 @@ function AddForm({ entityLabel, fields, onSubmit, buttonText = 'Add', extraButto
               ) : (
                 <>
                   <label style={{
-                    display: 'block', fontSize: '0.75rem', fontWeight: 600,
-                    color: '#6b7280', marginBottom: '0.375rem', textTransform: 'uppercase',
-                    letterSpacing: '0.03em',
+                    display: 'block', fontSize: '0.6875rem', fontWeight: 700,
+                    color: 'var(--text-muted, #6b7280)', marginBottom: '0.375rem', textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
                   }}>
                     {f.label}
                   </label>
@@ -390,19 +394,19 @@ function AddForm({ entityLabel, fields, onSubmit, buttonText = 'Add', extraButto
                       min={f.min}
                       max={f.max}
                       style={{
-                        width: '100%', padding: '0.6rem 0.875rem', fontSize: '0.875rem',
-                        border: '1.5px solid #e5e7eb', borderRadius: '10px', outline: 'none',
-                        backgroundColor: '#f9fafb', transition: 'all 0.2s', boxSizing: 'border-box',
+                        width: '100%', padding: '0.625rem 0.875rem', fontSize: '0.875rem',
+                        border: '1px solid var(--border, #e5e7eb)', borderRadius: 'var(--radius-md, 14px)', outline: 'none',
+                        backgroundColor: 'var(--bg-input, #f9fafb)', transition: 'all 0.2s', boxSizing: 'border-box', height: '42px',
                       }}
                       onFocus={(e) => {
-                        e.target.style.borderColor = '#3b82f6';
+                        e.target.style.borderColor = 'var(--brand, #3b82f6)';
                         e.target.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.15)';
-                        e.target.style.backgroundColor = '#fff';
+                        e.target.style.backgroundColor = 'var(--bg-card, #fff)';
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = '#e5e7eb';
+                        e.target.style.borderColor = 'var(--border, #e5e7eb)';
                         e.target.style.boxShadow = 'none';
-                        e.target.style.backgroundColor = '#f9fafb';
+                        e.target.style.backgroundColor = 'var(--bg-input, #f9fafb)';
                       }}
                     />
                   )}
@@ -412,16 +416,17 @@ function AddForm({ entityLabel, fields, onSubmit, buttonText = 'Add', extraButto
           ))}
           <button
             type="submit"
+            disabled={loading}
             style={{
-              padding: '0.6rem 1.5rem', fontSize: '0.85rem', fontWeight: 600,
-              color: '#fff', backgroundColor: '#3b82f6', border: 'none',
-              borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s',
-              height: '40px', whiteSpace: 'nowrap',
+              padding: '0.625rem 1.5rem', fontSize: '0.8125rem', fontWeight: 600,
+              color: '#fff', backgroundColor: loading ? 'var(--brand-dark, #2563eb)' : 'var(--brand, #3b82f6)', border: 'none',
+              borderRadius: 'var(--radius-full, 9999px)', cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s',
+              height: '42px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.5rem',
             }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#2563eb'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#3b82f6'}
+            onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = 'var(--brand-dark, #2563eb)')}
+            onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = 'var(--brand, #3b82f6)')}
           >
-            {buttonText}
+            {loading ? <><Spinner size={14} /> Adding...</> : buttonText}
           </button>
           {extraButtons}
         </form>
@@ -564,22 +569,22 @@ function AdminOverviewPage({ courses, lecturers, classes, students, buildings })
   return (
     <>
       <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1a1a2e', marginBottom: '0.25rem' }}>
+        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary, #1a1a2e)', marginBottom: '0.25rem', letterSpacing: '-0.02em' }}>
           Admin Dashboard
         </div>
-        <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>
+        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary, #6b7280)' }}>
           Manage courses, classes, lecturers, and students across the system.
         </div>
       </div>
 
       <div style={{
-        backgroundColor: '#fff', borderRadius: '14px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-        overflow: 'hidden',
+        backgroundColor: 'var(--bg-card, #fff)', borderRadius: 'var(--radius-lg, 18px)', boxShadow: 'none',
+        overflow: 'hidden', border: '1px solid var(--border-light, #f0f0f0)',
       }}>
         <div style={{
-          padding: '1rem 1.25rem', borderBottom: '1px solid #f3f4f6',
+          padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-light, #f3f4f6)',
         }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', margin: 0 }}>Management</h3>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary, #1f2937)', margin: 0 }}>Management</h3>
         </div>
         <div style={{ padding: '1.25rem' }}>
           <div style={{
@@ -592,9 +597,9 @@ function AdminOverviewPage({ courses, lecturers, classes, students, buildings })
                 to={tile.to}
                 style={{
                   display: 'flex', alignItems: 'flex-start', gap: '1rem',
-                  padding: '1.25rem', borderRadius: '12px', border: '1.5px solid #f3f4f6',
+                  padding: '1.25rem', borderRadius: 'var(--radius-lg, 18px)', border: '1px solid var(--border-light, #f3f4f6)',
                   textDecoration: 'none', transition: 'all 0.2s', cursor: 'pointer',
-                  backgroundColor: '#fff',
+                  backgroundColor: 'var(--bg-card, #fff)',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
@@ -603,25 +608,25 @@ function AdminOverviewPage({ courses, lecturers, classes, students, buildings })
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.boxShadow = 'none';
-                  e.currentTarget.style.borderColor = '#f3f4f6';
+                  e.currentTarget.style.borderColor = 'var(--border-light, #f3f4f6)';
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
                 <div style={{
-                  width: '44px', height: '44px', borderRadius: '12px', backgroundColor: tile.bg,
+                  width: '48px', height: '48px', borderRadius: 'var(--radius-lg, 18px)', backgroundColor: tile.bg,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', color: tile.color,
                   flexShrink: 0,
                 }}>
                   {tile.icon}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#1f2937', marginBottom: '0.125rem' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary, #1f2937)', marginBottom: '0.125rem' }}>
                     {tile.title}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: tile.color, fontWeight: 600, marginBottom: '0.375rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: tile.color, fontWeight: 700, marginBottom: '0.375rem' }}>
                     {tile.count} {tile.title.toLowerCase()}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#9ca3af', lineHeight: '1.4' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #9ca3af)', lineHeight: '1.4' }}>
                     {tile.desc}
                   </div>
                 </div>
@@ -1002,13 +1007,13 @@ function StudentsPage() {
                   disabled={importing}
                   onClick={() => fileRef.current?.click()}
                   style={{
-                    alignSelf: 'flex-end', height: '40px', padding: '0.6rem 1.25rem',
-                    fontSize: '0.85rem', fontWeight: 600, color: '#374151',
-                    backgroundColor: '#f3f4f6', border: 'none', borderRadius: '10px',
+                    alignSelf: 'flex-end', height: '42px', padding: '0.625rem 1.25rem',
+                    fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary, #374151)',
+                    backgroundColor: 'var(--bg-hover, #f3f4f6)', border: 'none', borderRadius: 'var(--radius-full, 9999px)',
                     cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap',
                   }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--border, #e5e7eb)'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = 'var(--bg-hover, #f3f4f6)'}
                 >
                   {importing ? 'Importing...' : 'Import CSV'}
                 </button>
