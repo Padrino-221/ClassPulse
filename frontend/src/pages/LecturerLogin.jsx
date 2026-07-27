@@ -127,8 +127,9 @@ export default function LecturerLogin() {
       zIndex: 2,
       display: 'flex',
       alignItems: 'center',
+      justifyContent: 'center',
       gap: '0.75rem',
-      marginBottom: 'auto',
+      marginBottom: '2rem',
     },
     logoBox: {
       width: '42px',
