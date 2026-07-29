@@ -6,7 +6,7 @@ import api from '../utils/api';
 import { CheckCircle, XCircle, Check, MapPin, ArrowLeft } from '@phosphor-icons/react';
 
 export default function Attend() {
-  const { coords, error: geoError, loading: geoLoading, accuracy, refresh: refreshGeo } = useGeolocation();
+  const { coords, error: geoError, loading: geoLoading, accuracy, refresh: refreshGeo, startWatching } = useGeolocation();
   const [submittedSessions, setSubmittedSessions] = useLocalStorage('attended_sessions', []);
 
   const [form, setForm] = useState({ name: '', index_number: '', pin: '' });
@@ -28,6 +28,7 @@ export default function Attend() {
       const pinRes = await api.post('/api/attendance/validate-pin', { pin: form.pin });
       setSessionInfo(pinRes.data);
       setStep('confirm');
+      startWatching();
     } catch (err) {
       setErrorMessage(err.response?.data?.error || 'Invalid PIN. Try again.');
     } finally {
@@ -40,7 +41,7 @@ export default function Attend() {
     setErrorMessage('');
 
     if (!coords) {
-      refreshGeo();
+      startWatching();
       setErrorMessage('Waiting for GPS signal. Please allow location access and try again.');
       setStep('confirm');
       return;
@@ -82,7 +83,6 @@ export default function Attend() {
     setStep('form');
     setSessionInfo(null);
     setErrorMessage('');
-    refreshGeo();
   };
 
   const now = new Date();

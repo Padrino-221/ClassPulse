@@ -1,44 +1,60 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 const COLLECTION_WINDOW_MS = 15000;
 
 export default function useGeolocation() {
   const [coords, setCoords] = useState(null);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [accuracy, setAccuracy] = useState(null);
   const readingsRef = useRef([]);
   const timerRef = useRef(null);
   const erroredRef = useRef(false);
+  const watchIdRef = useRef(null);
 
-  useEffect(() => {
+  const stopWatching = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const pickBest = useCallback(() => {
+    const readings = readingsRef.current;
+    if (readings.length === 0) {
+      if (!erroredRef.current) {
+        setError('Could not get a GPS reading. Try again outdoors.');
+      }
+      setLoading(false);
+      return null;
+    }
+
+    let best = readings[0];
+    for (let i = 1; i < readings.length; i++) {
+      if (readings[i].accuracy < best.accuracy) {
+        best = readings[i];
+      }
+    }
+    return best;
+  }, []);
+
+  const startWatching = useCallback(() => {
     if (!navigator.geolocation) {
       setError('Geolocation is not supported by this browser.');
       setLoading(false);
       return;
     }
 
-    let watchId = null;
-
-    const pickBest = () => {
-      const readings = readingsRef.current;
-      if (readings.length === 0) {
-        if (!erroredRef.current) {
-          setError('Could not get a GPS reading. Try again outdoors.');
-        }
-        setLoading(false);
-        return null;
-      }
-
-      let best = readings[0];
-      for (let i = 1; i < readings.length; i++) {
-        if (readings[i].accuracy < best.accuracy) {
-          best = readings[i];
-        }
-      }
-
-      return best;
-    };
+    setCoords(null);
+    setError(null);
+    setLoading(true);
+    setAccuracy(null);
+    erroredRef.current = false;
+    readingsRef.current = [];
 
     const onReading = (position) => {
       const reading = {
@@ -46,7 +62,6 @@ export default function useGeolocation() {
         longitude: position.coords.longitude,
         accuracy: position.coords.accuracy,
       };
-
       readingsRef.current.push(reading);
       erroredRef.current = false;
       setAccuracy(reading.accuracy);
@@ -70,19 +85,19 @@ export default function useGeolocation() {
 
       if (err.code === 1 || err.code === 2) {
         setLoading(false);
-        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        stopWatching();
       }
     };
 
-    watchId = navigator.geolocation.watchPosition(onReading, onError, {
+    const watchId = navigator.geolocation.watchPosition(onReading, onError, {
       enableHighAccuracy: true,
       timeout: 20000,
       maximumAge: 0,
     });
+    watchIdRef.current = watchId;
 
     timerRef.current = setTimeout(() => {
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-
+      stopWatching();
       const best = pickBest();
       if (best) {
         setCoords(best);
@@ -90,21 +105,16 @@ export default function useGeolocation() {
         setLoading(false);
       }
     }, COLLECTION_WINDOW_MS);
+  }, [stopWatching, pickBest]);
 
-    return () => {
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+  const refresh = useCallback(() => {
+    stopWatching();
+    startWatching();
+  }, [stopWatching, startWatching]);
 
-  const refresh = () => {
-    setCoords(null);
-    setError(null);
-    setLoading(true);
-    setAccuracy(null);
-    erroredRef.current = false;
-    readingsRef.current = [];
-  };
+  useEffect(() => {
+    return () => stopWatching();
+  }, [stopWatching]);
 
-  return { coords, error, loading, accuracy, refresh };
+  return { coords, error, loading, accuracy, refresh, startWatching };
 }
