@@ -76,7 +76,7 @@ function RollingPinDisplay({ sessionId, pinSpinning }) {
         padding: '2rem 1.5rem',
         background: 'linear-gradient(135deg, #B91C1C 0%, #DC2626 50%, #F87171 100%)',
         borderRadius: '8px',
-        color: 'var(--bg-card)',
+        color: '#FFFFFF',
       }}>
         <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.85, marginBottom: '0.75rem' }}>
           {pinLabel}
@@ -100,7 +100,7 @@ function RollingPinDisplay({ sessionId, pinSpinning }) {
         <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.85, marginBottom: '0.75rem' }}>
           {pinLabel}
         </span>
-        <span style={{ fontSize: '3.5rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.1em' }}>{pin}</span>
+        <span style={{ fontSize: '3.5rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.1em', color: '#FFFFFF' }}>{pin}</span>
       </div>
     );
   }
@@ -115,12 +115,12 @@ function RollingPinDisplay({ sessionId, pinSpinning }) {
       padding: '2rem 1.5rem',
       background: 'linear-gradient(135deg, #B91C1C 0%, #DC2626 50%, #F87171 100%)',
       borderRadius: '8px',
-      color: 'var(--bg-card)',
+      color: '#FFFFFF',
     }}>
       <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.85, marginBottom: '0.75rem' }}>
         {pinLabel}
       </span>
-      <span style={{ fontSize: '3.5rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.1em' }}>
+      <span style={{ fontSize: '3.5rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.1em', color: '#FFFFFF' }}>
         {pin}
       </span>
       <div style={{ width: '100%', marginTop: '1.25rem' }}>
@@ -147,7 +147,7 @@ function RollingPinDisplay({ sessionId, pinSpinning }) {
           marginLeft: 'auto',
           marginRight: 'auto',
         }}>
-          <span style={{ fontSize: '1rem', color: 'var(--bg-card)', fontWeight: 700 }}>
+          <span style={{ fontSize: '1rem', color: '#FFFFFF', fontWeight: 700 }}>
             {secondsLeft}s left
           </span>
         </div>
