@@ -2251,6 +2251,10 @@ function AcademicTermsPage() {
 
 function ToolsPage() {
   const toast = useToast();
+  const user = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
+  }, []);
+  const isUniversity = user?.admin_level === 'university';
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [exporting, setExporting] = useState(false);
@@ -2402,7 +2406,8 @@ function ToolsPage() {
         </div>
       </div>
 
-      {/* Reset / Danger Zone */}
+      {/* Reset / Danger Zone — university admin only */}
+      {isUniversity && (
       <div className="danger-zone-card">
         <div className="danger-zone-header">
           <div className="danger-zone-icon">
@@ -2467,6 +2472,7 @@ function ToolsPage() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
