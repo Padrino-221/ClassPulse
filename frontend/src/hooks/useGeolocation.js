@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-const COLLECTION_WINDOW_MS = 10000;
+const COLLECTION_WINDOW_MS = 15000;
 
 export default function useGeolocation() {
   const [coords, setCoords] = useState(null);
@@ -9,6 +9,7 @@ export default function useGeolocation() {
   const [accuracy, setAccuracy] = useState(null);
   const readingsRef = useRef([]);
   const timerRef = useRef(null);
+  const erroredRef = useRef(false);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -22,12 +23,13 @@ export default function useGeolocation() {
     const pickBest = () => {
       const readings = readingsRef.current;
       if (readings.length === 0) {
-        setError('Could not get a GPS reading. Try again outdoors.');
+        if (!erroredRef.current) {
+          setError('Could not get a GPS reading. Try again outdoors.');
+        }
         setLoading(false);
         return null;
       }
 
-      // Return the reading with the smallest accuracy value (most precise)
       let best = readings[0];
       for (let i = 1; i < readings.length; i++) {
         if (readings[i].accuracy < best.accuracy) {
@@ -46,34 +48,38 @@ export default function useGeolocation() {
       };
 
       readingsRef.current.push(reading);
-
-      // Update live accuracy so the UI can show progress
+      erroredRef.current = false;
       setAccuracy(reading.accuracy);
     };
 
     const onError = (err) => {
-      // Don't overwrite a good reading with a later error
       if (readingsRef.current.length > 0) return;
 
       let msg = 'Location error.';
-      if (err.code === 1) msg = 'Location permission denied. Enable GPS in settings.';
-      else if (err.code === 2) msg = 'Location unavailable. Try outdoors.';
-      else if (err.code === 3) msg = 'Location timed out. Trying fallback...';
+      if (err.code === 1) {
+        msg = 'Location permission denied. Enable GPS in settings.';
+        erroredRef.current = true;
+      } else if (err.code === 2) {
+        msg = 'Location unavailable. Try outdoors.';
+        erroredRef.current = true;
+      } else if (err.code === 3) {
+        msg = 'GPS timed out, retrying...';
+      }
 
       setError(msg);
-      setLoading(false);
 
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      if (err.code === 1 || err.code === 2) {
+        setLoading(false);
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      }
     };
 
-    // Start watching — prefer high accuracy, collect for 10s
     watchId = navigator.geolocation.watchPosition(onReading, onError, {
       enableHighAccuracy: true,
-      timeout: 15000,
+      timeout: 20000,
       maximumAge: 0,
     });
 
-    // After 10 seconds, pick the best reading and stop
     timerRef.current = setTimeout(() => {
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
 
@@ -91,12 +97,12 @@ export default function useGeolocation() {
     };
   }, []);
 
-  // Allow manual restart if user wants a fresh reading
   const refresh = () => {
     setCoords(null);
     setError(null);
     setLoading(true);
     setAccuracy(null);
+    erroredRef.current = false;
     readingsRef.current = [];
   };
 
