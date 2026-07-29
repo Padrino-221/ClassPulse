@@ -381,7 +381,7 @@ router.get('/sessions', async (req, res) => {
     const count = await pool.query('SELECT COUNT(*) FROM active_sessions WHERE lecturer_id = $1', [req.user.id]);
     const result = await pool.query(
       `SELECT as2.session_id, c.course_code, c.course_name, cl.class_name,
-              as2.week_number, as2.pin_seed, as2.pin_spinning, as2.latitude, as2.longitude,
+              as2.week_number, as2.pin_seed, as2.pin_spinning,
               as2.created_at, as2.expires_at, as2.is_active,
               (SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = as2.session_id) AS attendance_count
        FROM active_sessions as2
