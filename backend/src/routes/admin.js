@@ -609,8 +609,12 @@ router.post('/students/bulk', upload.single('file'), async (req, res) => {
     if (lines.length < 2) return res.status(400).json({ error: 'CSV needs a header row.' });
 
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const idxIdx = headers.indexOf('index_number') || headers.indexOf('index number') || headers.indexOf('index') || -1;
-    const nameIdx = headers.indexOf('student_name') || headers.indexOf('student name') || headers.indexOf('name') || -1;
+    function findCol(...candidates) {
+      for (const c of candidates) { const i = headers.indexOf(c); if (i !== -1) return i; }
+      return -1;
+    }
+    const idxIdx = findCol('index_number', 'index number', 'index');
+    const nameIdx = findCol('student_name', 'student name', 'name');
     if (idxIdx === -1 || nameIdx === -1) {
       return res.status(400).json({ error: 'CSV needs index_number and student_name columns.' });
     }
@@ -1615,8 +1619,8 @@ router.post('/attendance/override',
     try {
       if (status === 'present') {
         await pool.query(
-          `INSERT INTO attendance_records (session_id, index_number, timestamp)
-           VALUES ($1, $2, NOW())
+          `INSERT INTO attendance_records (session_id, index_number, verification_method, timestamp)
+           VALUES ($1, $2, 'MANUAL', NOW())
            ON CONFLICT (session_id, index_number) DO UPDATE SET timestamp = NOW()`,
           [session_id, index_number]
         );
@@ -1642,11 +1646,12 @@ router.get('/active-sessions', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      `SELECT a.*, c.course_name, c.university_id
+      `SELECT a.*, c.course_name
        FROM active_sessions a
        JOIN courses c ON c.course_code = a.course_code
-       JOIN departments d ON d.department_id = c.department_id
-       WHERE d.university_id = $1
+       JOIN departments d ON d.id = c.department_id
+       JOIN schools s ON s.id = d.school_id
+       WHERE s.university_id = $1
        ORDER BY a.created_at DESC`,
       [req.scope.university_id]
     );

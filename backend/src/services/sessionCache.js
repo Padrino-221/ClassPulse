@@ -174,6 +174,11 @@ class SessionCache {
   }
 
   deactivate(sessionId) {
+    const s = this.sessions.get(sessionId);
+    if (s) {
+      const ids = this.byCourse.get(s.course_code);
+      if (ids) ids.delete(sessionId);
+    }
     this.sessions.delete(sessionId);
   }
 

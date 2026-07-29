@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Pulse, CheckCircle, BookOpen, Users, CalendarBlank } from '@phosphor-icons/react';
 import api from '../utils/api';
-import { useSearch } from '../context/SearchContext';
 import { useToast } from '../components/Toast';
 import DashboardLayout from '../components/DashboardLayout';
 import PageHeader from '../components/PageHeader';
@@ -157,7 +156,6 @@ function RollingPinDisplay({ sessionId, pinSpinning }) {
 }
 
 export default function LecturerLiveSession() {
-  const { searchQuery } = useSearch();
   const [courses, setCourses] = useState([]);
   const [classes, setClasses] = useState([]);
   const [lectureHalls, setLectureHalls] = useState([]);
@@ -167,6 +165,7 @@ export default function LecturerLiveSession() {
   const [total, setTotal] = useState(0);
   const [sessionPage, setSessionPage] = useState(1);
 
+  const [mode, setMode] = useState('now');
   const [form, setForm] = useState({
     course_code: '',
     class_ids: [],
@@ -174,20 +173,12 @@ export default function LecturerLiveSession() {
     lecture_hall_id: '',
     pin_spinning: true,
     duration_minutes: 120,
+    scheduled_date: '',
   });
-  const [activating, setActivating] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const toast = useToast();
 
-  const [scheduleForm, setScheduleForm] = useState({
-    course_code: '',
-    class_ids: [],
-    scheduled_date: '',
-    duration_minutes: 120,
-    week_number: '',
-    lecture_hall_id: '',
-  });
   const [scheduledSessions, setScheduledSessions] = useState([]);
-  const [scheduling, setScheduling] = useState(false);
 
   const loadData = useCallback(async (page) => {
     try {
@@ -230,52 +221,48 @@ export default function LecturerLiveSession() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const activateSession = async () => {
-    if (!form.lecture_hall_id) {
-      toast.error('Select a lecture hall.');
-      return;
-    }
-    if (form.class_ids.length === 0) {
-      toast.error('Select at least one class.');
-      return;
-    }
-    setActivating(true);
+  const handleSubmit = async () => {
+    if (!form.course_code) { toast.error('Select a course.'); return; }
+    if (form.class_ids.length === 0) { toast.error('Select at least one class.'); return; }
+    if (!form.lecture_hall_id) { toast.error('Select a lecture hall.'); return; }
+    if (!form.week_number) { toast.error('Enter a week number.'); return; }
+    if (mode === 'schedule' && !form.scheduled_date) { toast.error('Select a date and time.'); return; }
+
+    setSubmitting(true);
     try {
-      await api.post('/api/lecturer/activate', {
-        course_code: form.course_code,
-        class_ids: form.class_ids,
-        week_number: parseInt(form.week_number),
-        lecture_hall_id: parseInt(form.lecture_hall_id),
-        pin_spinning: form.pin_spinning,
-        duration_minutes: parseInt(form.duration_minutes),
-      });
-      setForm((prev) => ({ ...prev, class_ids: [] }));
+      if (mode === 'now') {
+        await api.post('/api/lecturer/activate', {
+          course_code: form.course_code,
+          class_ids: form.class_ids,
+          week_number: parseInt(form.week_number),
+          lecture_hall_id: parseInt(form.lecture_hall_id),
+          pin_spinning: form.pin_spinning,
+          duration_minutes: parseInt(form.duration_minutes),
+        });
+        toast.success('Session started!');
+      } else {
+        await api.post('/api/lecturer/schedule', {
+          course_code: form.course_code,
+          class_ids: form.class_ids,
+          scheduled_date: form.scheduled_date,
+          duration_minutes: parseInt(form.duration_minutes),
+          week_number: parseInt(form.week_number),
+          lecture_hall_id: parseInt(form.lecture_hall_id),
+        });
+        toast.success('Session scheduled!');
+      }
+      setForm((prev) => ({ ...prev, class_ids: [], scheduled_date: '' }));
       loadData();
     } catch (err) {
-      const msg = err.response?.data?.error || "Couldn't start session.";
-      if (err.response?.status === 409) {
-        toast.error(msg);
-      } else {
-        toast.error(msg);
-      }
+      toast.error(err.response?.data?.error || `Couldn't ${mode === 'now' ? 'start' : 'schedule'} session.`);
     } finally {
-      setActivating(false);
+      setSubmitting(false);
     }
   };
 
   const handleSessionPageChange = (p) => {
     setSessionPage(p);
-    loadData(p);
   };
-
-  const filteredSessions = useMemo(() => {
-    if (!searchQuery) return sessions;
-    const q = searchQuery.toLowerCase();
-    return sessions.filter((s) =>
-      [s.course_code, s.class_name, String(s.week_number), s.course_name]
-        .some((v) => v?.toLowerCase().includes(q))
-    );
-  }, [sessions, searchQuery]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -286,46 +273,6 @@ export default function LecturerLiveSession() {
       loadData();
     } catch {
       toast.error("Couldn't end session.");
-    }
-  };
-
-  const scheduleSession = async () => {
-    if (!scheduleForm.lecture_hall_id) {
-      toast.error('Select a lecture hall for scheduling.');
-      return;
-    }
-    if (scheduleForm.class_ids.length === 0) {
-      toast.error('Select at least one class for scheduling.');
-      return;
-    }
-    if (!scheduleForm.scheduled_date) {
-      toast.error('Select a date and time for the scheduled session.');
-      return;
-    }
-    setScheduling(true);
-    try {
-      await api.post('/api/lecturer/schedule', {
-        course_code: scheduleForm.course_code,
-        class_ids: scheduleForm.class_ids,
-        scheduled_date: scheduleForm.scheduled_date,
-        duration_minutes: parseInt(scheduleForm.duration_minutes),
-        week_number: parseInt(scheduleForm.week_number),
-        lecture_hall_id: parseInt(scheduleForm.lecture_hall_id),
-      });
-      setScheduleForm({
-        course_code: '', class_ids: [], scheduled_date: '',
-        duration_minutes: 120, week_number: '', lecture_hall_id: '',
-      });
-      loadData();
-    } catch (err) {
-      const msg = err.response?.data?.error || "Couldn't schedule sessions.";
-      if (err.response?.status === 409) {
-        toast.error(msg);
-      } else {
-        toast.error(msg);
-      }
-    } finally {
-      setScheduling(false);
     }
   };
 
@@ -409,102 +356,6 @@ export default function LecturerLiveSession() {
     height: '42px',
   };
 
-  const scheduleSection = (
-    <div style={{ ...cardStyle }}>
-      <div style={cardHeaderStyle}>
-        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Schedule Session</h3>
-      </div>
-      <div style={cardBodyStyle}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem', maxWidth: '600px' }}>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Course</label>
-              <Select name="course_code" value={scheduleForm.course_code} onChange={(e) => setScheduleForm((prev) => ({ ...prev, course_code: e.target.value, class_ids: [] }))}>
-                <option value="">Select Course</option>
-                {courses.map((c) => (
-                  <option key={c.course_code} value={c.course_code}>{c.course_code} - {c.course_name}</option>
-                ))}
-              </Select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Lecture Hall</label>
-              <Select name="lecture_hall_id" value={scheduleForm.lecture_hall_id} onChange={(e) => setScheduleForm((prev) => ({ ...prev, lecture_hall_id: e.target.value }))}>
-                <option value="">Select Hall</option>
-                {lectureHalls.map((lh) => (
-                  <option key={lh.id} value={lh.id}>{lh.name}</option>
-                ))}
-              </Select>
-            </div>
-          </div>
-          <div>
-            <MultiSelect
-              label="Classes"
-              options={classes.map((c) => ({ value: c.class_id, label: c.class_name }))}
-              value={scheduleForm.class_ids}
-              onChange={(val) => setScheduleForm((prev) => ({ ...prev, class_ids: val }))}
-            />
-          </div>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Date & Time</label>
-              <input type="datetime-local" name="scheduled_date" value={scheduleForm.scheduled_date} onChange={(e) => setScheduleForm((prev) => ({ ...prev, scheduled_date: e.target.value }))} style={inputStyle} />
-            </div>
-            <div style={{ flex: '0 0 140px' }}>
-              <label style={labelStyle}>Duration (min)</label>
-              <input type="number" name="duration_minutes" min="1" max="480" value={scheduleForm.duration_minutes} onChange={(e) => setScheduleForm((prev) => ({ ...prev, duration_minutes: e.target.value }))} style={inputStyle} />
-            </div>
-            <div style={{ flex: '0 0 100px' }}>
-              <label style={labelStyle}>Week</label>
-              <input type="number" name="week_number" min="1" max="52" value={scheduleForm.week_number} onChange={(e) => setScheduleForm((prev) => ({ ...prev, week_number: e.target.value }))} style={inputStyle} />
-            </div>
-          </div>
-          <button
-            onClick={scheduleSession}
-            disabled={scheduling || !scheduleForm.course_code || scheduleForm.class_ids.length === 0 || !scheduleForm.scheduled_date || !scheduleForm.lecture_hall_id || !scheduleForm.week_number}
-            style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-              padding: '0.625rem 1.5rem',
-              background: scheduling || !scheduleForm.course_code || scheduleForm.class_ids.length === 0 || !scheduleForm.scheduled_date || !scheduleForm.lecture_hall_id || !scheduleForm.week_number ? '#FCA5A5' : 'var(--brand)',
-              color: 'var(--bg-card)', border: 'none', borderRadius: 'var(--radius-full, 6px)',
-              fontSize: '0.875rem', fontWeight: 600,
-              cursor: scheduling || !scheduleForm.course_code || scheduleForm.class_ids.length === 0 || !scheduleForm.scheduled_date || !scheduleForm.lecture_hall_id || !scheduleForm.week_number ? 'not-allowed' : 'pointer',
-              transition: 'all 0.15s', marginTop: '0.5rem', alignSelf: 'flex-start',
-            }}
-          >
-            {scheduling ? <><Spinner size={14} /> Scheduling...</> : 'Schedule Session'}
-          </button>
-        </div>
-
-        {scheduledSessions.length > 0 && (
-          <div style={{ marginTop: '1.5rem' }}>
-            <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Upcoming Scheduled</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {scheduledSessions.map((s) => (
-                <div key={s.session_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: 'var(--bg-hover)', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{s.course_code} &middot; {s.class_name}</span>
-                    <span style={{ padding: '0.15rem 0.6rem', background: 'var(--brand-light)', color: 'var(--brand)', borderRadius: '6px', fontSize: '0.6875rem', fontWeight: 600 }}>Week {s.week_number}</span>
-                    <span style={{ padding: '0.15rem 0.6rem', background: 'var(--bg-hover)', color: 'var(--text-secondary)', borderRadius: '6px', fontSize: '0.6875rem', fontWeight: 600 }}>{s.lecture_hall_name}</span>
-                    {s.pin && <span style={{ padding: '0.15rem 0.6rem', background: 'var(--brand-light)', color: 'var(--brand)', borderRadius: '6px', fontSize: '0.6875rem', fontWeight: 700, fontFamily: 'monospace' }}>{s.pin}</span>}
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {new Date(s.scheduled_at).toLocaleDateString()} at {new Date(s.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => cancelScheduled(s.session_id)}
-                    style={{ padding: '0.4rem 0.8rem', background: 'var(--brand-light)', color: 'var(--brand)', border: '1px solid #FCA5A5', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0 }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
   return (
     <DashboardLayout>
       <PageHeader
@@ -515,70 +366,78 @@ export default function LecturerLiveSession() {
       {!hasActive ? (
         <>
           <SummaryCards cards={summaryCards} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginTop: '1.25rem' }}>
-            <div style={{ ...cardStyle, margin: 0 }}>
-              <div style={cardHeaderStyle}>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>New Session</h3>
+
+          <div style={{ ...cardStyle, marginTop: '1.25rem', maxWidth: 'fit-content', minWidth: '480px' }}>
+            <div style={{ ...cardHeaderStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>New Session</h3>
+              <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--bg-hover, #F5F5F5)', borderRadius: '8px', padding: '0.25rem' }}>
+                {[
+                  { value: 'now', label: 'Start Now' },
+                  { value: 'schedule', label: 'Schedule' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setMode(opt.value)}
+                    style={{
+                      padding: '0.4rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600,
+                      background: mode === opt.value ? 'var(--bg-card, #fff)' : 'transparent',
+                      color: mode === opt.value ? 'var(--text-primary, #1a1a1a)' : 'var(--text-secondary, #6b7280)',
+                      boxShadow: mode === opt.value ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
-              <div style={cardBodyStyle}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem', maxWidth: '600px' }}>
-                  <div>
+            </div>
+            <div style={cardBodyStyle}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div style={{ flex: 1 }}>
                     <label style={labelStyle}>Course</label>
-                    <Select name="course_code" value={form.course_code} onChange={handleChange}>
+                    <Select name="course_code" value={form.course_code} onChange={(e) => { setForm((prev) => ({ ...prev, course_code: e.target.value, class_ids: [] })); }}>
                       <option value="">Select Course</option>
                       {courses.map((c) => (
-                        <option key={c.course_code} value={c.course_code}>
-                          {c.course_code} - {c.course_name}
-                        </option>
+                        <option key={c.course_code} value={c.course_code}>{c.course_code} - {c.course_name}</option>
                       ))}
                     </Select>
                   </div>
-                  <div>
-                    <MultiSelect
-                      label="Classes"
-                      options={classes.map((c) => ({ value: c.class_id, label: c.class_name }))}
-                      value={form.class_ids}
-                      onChange={(val) => setForm((prev) => ({ ...prev, class_ids: val }))}
-                    />
+                  <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>Lecture Hall</label>
+                    <Select name="lecture_hall_id" value={form.lecture_hall_id} onChange={handleChange}>
+                      <option value="">Select Hall</option>
+                      {lectureHalls.map((lh) => (
+                        <option key={lh.id} value={lh.id}>{lh.name}</option>
+                      ))}
+                    </Select>
                   </div>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <div style={{ flex: '0 0 120px' }}>
-                      <label style={labelStyle}>Week</label>
-                      <input
-                        type="number"
-                        name="week_number"
-                        min="1"
-                        max="52"
-                        value={form.week_number}
-                        onChange={handleChange}
-                        placeholder="e.g. 1"
-                        style={inputStyle}
-                      />
-                    </div>
+                </div>
+                <div>
+                  <MultiSelect
+                    label="Classes"
+                    options={classes.map((c) => ({ value: c.class_id, label: c.class_name }))}
+                    value={form.class_ids}
+                    onChange={(val) => setForm((prev) => ({ ...prev, class_ids: val }))}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <div style={{ flex: '0 0 120px' }}>
+                    <label style={labelStyle}>Week</label>
+                    <input type="number" name="week_number" min="1" max="52" value={form.week_number} onChange={handleChange} placeholder="e.g. 1" style={inputStyle} />
+                  </div>
+                  <div style={{ flex: '0 0 140px' }}>
+                    <label style={labelStyle}>Duration (min)</label>
+                    <input type="number" name="duration_minutes" min="1" max="480" value={form.duration_minutes} onChange={handleChange} style={inputStyle} />
+                  </div>
+                  {mode === 'schedule' && (
                     <div style={{ flex: 1 }}>
-                      <label style={labelStyle}>Lecture Hall</label>
-                      <Select name="lecture_hall_id" value={form.lecture_hall_id} onChange={handleChange}>
-                        <option value="">Select Lecture Hall</option>
-                        {lectureHalls.map((lh) => (
-                          <option key={lh.id} value={lh.id}>
-                            {lh.name}
-                          </option>
-                        ))}
-                      </Select>
+                      <label style={labelStyle}>Date & Time</label>
+                      <input type="datetime-local" name="scheduled_date" value={form.scheduled_date} onChange={handleChange} style={inputStyle} />
                     </div>
-                    <div style={{ flex: '0 0 140px' }}>
-                      <label style={labelStyle}>Duration (min)</label>
-                      <input
-                        type="number"
-                        name="duration_minutes"
-                        min="1"
-                        max="480"
-                        value={form.duration_minutes}
-                        onChange={handleChange}
-                        style={inputStyle}
-                      />
-                    </div>
-                  </div>
+                  )}
+                </div>
+                {mode === 'now' && (
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', marginTop: '0.25rem' }}>
                     <input
                       type="checkbox"
@@ -588,33 +447,53 @@ export default function LecturerLiveSession() {
                     />
                     <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Rolling PIN</span>
                   </label>
-                  <button
-                    onClick={activateSession}
-                    disabled={activating || !form.course_code || form.class_ids.length === 0 || !form.week_number || !form.lecture_hall_id || !form.duration_minutes}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      padding: '0.625rem 1.5rem',
-                      background: activating || !form.course_code || form.class_ids.length === 0 || !form.week_number || !form.lecture_hall_id || !form.duration_minutes ? '#FCA5A5' : 'var(--brand)',
-                      color: 'var(--bg-card)',
-                      border: 'none',
-                      borderRadius: 'var(--radius-full, 6px)',
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                      cursor: activating || !form.course_code || form.class_ids.length === 0 || !form.week_number || !form.lecture_hall_id || !form.duration_minutes ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.15s',
-                      marginTop: '0.5rem',
-                      alignSelf: 'flex-start',
-                    }}
-                  >
-                    {activating ? <><Spinner size={14} /> Starting...</> : 'Start Session'}
-                  </button>
-                </div>
+                )}
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                    padding: '0.625rem 1.5rem',
+                    background: 'var(--brand)',
+                    color: 'var(--bg-card)', border: 'none', borderRadius: 'var(--radius-full, 6px)',
+                    fontSize: '0.875rem', fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s', marginTop: '0.5rem', alignSelf: 'flex-start',
+                  }}
+                >
+                  {submitting ? <><Spinner size={14} /> {mode === 'now' ? 'Starting...' : 'Scheduling...'}</> : mode === 'now' ? 'Start Session' : 'Schedule Session'}
+                </button>
               </div>
+
+              {scheduledSessions.length > 0 && (
+                <div style={{ marginTop: '1.5rem' }}>
+                  <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Upcoming Scheduled</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {scheduledSessions.map((s) => (
+                      <div key={s.session_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: 'var(--bg-hover)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{s.course_code} &middot; {s.class_name}</span>
+                          <span style={{ padding: '0.15rem 0.6rem', background: 'var(--brand-light)', color: 'var(--brand)', borderRadius: '6px', fontSize: '0.6875rem', fontWeight: 600 }}>Week {s.week_number}</span>
+                          <span style={{ padding: '0.15rem 0.6rem', background: 'var(--bg-hover)', color: 'var(--text-secondary)', borderRadius: '6px', fontSize: '0.6875rem', fontWeight: 600 }}>{s.lecture_hall_name}</span>
+                          {s.pin && <span style={{ padding: '0.15rem 0.6rem', background: 'var(--brand-light)', color: 'var(--brand)', borderRadius: '6px', fontSize: '0.6875rem', fontWeight: 700, fontFamily: 'monospace' }}>{s.pin}</span>}
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {new Date(s.scheduled_at).toLocaleDateString()} at {new Date(s.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => cancelScheduled(s.session_id)}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--brand, #DC2626)'; e.currentTarget.style.color = 'var(--text-inverse, #fff)'; e.currentTarget.style.borderColor = 'var(--brand, #DC2626)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--brand-light)'; e.currentTarget.style.color = 'var(--brand)'; e.currentTarget.style.borderColor = '#FCA5A5'; }}
+                          style={{ padding: '0.4rem 0.8rem', background: 'var(--brand-light)', color: 'var(--brand)', border: '1px solid #FCA5A5', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0 }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            {scheduleSection}
           </div>
         </>
       ) : (
@@ -684,6 +563,8 @@ export default function LecturerLiveSession() {
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
                       onClick={() => setManualSessionId(s.session_id)}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--border-light, #E5E5E5)'; e.currentTarget.style.borderColor = 'var(--text-muted, #9CA3AF)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-hover, #F5F5F5)'; e.currentTarget.style.borderColor = 'var(--border, #E5E7EB)'; }}
                       style={{
                         padding: '0.5rem 1rem',
                         background: 'var(--bg-hover, #F5F5F5)',
@@ -700,6 +581,8 @@ export default function LecturerLiveSession() {
                     </button>
                     <button
                       onClick={() => deactivateSession(s.session_id)}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--error-dark, #DC2626)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--error, #EF4444)'; }}
                       style={{
                         padding: '0.5rem 1rem',
                         background: 'var(--error, #EF4444)',
@@ -761,7 +644,7 @@ export default function LecturerLiveSession() {
                 </tr>
               </thead>
               <tbody>
-                {filteredSessions.length === 0 && (
+                {sessions.length === 0 && (
                   <tr>
                     <td colSpan={6}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
@@ -772,7 +655,7 @@ export default function LecturerLiveSession() {
                     </td>
                   </tr>
                 )}
-                {filteredSessions.map((s, idx) => (
+                {sessions.map((s, idx) => (
                   <tr
                     key={s.session_id}
                     style={{

@@ -193,11 +193,11 @@ export default function LecturerDashboard() {
                     key={s.session_id}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '0.625rem 0', borderBottom: '1px solid #F5F5F5',
+                      padding: '0.625rem 0', borderBottom: '1px solid var(--border-light, #F5F5F5)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                      <Clock size={16} color="#9CA3AF" weight="duotone" />
+                      <Clock size={16} color="var(--text-muted, #9CA3AF)" weight="duotone" />
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
                           {s.course_code} &middot; {s.class_name}
@@ -248,11 +248,11 @@ export default function LecturerDashboard() {
                     key={s.session_id}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '0.625rem 0', borderBottom: '1px solid #F5F5F5',
+                      padding: '0.625rem 0', borderBottom: '1px solid var(--border-light, #F5F5F5)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                      <CalendarBlank size={16} color="#9CA3AF" weight="duotone" />
+                      <CalendarBlank size={16} color="var(--text-muted, #9CA3AF)" weight="duotone" />
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
                           {s.course_code} &middot; {s.class_name}

@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
-import { useSearch } from '../context/SearchContext';
 import DashboardLayout from '../components/DashboardLayout';
 import PageHeader from '../components/PageHeader';
 import AttendanceMatrix from '../components/AttendanceMatrix';
@@ -11,7 +10,6 @@ import EmptyState from '../components/EmptyState';
 import Spinner from '../components/Spinner';
 
 export default function LecturerHistory() {
-  const { searchQuery } = useSearch();
   const [courses, setCourses] = useState([]);
   const [classes, setClasses] = useState([]);
   const [filters, setFilters] = useState({ course_code: '', class_id: '' });
@@ -119,29 +117,6 @@ export default function LecturerHistory() {
     { value: `${avgPct}%`, label: 'Avg %', icon: <CheckCircle weight="duotone" size={24} /> },
     ...(historyData?.min_attendance_pct ? [{ value: atRiskCount, label: 'At Risk', icon: <Warning weight="duotone" size={24} /> }] : []),
   ];
-
-  const filteredHistoryData = useMemo(() => {
-    if (!historyData || !searchQuery) return historyData;
-    const q = searchQuery.toLowerCase();
-    const filteredStudents = historyData.students.filter((s) =>
-      [s.student_name, s.index_number].some((v) => v?.toLowerCase().includes(q))
-    );
-    const filteredMatrix = {};
-    const filteredPercentages = {};
-    const filteredAtRisk = {};
-    for (const s of filteredStudents) {
-      if (historyData.matrix[s.id]) filteredMatrix[s.id] = historyData.matrix[s.id];
-      if (historyData.percentages[s.id] !== undefined) filteredPercentages[s.id] = historyData.percentages[s.id];
-      if (historyData.at_risk?.[s.id] !== undefined) filteredAtRisk[s.id] = historyData.at_risk[s.id];
-    }
-    return {
-      ...historyData,
-      students: filteredStudents,
-      matrix: filteredMatrix,
-      percentages: filteredPercentages,
-      at_risk: filteredAtRisk,
-    };
-  }, [historyData, searchQuery]);
 
   return (
     <DashboardLayout>
@@ -251,7 +226,7 @@ export default function LecturerHistory() {
           </div>
         )}
 
-        {filteredHistoryData && !loading && (
+        {historyData && !loading && (
           <div style={{
             background: 'var(--bg-card, #fff)',
             borderRadius: 'var(--radius-lg, 8px)',
@@ -260,7 +235,7 @@ export default function LecturerHistory() {
             overflow: 'hidden',
           }}>
             <div style={{ padding: 0 }}>
-              <AttendanceMatrix data={filteredHistoryData} />
+              <AttendanceMatrix data={historyData} />
             </div>
           </div>
         )}

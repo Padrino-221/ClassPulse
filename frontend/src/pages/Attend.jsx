@@ -202,12 +202,12 @@ export default function Attend() {
     <>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
-        .att-input:focus { border-color: #DC2626 !important; background: var(--bg-card) !important; }
+        .att-input:focus { border-color: var(--brand, #DC2626) !important; background: var(--bg-card) !important; }
         .att-input::placeholder { color: var(--text-muted); }
-        .att-btn:hover:not(:disabled) { background: #B91C1C !important; }
-        .att-btn:disabled { background: #FCA5A5 !important; cursor: not-allowed; }
-        .att-confirm-btn:hover:not(:disabled) { background: #B91C1C !important; }
-        .att-confirm-btn:disabled { background: #FCA5A5 !important; cursor: not-allowed; }
+        .att-btn:hover:not(:disabled) { background: var(--brand-dark, #B91C1C) !important; }
+        .att-btn:disabled { background: var(--error-border, #FCA5A5) !important; cursor: not-allowed; }
+        .att-confirm-btn:hover:not(:disabled) { background: var(--brand-dark, #B91C1C) !important; }
+        .att-confirm-btn:disabled { background: var(--error-border, #FCA5A5) !important; cursor: not-allowed; }
       `}</style>
       <div style={s.page}>
         <div style={s.container}>

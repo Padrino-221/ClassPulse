@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import api from '../utils/api';
-import { useSearch } from '../context/SearchContext';
 import DashboardLayout from '../components/DashboardLayout';
 import Select from '../components/Select';
 import MultiSelect from '../components/MultiSelect';
@@ -220,7 +219,6 @@ function EditModal({ entityLabel, fields, data, onSave, onClose }) {
 
 
 function LectureHallsPage() {
-  const { searchQuery } = useSearch();
   const [lectureHalls, setLectureHalls] = useState([]);
   const [editing, setEditing] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -261,12 +259,6 @@ function LectureHallsPage() {
     await load();
   };
 
-  const filtered = useMemo(() => {
-    if (!searchQuery) return lectureHalls;
-    const q = searchQuery.toLowerCase();
-    return lectureHalls.filter(h => h.name?.toLowerCase().includes(q));
-  }, [lectureHalls, searchQuery]);
-
   return (
     <div>
       <PageHeader
@@ -277,7 +269,7 @@ function LectureHallsPage() {
         actionIcon={Plus}
       />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
-        {filtered.map((h) => (
+        {lectureHalls.map((h) => (
           <div key={h.id} style={{
             background: 'var(--bg-card, #fff)', borderRadius: '8px',
             border: '1px solid var(--border-light, #e5e7eb)', padding: '1.25rem',
@@ -319,7 +311,7 @@ function LectureHallsPage() {
             </div>
           </div>
         ))}
-        {filtered.length === 0 && (
+        {lectureHalls.length === 0 && (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted, #9ca3af)', fontSize: '0.875rem', gridColumn: '1 / -1' }}>
             No lecture halls yet.
           </div>
@@ -736,7 +728,6 @@ function AdminOverviewPage({ courses, lecturers, classes, students, lectureHalls
 }
 
 function CoursesPage() {
-  const { searchQuery } = useSearch();
   const [courses, setCourses] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -814,15 +805,6 @@ function CoursesPage() {
   const lecturerOptions = lecturers.map((l) => ({ value: l.id, label: l.name }));
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const filtered = useMemo(() => {
-    if (!searchQuery) return courses;
-    const q = searchQuery.toLowerCase();
-    return courses.filter(c =>
-      c.course_code?.toLowerCase().includes(q) ||
-      c.course_name?.toLowerCase().includes(q)
-    );
-  }, [courses, searchQuery]);
-
   return (
     <div>
       <PageHeader
@@ -852,7 +834,7 @@ function CoursesPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && (
+              {courses.length === 0 && (
                 <tr>
                   <td colSpan={isReadOnly ? 5 : 6}>
                     <div className="entity-empty">
@@ -865,7 +847,7 @@ function CoursesPage() {
                   </td>
                 </tr>
               )}
-              {filtered.map((c) => (
+              {courses.map((c) => (
                 <tr key={c.course_code}>
                   <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{c.course_name}</td>
                   <td><span className="badge badge-error">{c.course_code}</span></td>
@@ -944,7 +926,6 @@ function CoursesPage() {
 }
 
 function ClassesPage() {
-  const { searchQuery } = useSearch();
   const [classes, setClasses] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -1141,7 +1122,6 @@ function ClassesPage() {
 }
 
 function LecturersPage() {
-  const { searchQuery } = useSearch();
   const [lecturers, setLecturers] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -1204,12 +1184,6 @@ function LecturersPage() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const filtered = useMemo(() => {
-    if (!searchQuery) return lecturers;
-    const q = searchQuery.toLowerCase();
-    return lecturers.filter(l => l.name?.toLowerCase().includes(q) || l.email?.toLowerCase().includes(q));
-  }, [lecturers, searchQuery]);
-
   return (
     <div>
       <PageHeader
@@ -1237,7 +1211,7 @@ function LecturersPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && (
+              {lecturers.length === 0 && (
                 <tr>
                   <td colSpan={isReadOnly ? 3 : 4}>
                     <div className="entity-empty">
@@ -1250,7 +1224,7 @@ function LecturersPage() {
                   </td>
                 </tr>
               )}
-              {filtered.map((l) => (
+              {lecturers.map((l) => (
                 <tr key={l.id}>
                   <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{l.name}</td>
                   <td>{l.email}</td>
@@ -1314,7 +1288,6 @@ function LecturersPage() {
 }
 
 function StudentsPage() {
-  const { searchQuery } = useSearch();
   const [students, setStudents] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -1415,12 +1388,6 @@ function StudentsPage() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const filtered = useMemo(() => {
-    if (!searchQuery) return students;
-    const q = searchQuery.toLowerCase();
-    return students.filter(s => s.student_name?.toLowerCase().includes(q) || s.index_number?.toLowerCase().includes(q));
-  }, [students, searchQuery]);
-
   return (
     <div>
       <PageHeader
@@ -1510,7 +1477,7 @@ function StudentsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 && (
+        {students.length === 0 && (
                     <tr>
                       <td colSpan={isReadOnly ? 3 : 4}>
                         <div className="entity-empty">
@@ -1523,7 +1490,7 @@ function StudentsPage() {
                       </td>
                     </tr>
                   )}
-                  {filtered.map((s) => (
+                  {students.map((s) => (
                     <tr key={s.id}>
                       <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.student_name}</td>
                       <td>{s.index_number}</td>
@@ -1955,7 +1922,6 @@ function DepartmentsPage() {
 }
 
 function AcademicTermsPage() {
-  const { searchQuery } = useSearch();
   const [academicYears, setAcademicYears] = useState([]);
   const [semesters, setSemesters] = useState([]);
   const [editingYear, setEditingYear] = useState(null);
@@ -2020,18 +1986,6 @@ function AcademicTermsPage() {
 
   const yearOptions = academicYears.map((y) => ({ value: y.id, label: y.label }));
 
-  const filteredYears = useMemo(() => {
-    if (!searchQuery) return academicYears;
-    const q = searchQuery.toLowerCase();
-    return academicYears.filter(y => y.label?.toLowerCase().includes(q));
-  }, [academicYears, searchQuery]);
-
-  const filteredSemesters = useMemo(() => {
-    if (!searchQuery) return semesters;
-    const q = searchQuery.toLowerCase();
-    return semesters.filter(s => s.label?.toLowerCase().includes(q));
-  }, [semesters, searchQuery]);
-
   return (
     <div>
       <PageHeader
@@ -2052,7 +2006,7 @@ function AcademicTermsPage() {
         </button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-        {filteredYears.map((y) => (
+        {academicYears.map((y) => (
           <div key={y.id} style={{
             background: 'var(--bg-card, #fff)', borderRadius: '8px',
             border: '1px solid var(--border-light, #e5e7eb)', padding: '1.25rem',
@@ -2082,7 +2036,7 @@ function AcademicTermsPage() {
             </div>
           </div>
         ))}
-        {filteredYears.length === 0 && (
+        {academicYears.length === 0 && (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted, #9ca3af)', fontSize: '0.875rem', gridColumn: '1 / -1' }}>
             No academic years yet.
           </div>
@@ -2102,7 +2056,7 @@ function AcademicTermsPage() {
         </button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
-        {filteredSemesters.map((s) => (
+        {semesters.map((s) => (
           <div key={s.id} style={{
             background: 'var(--bg-card, #fff)', borderRadius: '8px',
             border: '1px solid var(--border-light, #e5e7eb)', padding: '1.25rem',
@@ -2151,7 +2105,7 @@ function AcademicTermsPage() {
             </div>
           </div>
         ))}
-        {filteredSemesters.length === 0 && (
+        {semesters.length === 0 && (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted, #9ca3af)', fontSize: '0.875rem', gridColumn: '1 / -1' }}>
             No semesters yet.
           </div>

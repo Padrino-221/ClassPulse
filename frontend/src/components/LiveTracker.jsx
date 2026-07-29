@@ -11,6 +11,8 @@ export default function LiveTracker({ sessionId }) {
   const [page, setPage] = useState(1);
   const intervalRef = useRef(null);
 
+  useEffect(() => { setPage(1); }, [records.length]);
+
   useEffect(() => {
     const fetchLive = async () => {
       try {

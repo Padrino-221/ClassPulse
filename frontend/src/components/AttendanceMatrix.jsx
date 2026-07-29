@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Pagination from './Pagination';
 
 const PAGE_SIZE = 15;
@@ -12,6 +12,8 @@ function CellIcon({ status }) {
 export default function AttendanceMatrix({ data }) {
   const { students, weeks, matrix, percentages, at_risk, min_attendance_pct } = data;
   const [page, setPage] = useState(1);
+
+  useEffect(() => { setPage(1); }, [students]);
 
   const totalPages = Math.ceil(students.length / PAGE_SIZE);
   const startIdx = (page - 1) * PAGE_SIZE;

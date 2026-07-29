@@ -30,6 +30,7 @@ const universityRoutes = require('./routes/university');
 const schoolRoutes = require('./routes/school');
 const departmentRoutes = require('./routes/department');
 const invitationRoutes = require('./routes/invitation');
+const searchRoutes = require('./routes/search');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -103,6 +104,7 @@ app.use('/api/universities', universityRoutes);
 app.use('/api/schools', schoolRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/admins', invitationRoutes);
+app.use('/api/search', searchRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -234,6 +236,33 @@ if (require.main === module) {
       }
     });
     console.log('Session auto-activation cron scheduled (every minute)');
+
+    // Auto-deactivate expired sessions every minute
+    cron.schedule('* * * * *', async () => {
+      try {
+        const { pool } = require('./config/db');
+        const sessionCache = require('./services/sessionCache');
+
+        const result = await pool.query(
+          `UPDATE active_sessions
+           SET is_active = FALSE
+           WHERE is_active = TRUE
+             AND expires_at IS NOT NULL
+             AND expires_at <= NOW()
+           RETURNING session_id`
+        );
+
+        if (result.rows.length > 0) {
+          console.log(`[Cron] Auto-deactivated ${result.rows.length} expired session(s)`);
+          for (const row of result.rows) {
+            sessionCache.deactivate(row.session_id);
+          }
+        }
+      } catch (err) {
+        console.error('[Cron] Session auto-deactivation error:', err.message);
+      }
+    });
+    console.log('Session auto-deactivation cron scheduled (every minute)');
   });
   app._server = server;
 }

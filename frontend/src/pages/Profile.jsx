@@ -83,9 +83,8 @@ export default function Profile() {
           <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Manage your account settings.</div>
         </div>
 
-        <div style={{
+        <div className="profile-grid" style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
           gap: '1.5rem',
           alignItems: 'start',
         }}>

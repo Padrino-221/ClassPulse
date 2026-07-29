@@ -36,13 +36,13 @@ export default function CreateModal({ entityLabel, fields, onSave, onClose }) {
     width: '100%', padding: '0.625rem 0.875rem',
     border: '1px solid var(--border, #E5E7EB)',
     borderRadius: '6px', fontSize: '0.8125rem',
-    background: '#fff', color: '#1A1A1A',
+    background: 'var(--bg-card, #fff)', color: 'var(--text-primary, #1A1A1A)',
     outline: 'none', boxSizing: 'border-box', height: '42px',
   };
 
   const labelStyle = {
     display: 'block', fontSize: '0.6875rem', fontWeight: 700,
-    color: '#6b7280', marginBottom: '0.375rem',
+    color: 'var(--text-secondary, #6b7280)', marginBottom: '0.375rem',
     textTransform: 'uppercase', letterSpacing: '0.04em',
   };
 
@@ -56,20 +56,20 @@ export default function CreateModal({ entityLabel, fields, onSave, onClose }) {
       }}
     >
       <div style={{
-        background: '#fff', borderRadius: '8px',
+        background: 'var(--bg-card, #fff)', borderRadius: '8px',
         border: '1px solid var(--border-light, #e5e7eb)',
         padding: '1.5rem', width: '100%', maxWidth: '480px',
         maxHeight: '90vh', overflowY: 'auto',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#1A1A1A' }}>
+          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>
             New {entityLabel}
           </h3>
           <button
             onClick={onClose}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
-              color: '#9CA3AF', padding: '4px', borderRadius: '6px',
+              color: 'var(--text-muted, #9CA3AF)', padding: '4px', borderRadius: '6px',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
@@ -78,8 +78,8 @@ export default function CreateModal({ entityLabel, fields, onSave, onClose }) {
         </div>
         {error && (
           <div style={{
-            backgroundColor: '#FEF2F2', color: '#dc2626', padding: '0.75rem 1rem',
-            borderRadius: '6px', fontSize: '0.85rem', marginBottom: '1rem', border: '1px solid #FCA5A5',
+            backgroundColor: 'var(--error-bg, #FEF2F2)', color: 'var(--brand, #dc2626)', padding: '0.75rem 1rem',
+            borderRadius: '6px', fontSize: '0.85rem', marginBottom: '1rem', border: '1px solid var(--error-border, #FCA5A5)',
           }}>
             {error}
           </div>
@@ -137,7 +137,7 @@ export default function CreateModal({ entityLabel, fields, onSave, onClose }) {
                         style={{
                           position: 'absolute', right: '0.625rem', top: '50%',
                           transform: 'translateY(-50%)', background: 'none', border: 'none',
-                          cursor: 'pointer', color: '#9CA3AF', padding: '2px',
+                          cursor: 'pointer', color: 'var(--text-muted, #9CA3AF)', padding: '2px',
                           display: 'flex', alignItems: 'center',
                         }}
                       >
@@ -167,7 +167,7 @@ export default function CreateModal({ entityLabel, fields, onSave, onClose }) {
               style={{
                 flex: 1, padding: '0.625rem 1.25rem',
                 fontSize: '0.8125rem', fontWeight: 600,
-                color: '#fff', backgroundColor: '#DC2626',
+                color: 'var(--text-inverse, #fff)', backgroundColor: 'var(--brand, #DC2626)',
                 border: 'none', borderRadius: '6px',
                 cursor: 'pointer', opacity: submitting ? 0.7 : 1,
               }}
@@ -180,7 +180,7 @@ export default function CreateModal({ entityLabel, fields, onSave, onClose }) {
               style={{
                 padding: '0.625rem 1.25rem',
                 fontSize: '0.8125rem', fontWeight: 600,
-                color: '#6b7280', backgroundColor: '#F5F5F5',
+                color: 'var(--text-secondary, #6b7280)', backgroundColor: 'var(--bg-hover, #F5F5F5)',
                 border: 'none', borderRadius: '6px',
                 cursor: 'pointer',
               }}

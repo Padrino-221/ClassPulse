@@ -1,8 +1,10 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useSearch } from '../context/SearchContext';
 import { useNavigate } from 'react-router-dom';
 import { MagnifyingGlass, Moon, Sun, CaretDown, SignOut, User } from '@phosphor-icons/react';
+import api from '../utils/api';
+import SearchResults from './SearchResults';
 
 function getUser() {
   try {
@@ -232,6 +234,11 @@ export default React.memo(function TopBar() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const searchRef = useRef(null);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const debounceRef = useRef(null);
 
   const user = useMemo(getUser, []);
 
@@ -244,6 +251,52 @@ export default React.memo(function TopBar() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setSearchOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  const fetchSearch = useCallback(async (q) => {
+    if (!q || q.length < 2) {
+      setSearchResults([]);
+      setSearchOpen(false);
+      return;
+    }
+    setSearchLoading(true);
+    setSearchOpen(true);
+    try {
+      const res = await api.get('/api/search', { params: { q } });
+      setSearchResults(res.data.results);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, []);
+
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchSearch(val), 300);
+  };
+
+  const handleSearchClose = () => {
+    setSearchOpen(false);
+    setSearchResults([]);
+  };
 
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
@@ -262,7 +315,7 @@ export default React.memo(function TopBar() {
         <p style={styles.date}>{formatDate()}</p>
       </div>
 
-      <div style={styles.center}>
+      <div style={styles.center} ref={searchRef}>
         <div style={styles.searchBox}>
           <span style={styles.searchIcon}>
             <MagnifyingGlass weight="duotone" size={18} />
@@ -271,26 +324,27 @@ export default React.memo(function TopBar() {
             type="text"
             placeholder="Search students, courses..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
+            onFocus={() => { if (searchQuery.length >= 2) setSearchOpen(true); }}
             style={styles.searchInput}
-            onFocus={(e) => {
-              e.target.style.borderColor = 'var(--brand, #DC2626)';
-              e.target.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.1)';
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = 'transparent';
-              e.target.style.boxShadow = 'none';
-            }}
           />
           {searchQuery && (
             <button
               style={styles.clearBtn}
-              onClick={() => setSearchQuery('')}
+              onClick={() => { setSearchQuery(''); setSearchResults([]); setSearchOpen(false); }}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--text-muted, #999)'; e.currentTarget.style.color = '#fff'; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--border-light, #e0e0e0)'; e.currentTarget.style.color = 'var(--text-muted, #999)'; }}
             >
               &times;
             </button>
+          )}
+          {searchOpen && (
+            <SearchResults
+              results={searchResults}
+              loading={searchLoading}
+              query={searchQuery}
+              onClose={handleSearchClose}
+            />
           )}
         </div>
       </div>
