@@ -9,7 +9,7 @@ const styles = {
   },
   card: {
     background: 'var(--bg-card, #ffffff)',
-    borderRadius: 'var(--radius-lg, 18px)',
+    borderRadius: 'var(--radius-lg, 8px)',
     padding: '1.25rem 1.5rem',
     display: 'flex',
     alignItems: 'center',
@@ -21,7 +21,7 @@ const styles = {
   iconCircle: {
     width: '52px',
     height: '52px',
-    borderRadius: 'var(--radius-lg, 18px)',
+    borderRadius: 'var(--radius-lg, 8px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

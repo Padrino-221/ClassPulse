@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const { pool } = require('../config/db');
-const { getCurrentPin, generateSeed } = require('../services/pin');
+const { getCurrentPin, generateSeed, staticPinFromSeed } = require('../services/pin');
 const { verifyToken } = require('../middleware/auth');
 const sessionCache = require('../services/sessionCache');
 
@@ -15,9 +15,9 @@ router.post(
     body('class_ids').isArray({ min: 1 }),
     body('class_ids.*').isInt({ min: 1 }),
     body('week_number').isInt({ min: 1 }),
-    body('building_id').isInt({ min: 1 }),
+    body('lecture_hall_id').isInt({ min: 1 }),
     body('pin_spinning').optional().isBoolean(),
-    body('duration_minutes').optional().isInt({ min: 1, max: 480 }),
+    body('duration_minutes').isInt({ min: 1, max: 480 }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -25,19 +25,24 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { course_code, class_ids, week_number, building_id, pin_spinning, duration_minutes } = req.body;
+    const { course_code, class_ids, week_number, lecture_hall_id, pin_spinning, duration_minutes } = req.body;
     const lecturerId = req.user.id;
     const duration = duration_minutes || 120;
     const spinning = pin_spinning !== false;
 
     try {
-    const building = sessionCache.getBuilding(building_id);
-    if (!building) {
-      return res.status(404).json({ error: 'Building not found.' });
+    const lectureHall = sessionCache.getLectureHall(lecture_hall_id);
+    if (!lectureHall) {
+      return res.status(404).json({ error: 'Lecture Hall not found.' });
+      }
+
+      const activeSemester = sessionCache.activeSemester;
+      if (!activeSemester) {
+        return res.status(400).json({ error: 'No active semester. Ask admin to activate a semester first.' });
       }
 
       const courseCheck = await pool.query(
-        'SELECT total_weeks FROM courses WHERE course_code = $1',
+        'SELECT total_weeks, course_name FROM courses WHERE course_code = $1',
         [course_code]
       );
 
@@ -45,11 +50,7 @@ router.post(
         return res.status(404).json({ error: 'Course not found.' });
       }
 
-      if (week_number > courseCheck.rows[0].total_weeks) {
-        return res.status(400).json({
-          error: `Week past course end (${courseCheck.rows[0].total_weeks} weeks).`,
-        });
-      }
+      const courseName = courseCheck.rows[0].course_name;
 
       const client = await pool.connect();
       const created = [];
@@ -69,14 +70,14 @@ router.post(
             return res.status(409).json({ error: `A session for ${course_code}, week ${week_number} already exists. End it first or choose a different week.` });
           }
           const pinSeed = generateSeed();
-          const staticPin = spinning ? null : getCurrentPin(pinSeed);
+          const staticPin = spinning ? null : staticPinFromSeed(pinSeed);
 
           const result = await client.query(
             `INSERT INTO active_sessions (
                course_code, class_id, lecturer_id, week_number, pin_seed,
-               pin_spinning, building_id, latitude, longitude, radius_meters, expires_at
+               pin_spinning, lecture_hall_id, semester_id, expires_at
              )
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW() + INTERVAL '1 minute' * $11)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW() + INTERVAL '1 minute' * $9)
              RETURNING session_id, pin_seed, created_at, expires_at`,
             [
               course_code,
@@ -85,10 +86,8 @@ router.post(
               week_number,
               pinSeed,
               spinning,
-              building_id,
-              building.latitude,
-              building.longitude,
-              building.radius,
+              lecture_hall_id,
+              activeSemester.id,
               duration,
             ]
           );
@@ -101,14 +100,11 @@ router.post(
             static_pin: staticPin,
             pin_spinning: spinning,
             course_code,
+            course_name: courseName,
             class_id: classId,
             week_number,
             is_active: true,
-            building_id: building.id,
-            building_name: building.name,
-            building_latitude: building.latitude,
-            building_longitude: building.longitude,
-            building_radius: building.radius,
+            lecture_hall_id: lectureHall.id,
           });
 
           created.push({
@@ -117,7 +113,7 @@ router.post(
             pin_spinning: spinning,
             course_code,
             class_id: classId,
-            building: building.name,
+            lecture_hall: lectureHall.name,
             created_at: session.created_at,
             expires_at: session.expires_at,
           });
@@ -142,12 +138,180 @@ router.post(
   }
 );
 
+// ---- POST /schedule ----
+// Pre-create a session for a specific date/time. It stays inactive until the cron activates it.
+router.post(
+  '/schedule',
+  [
+    body('course_code').isString().trim().notEmpty(),
+    body('class_ids').isArray({ min: 1 }),
+    body('class_ids.*').isInt({ min: 1 }),
+    body('scheduled_date').isString().notEmpty(),
+    body('duration_minutes').isInt({ min: 1, max: 480 }),
+    body('week_number').isInt({ min: 1, max: 52 }),
+    body('lecture_hall_id').isInt({ min: 1 }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const {
+      course_code, class_ids, scheduled_date, duration_minutes, week_number, lecture_hall_id,
+    } = req.body;
+    const lecturerId = req.user.id;
+
+    try {
+      const lectureHall = sessionCache.getLectureHall(lecture_hall_id);
+      if (!lectureHall) {
+        return res.status(404).json({ error: 'Lecture Hall not found.' });
+      }
+
+      const activeSemester = sessionCache.activeSemester;
+      if (!activeSemester) {
+        return res.status(400).json({ error: 'No active semester. Ask admin to activate a semester first.' });
+      }
+
+      const courseCheck = await pool.query(
+        'SELECT total_weeks FROM courses WHERE course_code = $1',
+        [course_code]
+      );
+      if (courseCheck.rows.length === 0) {
+        return res.status(404).json({ error: 'Course not found.' });
+      }
+
+      const sessionDate = new Date(scheduled_date);
+      if (isNaN(sessionDate.getTime())) {
+        return res.status(400).json({ error: 'Invalid scheduled date.' });
+      }
+      if (sessionDate < new Date()) {
+        return res.status(400).json({ error: 'Scheduled date must be in the future.' });
+      }
+
+      const expiresAt = new Date(sessionDate.getTime() + duration_minutes * 60 * 1000);
+
+      const client = await pool.connect();
+      const created = [];
+      try {
+        await client.query('BEGIN');
+
+        for (const classId of class_ids) {
+          const duplicate = await client.query(
+            `SELECT session_id FROM active_sessions
+             WHERE course_code = $1 AND class_id = $2 AND week_number = $3
+             FOR UPDATE`,
+            [course_code, classId, week_number]
+          );
+          if (duplicate.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return res.status(409).json({
+              error: `Session for ${course_code}, week ${week_number} already exists. Cancel it first.`,
+            });
+          }
+
+          const pinSeed = generateSeed();
+          const result = await client.query(
+            `INSERT INTO active_sessions (
+               course_code, class_id, lecturer_id, week_number, pin_seed,
+               pin_spinning, lecture_hall_id,
+               semester_id, scheduled_at, expires_at, is_active
+             )
+             VALUES ($1, $2, $3, $4, $5, FALSE, $6, $7, $8, $9, FALSE)
+             RETURNING session_id, created_at, expires_at`,
+            [
+              course_code, classId, lecturerId, week_number, pinSeed,
+              lecture_hall_id,
+              activeSemester.id, sessionDate, expiresAt,
+            ]
+          );
+
+          created.push({
+            session_id: result.rows[0].session_id,
+            course_code,
+            class_id: classId,
+            week_number: week_number,
+            scheduled_date: sessionDate.toISOString(),
+            expires_at: expiresAt.toISOString(),
+          });
+        }
+
+        await client.query('COMMIT');
+      } catch (txErr) {
+        await client.query('ROLLBACK');
+        throw txErr;
+      } finally {
+        client.release();
+      }
+
+      res.status(201).json({
+        message: `${created.length} session(s) scheduled for ${sessionDate.toLocaleString()}.`,
+        sessions: created,
+      });
+    } catch (err) {
+      console.error('Schedule session error:', err);
+      res.status(500).json({ error: 'Something went wrong.' });
+    }
+  }
+);
+
+// ---- GET /scheduled ----
+// List scheduled (inactive) sessions for the current lecturer.
+router.get('/scheduled', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT s.session_id, s.course_code, s.class_id, s.week_number,
+              s.scheduled_at, s.expires_at, s.pin_spinning, s.pin_seed,
+              c.course_name, cl.class_name, lh.name AS lecture_hall_name
+       FROM active_sessions s
+       JOIN courses c ON c.course_code = s.course_code
+       JOIN classes cl ON cl.class_id = s.class_id
+       LEFT JOIN lecture_halls lh ON lh.id = s.lecture_hall_id
+       WHERE s.lecturer_id = $1
+         AND s.is_active = FALSE
+         AND s.scheduled_at IS NOT NULL
+       ORDER BY s.expires_at ASC`,
+      [req.user.id]
+    );
+    const rows = result.rows.map((r) => {
+      const isSpinning = r.pin_spinning !== false;
+      const pin = isSpinning ? null : staticPinFromSeed(r.pin_seed);
+      return { ...r, pin: pin ? `${r.course_code}-${pin}` : null };
+    });
+    res.json(rows);
+  } catch (err) {
+    console.error('List scheduled sessions error:', err);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
+// ---- DELETE /scheduled/:id ----
+// Cancel a scheduled (inactive) session before it activates.
+router.delete('/scheduled/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `DELETE FROM active_sessions
+       WHERE session_id = $1 AND lecturer_id = $2 AND is_active = FALSE AND scheduled_at IS NOT NULL
+       RETURNING session_id`,
+      [id, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Scheduled session not found or already active.' });
+    }
+    res.json({ message: 'Scheduled session cancelled.', session_id: id });
+  } catch (err) {
+    console.error('Cancel scheduled session error:', err);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
 router.post('/deactivate/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
     const result = await pool.query(
-      `UPDATE active_sessions SET is_active = FALSE, expires_at = NOW()
+      `UPDATE active_sessions SET is_active = FALSE, expires_at = NOW(), scheduled_at = NULL
        WHERE session_id = $1 AND lecturer_id = $2
        RETURNING session_id, course_code, class_id`,
       [id, req.user.id]
@@ -169,13 +333,35 @@ router.post('/deactivate/:id', async (req, res) => {
   }
 });
 
+// ---- GET /courses/:code/classes ----
+// Return only classes that have sessions for the given course under this lecturer.
+router.get('/courses/:code/classes', async (req, res) => {
+  const { code } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT DISTINCT cl.class_id, cl.class_name
+       FROM active_sessions s
+       JOIN classes cl ON cl.class_id = s.class_id
+       WHERE s.course_code = $1
+         AND s.lecturer_id = $2
+       ORDER BY cl.class_name`,
+      [code, req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get course classes error:', err);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
 router.get('/session/:id/live', async (req, res) => {
   const { id } = req.params;
 
   try {
     const result = await pool.query(
-      `SELECT ar.record_id, ar.index_number, ar.student_name, ar.verification_method, ar.timestamp
+      `SELECT ar.record_id, ar.index_number, COALESCE(sr.student_name, 'Deleted Student') AS student_name, ar.verification_method, ar.timestamp
        FROM attendance_records ar
+       LEFT JOIN student_roster sr ON sr.index_number = ar.index_number AND sr.deleted_at IS NULL
        WHERE ar.session_id = $1
        ORDER BY ar.timestamp DESC`,
       [id]
@@ -212,9 +398,10 @@ router.get('/sessions', async (req, res) => {
       if (s.is_active && s.pin_seed) {
         currentPin = s.pin_spinning !== false
           ? getCurrentPin(s.pin_seed)
-          : getCurrentPin(s.pin_seed);
+          : staticPinFromSeed(s.pin_seed);
       }
-      return { ...s, pin: currentPin };
+      const { pin_seed: _, ...rest } = s;
+      return { ...rest, pin: currentPin };
     });
 
     res.json({ sessions: rows, total: parseInt(count.rows[0].count) });
@@ -369,13 +556,25 @@ router.get('/history/export', async (req, res) => {
   }
 
   try {
-    const [studentsRes, courseRes, classRes, sessionsRes] = await Promise.all([
+    const [studentsRes, courseRes, classRes, sessionsRes, lecturerRes, semesterRes, hierarchyRes] = await Promise.all([
       pool.query('SELECT id, index_number, student_name FROM student_roster WHERE class_id = $1 ORDER BY student_name', [class_id]),
-      pool.query(`SELECT c.course_code, c.course_name, c.total_weeks FROM courses c
+      pool.query(`SELECT c.course_code, c.course_name, c.total_weeks, c.department_id FROM courses c
         JOIN course_lecturers cl ON cl.course_code = c.course_code AND cl.lecturer_id = $2
         WHERE c.course_code = $1`, [course_code, req.user.id]),
       pool.query('SELECT class_name FROM classes WHERE class_id = $1', [class_id]),
       pool.query('SELECT session_id, week_number FROM active_sessions WHERE course_code = $1 AND class_id = $2 ORDER BY week_number', [course_code, class_id]),
+      pool.query('SELECT name FROM lecturers WHERE id = $1', [req.user.id]),
+      pool.query(`SELECT sem.label AS semester_label, ay.label AS year_label
+        FROM active_sessions s
+        JOIN semesters sem ON sem.id = s.semester_id
+        JOIN academic_years ay ON ay.id = sem.academic_year_id
+        WHERE s.course_code = $1 AND s.class_id = $2 AND s.semester_id IS NOT NULL
+        LIMIT 1`, [course_code, class_id]),
+      pool.query(`SELECT d.name AS dept_name, sc.name AS school_name
+        FROM courses c
+        LEFT JOIN departments d ON d.id = c.department_id
+        LEFT JOIN schools sc ON sc.id = d.school_id
+        WHERE c.course_code = $1`, [course_code]),
     ]);
 
     const students = studentsRes.rows;
@@ -426,6 +625,14 @@ router.get('/history/export', async (req, res) => {
     const border = 'FFE2E8F0';
     const darkText = 'FF2D3748';
 
+    const lecturerName = lecturerRes.rows[0]?.name || '';
+    const semInfo = semesterRes.rows[0];
+    const semesterLabel = semInfo ? `${semInfo.year_label} - ${semInfo.semester_label}` : '';
+    const hierarchy = hierarchyRes.rows[0];
+    const deptName = hierarchy?.dept_name || '';
+    const schoolName = hierarchy?.school_name || '';
+    const orgLine = [schoolName, deptName].filter(Boolean).join(' - ') || 'School of Computing & Information Sciences';
+
     // Column widths
     ws.getColumn(1).width = 22;
     ws.getColumn(2).width = 28;
@@ -435,8 +642,40 @@ router.get('/history/export', async (req, res) => {
     const pctCol = 3 + totalWeeks;
     ws.getColumn(pctCol).width = 14;
 
-    // Metadata row (top, colorful)
-    const metaRow = ws.getRow(1);
+    // --- Boilerplate header rows (rows 1-4) ---
+    // Row 1: University name
+    const uniRow = ws.getRow(1);
+    uniRow.height = 28;
+    const uniCell = uniRow.getCell(1);
+    uniCell.value = 'ClassPulse University';
+    uniCell.font = { bold: true, size: 14, color: { argb: 'FF2563EB' }, name: 'Calibri' };
+    uniCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.mergeCells(1, 1, 1, pctCol);
+
+    // Row 2: School - Department (placeholder)
+    const deptRow = ws.getRow(2);
+    deptRow.height = 22;
+    const deptCell = deptRow.getCell(1);
+    deptCell.value = orgLine;
+    deptCell.font = { bold: true, size: 11, color: { argb: darkText }, name: 'Calibri' };
+    deptCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.mergeCells(2, 1, 2, pctCol);
+
+    // Row 3: Lecturer - Semester - Course - Weeks - Active
+    const infoRow = ws.getRow(3);
+    infoRow.height = 20;
+    const infoParts = [lecturerName, semesterLabel, `${course.course_code} - ${course.course_name}`, `Weeks: ${totalWeeks}`, `Active: ${sessionWeeks.length}`].filter(Boolean);
+    const infoCell = infoRow.getCell(1);
+    infoCell.value = infoParts.join('  |  ');
+    infoCell.font = { size: 10, color: { argb: darkText }, name: 'Calibri' };
+    infoCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.mergeCells(3, 1, 3, pctCol);
+
+    // Row 4: Blank separator
+    ws.getRow(4).height = 8;
+
+    // --- Metadata row (now row 5) ---
+    const metaRow = ws.getRow(5);
     metaRow.height = 26;
     const metaColors = ['FF2563EB', 'FF7C3AED', 'FF00B66E', 'FFDC2626'];
     const metaPairs = [
@@ -459,8 +698,8 @@ router.get('/history/export', async (req, res) => {
       };
     });
 
-    // Header row (now row 2)
-    const headerRow = ws.getRow(2);
+    // Header row (now row 6)
+    const headerRow = ws.getRow(6);
     headerRow.height = 28;
     const headers = ['Index Number', 'Student Name'];
     for (let w = 1; w <= totalWeeks; w++) headers.push(`W${w}`);
@@ -480,9 +719,9 @@ router.get('/history/export', async (req, res) => {
       };
     });
 
-    // Data rows
+    // Data rows (start at row 7)
     students.forEach((student, idx) => {
-      const rowNum = idx + 3;
+      const rowNum = idx + 7;
       const row = ws.getRow(rowNum);
       row.height = 22;
 
@@ -531,7 +770,7 @@ router.get('/history/export', async (req, res) => {
     });
 
     // Summary footer row
-    const footerRow = ws.getRow(students.length + 3);
+    const footerRow = ws.getRow(students.length + 7);
     footerRow.getCell(1).value = 'Week Active';
     footerRow.getCell(1).font = { bold: true, size: 10, color: { argb: 'FF718096' } };
     for (let w = 1; w <= totalWeeks; w++) {
@@ -542,8 +781,8 @@ router.get('/history/export', async (req, res) => {
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: lightGray } };
     }
 
-    // Freeze pane
-    ws.views = [{ state: 'frozen', ySplit: 1, xSplit: 2 }];
+    // Freeze pane below header
+    ws.views = [{ state: 'frozen', ySplit: 6, xSplit: 2 }];
 
     const buf = await wb.xlsx.writeBuffer();
     const fileName = `attendance_${course_code}_${class_id}.xlsx`.replace(/[^a-zA-Z0-9_.-]/g, '_');
@@ -576,8 +815,16 @@ router.get('/session/:id/pin', async (req, res) => {
       return res.json({ active: false, pin: null, expiresIn: 0, pin_spinning: s.pin_spinning });
     }
 
-    const pin = getCurrentPin(s.pin_seed);
     const isSpinning = s.pin_spinning !== false;
+
+    let pin;
+    if (isSpinning) {
+      pin = getCurrentPin(s.pin_seed);
+    } else {
+      const cached = sessionCache.get(id);
+      pin = cached?.static_pin || staticPinFromSeed(s.pin_seed);
+    }
+    const formattedPin = `${s.course_code}-${pin}`;
 
     let expiresIn;
     if (isSpinning) {
@@ -591,7 +838,7 @@ router.get('/session/:id/pin', async (req, res) => {
 
     res.json({
       active: true,
-      pin,
+      pin: formattedPin,
       expiresIn,
       pin_spinning: isSpinning,
       sessionExpiresAt: s.expires_at,
@@ -602,12 +849,12 @@ router.get('/session/:id/pin', async (req, res) => {
   }
 });
 
-router.get('/buildings', async (req, res) => {
+router.get('/lecture-halls', async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, name, latitude, longitude, radius FROM buildings ORDER BY name');
-    res.json({ buildings: result.rows });
+    const result = await pool.query('SELECT id, name, latitude, longitude, radius FROM lecture_halls ORDER BY name');
+    res.json({ lecture_halls: result.rows });
   } catch (err) {
-    console.error('List buildings error:', err);
+    console.error('List lecture halls error:', err);
     res.status(500).json({ error: 'Something went wrong.' });
   }
 });

@@ -24,4 +24,30 @@ function verifyToken(requiredRole = null) {
   };
 }
 
-module.exports = { verifyToken };
+// Scope enforcement middleware for admin routes.
+// Ensures the admin can only access data within their scope.
+function verifyScope() {
+  return (req, res, next) => {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required.' });
+    }
+
+    const { admin_level, university_id, school_id, department_id } = req.user;
+
+    if (!admin_level || !['university', 'school', 'department'].includes(admin_level)) {
+      return res.status(403).json({ error: 'Invalid admin scope.' });
+    }
+
+    // Attach scope info to request for downstream use
+    req.scope = {
+      level: admin_level,
+      university_id: university_id || null,
+      school_id: school_id || null,
+      department_id: department_id || null,
+    };
+
+    next();
+  };
+}
+
+module.exports = { verifyToken, verifyScope };

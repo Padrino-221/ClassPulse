@@ -44,7 +44,7 @@ function getPreviousPin(seed) {
 
 /**
  * Validate a submitted PIN against a seed.
- * Accepts current window + previous window (for drift tolerance).
+ * Accepts current and previous time window pins to handle clock drift.
  */
 function validatePin(seed, submittedPin) {
   if (!seed || !submittedPin) return false;
@@ -58,12 +58,23 @@ function generateSeed() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+/**
+ * Derive a time-independent static PIN from a seed.
+ * Uses SHA-256 of the seed so the result is always the same for the same seed.
+ */
+function staticPinFromSeed(seed) {
+  const hash = crypto.createHash('sha256').update(seed).digest();
+  const num = ((hash[0] & 0x7f) << 24) | (hash[1] << 16) | (hash[2] << 8) | hash[3];
+  return (num % 1000000).toString().padStart(PIN_DIGITS, '0');
+}
+
 module.exports = {
   generatePinFromSeed,
   getCurrentPin,
   getPreviousPin,
   validatePin,
   generateSeed,
+  staticPinFromSeed,
   PIN_DIGITS,
   STEP_SECONDS,
 };

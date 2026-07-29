@@ -7,6 +7,7 @@ const LecturerLogin = React.lazy(() => import('./pages/LecturerLogin'));
 const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
 const LecturerDashboard = React.lazy(() => import('./pages/LecturerDashboard'));
+const LecturerLiveSession = React.lazy(() => import('./pages/LecturerLiveSession'));
 const LecturerHistory = React.lazy(() => import('./pages/LecturerHistory'));
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
 const Profile = React.lazy(() => import('./pages/Profile'));
@@ -33,6 +34,14 @@ export default function App() {
           element={
             <ProtectedRoute role="lecturer">
               <LecturerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/lecturer/live-session"
+          element={
+            <ProtectedRoute role="lecturer">
+              <LecturerLiveSession />
             </ProtectedRoute>
           }
         />

@@ -11,13 +11,20 @@ import {
   MapPin,
   ChartBar,
   SignOut,
+  Wrench,
+  CalendarBlank,
+  Buildings,
+  TreeEvergreen,
+  ShieldCheck,
+
 } from '@phosphor-icons/react';
 
 const navItems = [
   {
     section: 'Lecturer',
     links: [
-      { to: '/lecturer/dashboard', label: 'Live Session', icon: Pulse },
+      { to: '/lecturer/dashboard', label: 'Dashboard', icon: House },
+      { to: '/lecturer/live-session', label: 'Live Session', icon: Pulse },
       { to: '/lecturer/history', label: 'History', icon: Clock },
     ],
   },
@@ -25,15 +32,21 @@ const navItems = [
     section: 'Admin',
     links: [
       { to: '/admin', label: 'Dashboard', icon: House },
-      { to: '/admin/courses', label: 'Courses', icon: BookOpen },
-      { to: '/admin/classes', label: 'Classes', icon: Users },
-      { to: '/admin/lecturers', label: 'Lecturers', icon: UserCheck },
-      { to: '/admin/students', label: 'Students', icon: GraduationCap },
-      { to: '/admin/buildings', label: 'Buildings', icon: MapPin },
+      { to: '/admin/schools', label: 'Schools', icon: Buildings, minLevel: 'university' },
+      { to: '/admin/departments', label: 'Departments', icon: TreeEvergreen, minLevel: 'school' },
+      { to: '/admin/courses', label: 'Courses', icon: BookOpen, maxLevel: 'school' },
+      { to: '/admin/classes', label: 'Classes', icon: Users, maxLevel: 'school' },
+      { to: '/admin/lecturers', label: 'Lecturers', icon: UserCheck, maxLevel: 'school' },
+      { to: '/admin/students', label: 'Students', icon: GraduationCap, maxLevel: 'school' },
+      { to: '/admin/lecture-halls', label: 'Lecture Halls', icon: MapPin, minLevel: 'university' },
+      { to: '/admin/academic-terms', label: 'Academic Terms', icon: CalendarBlank, minLevel: 'university' },
       { to: '/admin/reports', label: 'Reports', icon: ChartBar },
+      { to: '/admin/tools', label: 'Tools', icon: Wrench },
     ],
   },
 ];
+
+const levelOrder = { university: 3, school: 2, department: 1 };
 
 function getUser() {
   try {
@@ -50,6 +63,7 @@ export default React.memo(function Sidebar() {
   const user = useMemo(getUser, []);
 
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const adminLevel = user?.admin_level || 'university';
 
   const handleSignOut = () => {
     localStorage.removeItem('token');
@@ -67,13 +81,26 @@ export default React.memo(function Sidebar() {
       <nav className="sidebar-nav">
         {navItems
           .filter((section) => {
-            if (isAdminRoute) return section.section === 'Admin';
+            if (isAdminRoute) {
+              if (section.section === 'System') return adminLevel === 'university';
+              return section.section === 'Admin';
+            }
             return section.section === 'Lecturer' || section.section === 'Settings';
           })
           .map((section) => (
             <div key={section.section} className="sidebar-nav-section">
-              <div className="nav-section-label">{section.section}</div>
-              {section.links.map((link) => {
+              <div className="nav-section-label">
+                {isAdminRoute && user?.role === 'admin' && section.section === 'Admin'
+                  ? `${adminLevel} Admin`
+                  : section.section}
+              </div>
+              {section.links
+                .filter((link) => {
+                  if (link.minLevel && levelOrder[adminLevel] < levelOrder[link.minLevel]) return false;
+                  if (link.maxLevel && levelOrder[adminLevel] > levelOrder[link.maxLevel]) return false;
+                  return true;
+                })
+                .map((link) => {
                 const Icon = link.icon;
                 return (
                   <NavLink

@@ -63,7 +63,7 @@ const styles = {
     padding: '0.625rem 1rem 0.625rem 2.75rem',
     background: 'var(--bg-global, #f5f5f5)',
     border: '1px solid var(--border-light, #e0e0e0)',
-    borderRadius: 9999,
+    borderRadius: 6,
     fontSize: '0.8125rem',
     color: 'var(--text-primary, #1a1a1a)',
     outline: 'none',
@@ -124,7 +124,7 @@ const styles = {
     alignItems: 'center',
     gap: '0.625rem',
     padding: '0.375rem 0.875rem 0.375rem 0.375rem',
-    borderRadius: 9999,
+    borderRadius: 6,
     border: '1px solid var(--border-light, #e0e0e0)',
     background: 'var(--bg-card, #ffffff)',
     cursor: 'pointer',
@@ -135,7 +135,7 @@ const styles = {
     width: 34,
     height: 34,
     borderRadius: '50%',
-    background: 'var(--brand, #6366f1)',
+    background: 'var(--brand, #DC2626)',
     color: '#ffffff',
     display: 'flex',
     alignItems: 'center',
@@ -181,7 +181,6 @@ const styles = {
     background: 'var(--bg-card, #ffffff)',
     border: '1px solid var(--border-light, #f0f0f0)',
     borderRadius: 16,
-    boxShadow: '0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06)',
     padding: '0.375rem',
     zIndex: 100,
     overflow: 'hidden',
@@ -205,7 +204,7 @@ const styles = {
     background: 'none',
     color: 'var(--text-primary, #1a1a1a)',
     fontSize: '0.8125rem',
-    borderRadius: 10,
+    borderRadius: 6,
     cursor: 'pointer',
     textAlign: 'left',
     fontFamily: 'inherit',
@@ -259,7 +258,7 @@ export default React.memo(function TopBar() {
   return (
     <header style={styles.topbar}>
       <div style={styles.left}>
-        <p style={styles.greeting}>Hey, {user?.name?.split(' ')[0] || 'User'}</p>
+        <p style={styles.greeting}>{user?.institution_name || 'ClassPulse'}</p>
         <p style={styles.date}>{formatDate()}</p>
       </div>
 
@@ -275,8 +274,8 @@ export default React.memo(function TopBar() {
             onChange={(e) => setSearchQuery(e.target.value)}
             style={styles.searchInput}
             onFocus={(e) => {
-              e.target.style.borderColor = 'var(--brand, #6366f1)';
-              e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)';
+              e.target.style.borderColor = 'var(--brand, #DC2626)';
+              e.target.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.1)';
             }}
             onBlur={(e) => {
               e.target.style.borderColor = 'transparent';

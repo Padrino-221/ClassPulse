@@ -18,16 +18,71 @@ const attendanceLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// ---- POST /validate-pin ----
+// Validate a session PIN without requiring GPS. Used by the attend page to validate before acquiring location.
+const validatePinLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 100 : 5,
+  message: { error: 'Too many PIN attempts. Wait a minute.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.post(
+  '/validate-pin',
+  validatePinLimiter,
+  [
+    body('pin').isString().trim().isLength({ min: 4, max: 30 }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { pin: submittedPin } = req.body;
+
+    const dashIndex = submittedPin.indexOf('-');
+    let course_code, numericPin;
+    if (dashIndex > 0) {
+      course_code = submittedPin.substring(0, dashIndex);
+      numericPin = submittedPin.substring(dashIndex + 1);
+    } else {
+      course_code = null;
+      numericPin = submittedPin;
+    }
+
+    try {
+      const session = sessionCache.findActiveByPinAndCourse(numericPin, course_code, validatePin);
+
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found or expired.' });
+      }
+
+      res.json({
+        valid: true,
+        course_code: session.course_code,
+        course_name: session.course_name,
+        class_name: session.class_name,
+        lecture_hall_name: session.lecture_hall_name,
+        week_number: session.week_number,
+      });
+    } catch (err) {
+      console.error('Validate pin error:', err);
+      res.status(500).json({ error: 'Something went wrong.' });
+    }
+  }
+);
+
 // ---- POST /check-in ----
-// Building geofence + rolling PIN. No auth required for students.
+// Lecture hall geofence + rolling PIN. No auth required for students.
 router.post(
   '/check-in',
   attendanceLimiter,
   [
     body('name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
     body('index_number').isString().trim().isLength({ min: 1, max: 50 }).notEmpty(),
-    body('course_code').isString().trim().isLength({ min: 1, max: 20 }).notEmpty(),
-    body('pin').isString().trim().isLength({ min: 4, max: 6 }),
+    body('pin').isString().trim().isLength({ min: 4, max: 30 }),
     body('latitude').isFloat({ min: -90, max: 90 }),
     body('longitude').isFloat({ min: -180, max: 180 }),
     body('accuracy').optional().isFloat({ min: 0 }),
@@ -39,7 +94,19 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, index_number, course_code, pin, latitude, longitude, accuracy, device_fingerprint } = req.body;
+    const { name, index_number, pin: submittedPin, latitude, longitude, accuracy, device_fingerprint } = req.body;
+
+    // Parse pin prefix: "CS101-482916" → courseCode="CS101", numericPin="482916"
+    const dashIndex = submittedPin.indexOf('-');
+    let course_code, numericPin;
+    if (dashIndex > 0) {
+      course_code = submittedPin.substring(0, dashIndex);
+      numericPin = submittedPin.substring(dashIndex + 1);
+    } else {
+      // Fallback: no dash, treat entire pin as numeric (backward compat)
+      course_code = null;
+      numericPin = submittedPin;
+    }
 
     try {
       // 0. Reject poor accuracy readings (only if provided)
@@ -49,7 +116,7 @@ router.post(
 
       // 1. Name-to-index validation against roster
       const studentCheck = await pool.query(
-        'SELECT student_name FROM student_roster WHERE index_number = $1',
+        'SELECT student_name FROM student_roster WHERE index_number = $1 AND deleted_at IS NULL',
         [index_number]
       );
 
@@ -62,32 +129,32 @@ router.post(
       }
 
       // 2. Rolling PIN validation via cache-first lookup
-      const session = sessionCache.findActiveByPinAndCourse(pin, course_code, validatePin);
+      const session = sessionCache.findActiveByPinAndCourse(numericPin, course_code, validatePin);
 
       if (!session) {
         return res.status(404).json({ error: 'Session not found or expired.' });
       }
 
-      // 3. Building geofence check
-      if (!session.building_latitude || !session.building_longitude || !session.building_radius) {
-        console.error(`Session ${session.session_id} has no building geofence configured.`);
-        return res.status(500).json({ error: 'Building location not configured. Contact your lecturer.' });
+      // 3. Lecture hall geofence check
+      if (!session.lecture_hall_latitude || !session.lecture_hall_longitude || !session.lecture_hall_radius) {
+        console.error(`Session ${session.session_id} has no lecture hall geofence configured.`);
+        return res.status(500).json({ error: 'Lecture hall location not configured. Contact your lecturer.' });
       }
 
       const { within, distance } = isWithinRange(
         parseFloat(latitude),
         parseFloat(longitude),
-        session.building_latitude,
-        session.building_longitude,
-        session.building_radius
+        session.lecture_hall_latitude,
+        session.lecture_hall_longitude,
+        session.lecture_hall_radius
       );
 
       if (!within) {
         console.log(
-          `Geofence reject: student ${index_number} is ${distance}m from building (limit: ${session.building_radius}m)`
+          `Geofence reject: student ${index_number} is ${distance}m from lecture hall (limit: ${session.lecture_hall_radius}m)`
         );
         return res.status(403).json({
-          error: `You are ${distance}m from the building. Must be within ${session.building_radius}m.`,
+          error: `You are ${distance}m from the lecture hall. Must be within ${session.lecture_hall_radius}m.`,
         });
       }
 
@@ -109,10 +176,10 @@ router.post(
 
       // 5. Write attendance record
       const insertResult = await pool.query(
-        `INSERT INTO attendance_records (session_id, index_number, student_name, verification_method, device_fingerprint_hash, marked_by)
-         VALUES ($1, $2, $3, 'GPS', $4, NULL)
+        `INSERT INTO attendance_records (session_id, index_number, verification_method, device_fingerprint_hash, marked_by)
+         VALUES ($1, $2, 'GPS', $3, NULL)
          RETURNING record_id, timestamp`,
-        [session.session_id, index_number, name, fingerprintHash]
+        [session.session_id, index_number, fingerprintHash]
       );
 
       sessionCache.invalidateMatricesForCourse(session.course_code, session.class_id);
@@ -121,7 +188,7 @@ router.post(
         message: 'Attendance recorded successfully.',
         record: insertResult.rows[0],
         session_id: session.session_id,
-        building: session.building_name,
+        lecture_hall: session.lecture_hall_name,
         distance,
       });
     } catch (err) {
@@ -134,9 +201,9 @@ router.post(
   }
 );
 
-// ---- GET /building-info ----
-// Public endpoint: returns active session building info for the attend page.
-const buildingInfoLimiter = rateLimit({
+// ---- GET /hall-info ----
+// Public endpoint: returns active session lecture hall info for the attend page.
+const hallInfoLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 30,
   message: { error: 'Too many requests.' },
@@ -144,41 +211,51 @@ const buildingInfoLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.get('/building-info', buildingInfoLimiter, async (req, res) => {
-  const { course_code, pin } = req.query;
+router.get('/hall-info', hallInfoLimiter, async (req, res) => {
+  const { pin: submittedPin } = req.query;
 
-  if (!course_code || !pin) {
-    return res.status(400).json({ error: 'course_code and pin required.' });
+  if (!submittedPin) {
+    return res.status(400).json({ error: 'pin required.' });
+  }
+
+  // Parse pin prefix: "CS101-482916" → courseCode="CS101", numericPin="482916"
+  const dashIndex = submittedPin.indexOf('-');
+  let course_code, numericPin;
+  if (dashIndex > 0) {
+    course_code = submittedPin.substring(0, dashIndex);
+    numericPin = submittedPin.substring(dashIndex + 1);
+  } else {
+    course_code = null;
+    numericPin = submittedPin;
   }
 
   try {
-    const session = sessionCache.findActiveByPinAndCourse(pin, course_code, validatePin);
+    const session = sessionCache.findActiveByPinAndCourse(numericPin, course_code, validatePin);
 
-    if (!session || !session.building_name) {
+    if (!session || !session.lecture_hall_name) {
       return res.status(404).json({ error: 'No active session found.' });
     }
 
     res.json({
-      building_name: session.building_name,
+      lecture_hall_name: session.lecture_hall_name,
       course_code: session.course_code,
       week_number: session.week_number,
     });
   } catch (err) {
-    console.error('Building info error:', err);
+    console.error('Hall info error:', err);
     res.status(500).json({ error: 'Something went wrong.' });
   }
 });
 
 // ---- POST / (legacy) ----
-// Kept for backward compatibility. Uses building geofence when available, falls back to session coords.
+// Kept for backward compatibility. Uses lecture hall geofence when available, falls back to session coords.
 router.post(
   '/',
   attendanceLimiter,
   [
     body('name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
     body('index_number').isString().trim().isLength({ min: 1, max: 50 }).notEmpty(),
-    body('course_code').isString().trim().isLength({ min: 1, max: 20 }).notEmpty(),
-    body('pin').isString().trim().isLength({ min: 4, max: 6 }),
+    body('pin').isString().trim().isLength({ min: 4, max: 30 }),
     body('latitude').isFloat({ min: -90, max: 90 }),
     body('longitude').isFloat({ min: -180, max: 180 }),
     body('accuracy').optional().isFloat({ min: 0 }),
@@ -190,7 +267,18 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, index_number, course_code, pin, latitude, longitude, accuracy, device_fingerprint } = req.body;
+    const { name, index_number, pin: submittedPin, latitude, longitude, accuracy, device_fingerprint } = req.body;
+
+    // Parse pin prefix
+    const dashIndex = submittedPin.indexOf('-');
+    let course_code, numericPin;
+    if (dashIndex > 0) {
+      course_code = submittedPin.substring(0, dashIndex);
+      numericPin = submittedPin.substring(dashIndex + 1);
+    } else {
+      course_code = null;
+      numericPin = submittedPin;
+    }
 
     try {
       // Reject poor accuracy readings (GPS > 100m is unreliable) — only if provided
@@ -199,7 +287,7 @@ router.post(
       }
 
       const studentCheck = await pool.query(
-        'SELECT student_name FROM student_roster WHERE index_number = $1',
+        'SELECT student_name FROM student_roster WHERE index_number = $1 AND deleted_at IS NULL',
         [index_number]
       );
 
@@ -211,16 +299,20 @@ router.post(
         }
       }
 
-      const session = sessionCache.findActiveByPinAndCourse(pin, course_code, validatePin);
+      const session = sessionCache.findActiveByPinAndCourse(numericPin, course_code, validatePin);
 
       if (!session) {
         return res.status(404).json({ error: 'Session not found or expired.' });
       }
 
-      // Use building geofence if available, otherwise fall back to session coordinates
-      const refLat = session.building_latitude || session.latitude;
-      const refLon = session.building_longitude || session.longitude;
-      const refRadius = session.building_radius || session.radius_meters || 400;
+      // Use lecture hall geofence
+      const refLat = session.lecture_hall_latitude;
+      const refLon = session.lecture_hall_longitude;
+      const refRadius = session.lecture_hall_radius || 400;
+
+      if (!refLat || !refLon) {
+        return res.status(500).json({ error: 'Lecture hall location not configured. Contact your lecturer.' });
+      }
 
       const { within, distance } = isWithinRange(
         parseFloat(latitude),
@@ -250,10 +342,10 @@ router.post(
       }
 
       const insertResult = await pool.query(
-        `INSERT INTO attendance_records (session_id, index_number, student_name, verification_method, device_fingerprint_hash, marked_by)
-         VALUES ($1, $2, $3, 'GPS', $4, NULL)
+        `INSERT INTO attendance_records (session_id, index_number, verification_method, device_fingerprint_hash, marked_by)
+         VALUES ($1, $2, 'GPS', $3, NULL)
          RETURNING record_id, timestamp`,
-        [session.session_id, index_number, name, fingerprintHash]
+        [session.session_id, index_number, fingerprintHash]
       );
 
       sessionCache.invalidateMatricesForCourse(session.course_code, session.class_id);
@@ -298,7 +390,7 @@ router.post(
       }
 
       const existing = await pool.query(
-        'SELECT id FROM student_roster WHERE index_number = $1 AND class_id = $2',
+        'SELECT id FROM student_roster WHERE index_number = $1 AND class_id = $2 AND deleted_at IS NULL',
         [index_number, cachedSession.class_id]
       );
       if (existing.rows.length === 0) {
@@ -309,10 +401,10 @@ router.post(
       }
 
       const result = await pool.query(
-        `INSERT INTO attendance_records (session_id, index_number, student_name, verification_method, marked_by)
-         VALUES ($1, $2, $3, 'MANUAL', $4)
+        `INSERT INTO attendance_records (session_id, index_number, verification_method, marked_by)
+         VALUES ($1, $2, 'MANUAL', $3)
          RETURNING record_id, timestamp`,
-        [session_id, index_number, student_name, req.user.id]
+        [session_id, index_number, req.user.id]
       );
 
       sessionCache.invalidateMatricesForCourse(cachedSession.course_code, cachedSession.class_id);

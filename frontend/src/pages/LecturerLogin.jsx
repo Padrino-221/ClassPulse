@@ -1,22 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../utils/api';
-import { Eye, EyeSlash, Pulse } from '@phosphor-icons/react';
-
-const carouselContent = [
-  {
-    headline: 'Speedy, Easy and Fast',
-    description: 'Track attendance in real-time, generate instant reports, and manage your classes efficiently with smart analytics.',
-  },
-  {
-    headline: 'Smart Analytics Dashboard',
-    description: 'Get instant insights into attendance patterns, trends, and generate comprehensive reports with just one click.',
-  },
-  {
-    headline: 'GPS & Geofencing',
-    description: 'Verify student location with GPS tracking and geofencing to ensure accurate attendance records.',
-  },
-];
+import { Eye, EyeSlash, EnvelopeSimple, LockKey, CheckCircle } from '@phosphor-icons/react';
 
 export default function LecturerLogin() {
   const navigate = useNavigate();
@@ -24,7 +9,7 @@ export default function LecturerLogin() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [activeSlide, setActiveSlide] = useState(0);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -56,330 +41,68 @@ export default function LecturerLogin() {
     container: {
       minHeight: '100vh',
       display: 'flex',
-      background: '#f8fafc',
+      background: '#F5F5F5',
+      fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     },
-    brandPanel: {
-      width: '42%',
-      background: 'linear-gradient(155deg, #2563eb 0%, #1d4ed8 50%, #1e40af 100%)',
+    leftPanel: {
+      flex: '0 0 60%',
+      background: '#F5F5F5',
       display: 'flex',
       flexDirection: 'column',
-      padding: '2.5rem 3rem',
-      position: 'relative',
-      overflow: 'hidden',
-    },
-    brandOverlay: {
-      position: 'absolute',
-      inset: 0,
-      opacity: 0.08,
-      backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.4) 1px, transparent 0)`,
-      backgroundSize: '32px 32px',
-    },
-    decorCircle1: {
-      position: 'absolute',
-      top: '-15%',
-      right: '-10%',
-      width: '400px',
-      height: '400px',
-      borderRadius: '50%',
-      background: 'rgba(255, 255, 255, 0.06)',
-    },
-    decorCircle2: {
-      position: 'absolute',
-      bottom: '-20%',
-      left: '-15%',
-      width: '350px',
-      height: '350px',
-      borderRadius: '50%',
-      background: 'rgba(255, 255, 255, 0.04)',
-    },
-    decorLines: {
-      position: 'absolute',
-      top: '15%',
-      right: '8%',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '6px',
-      opacity: 0.3,
-    },
-    decorLine: {
-      width: '24px',
-      height: '3px',
-      background: '#fff',
-      borderRadius: '2px',
-    },
-    decorDots: {
-      position: 'absolute',
-      bottom: '12%',
-      left: '6%',
-      display: 'grid',
-      gridTemplateColumns: 'repeat(4, 8px)',
-      gap: '8px',
-      opacity: 0.25,
-    },
-    decorDot: {
-      width: '8px',
-      height: '8px',
-      borderRadius: '50%',
-      background: '#fff',
-    },
-    brandHeader: {
-      position: 'relative',
-      zIndex: 2,
-      display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      padding: '2.5rem',
+      position: 'relative',
+    },
+    leftHeader: {
+      position: 'absolute',
+      top: '1.5rem',
+      left: '2rem',
+      display: 'flex',
+      alignItems: 'center',
       gap: '0.75rem',
-      marginBottom: '2rem',
     },
-    logoBox: {
-      width: '42px',
-      height: '42px',
-      borderRadius: '12px',
-      background: 'rgba(255, 255, 255, 0.18)',
-      backdropFilter: 'blur(8px)',
+    logoCircle: {
+      width: '38px',
+      height: '38px',
+      borderRadius: '50%',
+      background: '#DC2626',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: '1.125rem',
-      fontWeight: '800',
       color: '#fff',
-      letterSpacing: '-0.5px',
+      fontWeight: '700',
+      fontSize: '0.95rem',
     },
     logoText: {
-      fontSize: '1.375rem',
       fontWeight: '700',
-      color: '#fff',
-      letterSpacing: '-0.3px',
-    },
-    cardsContainer: {
-      position: 'relative',
-      zIndex: 2,
-      flex: 1,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '320px',
-    },
-    dashboardCard: {
-      width: '320px',
-      background: '#fff',
-      borderRadius: '16px',
-      padding: '1.25rem',
-      boxShadow: '0 20px 50px rgba(0, 0, 0, 0.2)',
-      position: 'relative',
-    },
-    dashboardHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      marginBottom: '1rem',
-    },
-    statBox: {
-      flex: 1,
-    },
-    statLabel: {
-      fontSize: '0.6875rem',
-      color: '#64748b',
-      marginBottom: '0.25rem',
-      fontWeight: '500',
-    },
-    statValue: {
-      fontSize: '1.125rem',
-      fontWeight: '700',
-      color: '#1e293b',
-    },
-    chartArea: {
-      height: '80px',
-      background: 'linear-gradient(180deg, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0.02) 100%)',
-      borderRadius: '8px',
-      marginBottom: '1rem',
-      position: 'relative',
-      overflow: 'hidden',
-      display: 'flex',
-      alignItems: 'flex-end',
-      padding: '0 0.5rem 0.5rem',
-      gap: '6px',
-    },
-    chartBar: {
-      flex: 1,
-      background: 'linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%)',
-      borderRadius: '4px 4px 0 0',
-      minHeight: '8px',
-    },
-    transactionList: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.625rem',
-    },
-    transactionItem: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      fontSize: '0.75rem',
-    },
-    transactionLeft: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-    },
-    transactionIcon: {
-      width: '28px',
-      height: '28px',
-      borderRadius: '8px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '0.75rem',
-    },
-    transactionName: {
-      color: '#1e293b',
-      fontWeight: '500',
-    },
-    transactionTime: {
-      color: '#94a3b8',
-      fontSize: '0.6875rem',
-    },
-    transactionAmount: {
-      fontWeight: '600',
-    },
-    successCard: {
-      position: 'absolute',
-      bottom: '20px',
-      left: '-30px',
-      background: '#fff',
-      borderRadius: '12px',
-      padding: '0.875rem 1rem',
-      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.15)',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.75rem',
-      zIndex: 3,
-    },
-    successIcon: {
-      width: '36px',
-      height: '36px',
-      borderRadius: '50%',
-      background: '#dcfce7',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '1rem',
-    },
-    successText: {
-      fontSize: '0.75rem',
-      color: '#1e293b',
-      fontWeight: '500',
-    },
-    successSubtext: {
-      fontSize: '0.6875rem',
-      color: '#64748b',
-    },
-    notificationCard: {
-      position: 'absolute',
-      top: '10px',
-      right: '-20px',
-      background: '#fff',
-      borderRadius: '10px',
-      padding: '0.625rem 0.875rem',
-      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-      zIndex: 3,
-    },
-    notifIcon: {
-      width: '28px',
-      height: '28px',
-      borderRadius: '8px',
-      background: '#dbeafe',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '0.875rem',
-    },
-    notifText: {
-      fontSize: '0.6875rem',
-      color: '#1e293b',
-      fontWeight: '500',
-    },
-    notifAmount: {
-      fontSize: '0.75rem',
-      color: '#16a34a',
-      fontWeight: '600',
-    },
-    brandBottom: {
-      position: 'relative',
-      zIndex: 2,
-      marginTop: 'auto',
-      color: '#fff',
-      textAlign: 'center',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-    },
-    brandHeadline: {
-      fontSize: '1.75rem',
-      fontWeight: '800',
-      marginBottom: '0.75rem',
-      letterSpacing: '-0.5px',
-      lineHeight: 1.2,
-    },
-    brandDescription: {
-      fontSize: '0.9375rem',
-      opacity: 0.85,
-      lineHeight: 1.6,
-      marginBottom: '1.5rem',
-      maxWidth: '380px',
-    },
-    paginationDots: {
-      display: 'flex',
-      gap: '8px',
-      cursor: 'pointer',
-    },
-    dot: {
-      width: '8px',
-      height: '8px',
-      borderRadius: '50%',
-      background: 'rgba(255, 255, 255, 0.4)',
-      transition: 'all 0.3s ease',
-    },
-    dotActive: {
-      width: '24px',
-      height: '8px',
-      borderRadius: '4px',
-      background: '#fff',
-      transition: 'all 0.3s ease',
-    },
-    formPanel: {
-      flex: 1,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '3rem',
+      fontSize: '1.1rem',
+      color: '#1A1A1A',
     },
     card: {
+      background: '#FFFFFF',
+      border: '1px solid #E5E7EB',
+      borderRadius: '8px',
       width: '100%',
       maxWidth: '420px',
-      background: '#fff',
-      borderRadius: '16px',
-      padding: '2.5rem',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04), 0 10px 30px rgba(0, 0, 0, 0.06)',
+      padding: '2.5rem 2rem',
     },
     heading: {
-      fontSize: '1.625rem',
+      fontSize: '1.5rem',
       fontWeight: '700',
-      marginBottom: '0.375rem',
-      color: '#1e293b',
+      color: '#1A1A1A',
+      marginBottom: '0.25rem',
     },
-    description: {
-      color: '#64748b',
-      fontSize: '0.9375rem',
-      marginBottom: '2rem',
+    subtitle: {
+      color: '#6B7280',
+      fontSize: '0.875rem',
+      marginBottom: '1.5rem',
     },
     error: {
       padding: '0.875rem 1rem',
-      background: '#fef2f2',
-      color: '#dc2626',
-      borderRadius: '10px',
+      background: '#FEE2E2',
+      color: '#DC2626',
+      borderRadius: '6px',
       fontSize: '0.8125rem',
       fontWeight: '500',
       marginBottom: '1.25rem',
@@ -392,75 +115,190 @@ export default function LecturerLogin() {
       display: 'block',
       fontSize: '0.8125rem',
       fontWeight: '600',
-      marginBottom: '0.5rem',
-      color: '#475569',
+      color: '#1A1A1A',
+      marginBottom: '0.4rem',
     },
     inputWrapper: {
       position: 'relative',
+      display: 'flex',
+      alignItems: 'center',
+    },
+    inputIcon: {
+      position: 'absolute',
+      left: '0.85rem',
+      color: '#9CA3AF',
+      fontSize: '1.05rem',
+      pointerEvents: 'none',
+      display: 'flex',
+      alignItems: 'center',
     },
     input: {
       width: '100%',
-      height: '46px',
-      padding: '0 1rem',
-      border: '1.5px solid #e2e8f0',
-      borderRadius: '10px',
-      fontSize: '0.9375rem',
-      background: '#fff',
-      color: '#1e293b',
-      transition: 'all 0.2s ease',
+      padding: '0.7rem 0.85rem 0.7rem 2.6rem',
+      border: '1px solid #E5E7EB',
+      borderRadius: '8px',
+      background: '#F5F5F5',
+      color: '#1A1A1A',
+      fontSize: '0.875rem',
+      fontFamily: 'inherit',
       outline: 'none',
+      transition: 'border-color 0.2s, background 0.2s',
     },
     passwordToggle: {
       position: 'absolute',
       right: '0.75rem',
-      top: '50%',
-      transform: 'translateY(-50%)',
       background: 'none',
       border: 'none',
+      color: '#9CA3AF',
+      fontSize: '1.1rem',
       padding: '0.25rem',
-      cursor: 'pointer',
-      color: '#94a3b8',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      transition: 'color 0.15s ease',
+      cursor: 'pointer',
+      transition: 'color 0.2s',
+    },
+    formExtras: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: '1.5rem',
+    },
+    rememberMe: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+    },
+    checkbox: {
+      width: '16px',
+      height: '16px',
+      accentColor: '#DC2626',
+      cursor: 'pointer',
+    },
+    rememberLabel: {
+      fontSize: '0.8125rem',
+      color: '#6B7280',
+      cursor: 'pointer',
+    },
+    forgotLink: {
+      fontSize: '0.8125rem',
+      color: '#DC2626',
+      fontWeight: '600',
+      cursor: 'pointer',
+      background: 'none',
+      border: 'none',
+      padding: 0,
+      transition: 'opacity 0.2s',
+      fontFamily: 'inherit',
     },
     submitBtn: {
       width: '100%',
-      height: '48px',
-      padding: '0 1.5rem',
-      background: loading ? '#60a5fa' : '#2563eb',
+      height: '44px',
+      background: loading ? '#F87171' : '#DC2626',
       color: '#fff',
       border: 'none',
-      borderRadius: '10px',
+      borderRadius: '6px',
       fontSize: '0.9375rem',
       fontWeight: '600',
       cursor: loading ? 'not-allowed' : 'pointer',
-      transition: 'all 0.15s ease',
-      marginTop: '0.5rem',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       gap: '0.5rem',
+      transition: 'background 0.2s',
+      fontFamily: 'inherit',
     },
     spinner: {
       width: '18px',
       height: '18px',
-      border: '2px solid rgba(255, 255, 255, 0.3)',
+      border: '2px solid rgba(255,255,255,0.3)',
       borderTopColor: '#fff',
       borderRadius: '50%',
       animation: 'spin 0.6s linear infinite',
     },
-    footer: {
-      marginTop: '1.5rem',
-      textAlign: 'center',
-      fontSize: '0.875rem',
+    divider: {
+      border: 'none',
+      borderTop: '1px solid #E5E7EB',
+      margin: '1.5rem 0',
     },
-    footerLink: {
-      color: '#64748b',
-      textDecoration: 'none',
+    footer: {
+      textAlign: 'center',
+      fontSize: '0.8125rem',
+      color: '#6B7280',
+    },
+    rightPanel: {
+      flex: '0 0 40%',
+      background: '#DC2626',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '3rem',
+      position: 'relative',
+      overflow: 'hidden',
+    },
+    decorCircle1: {
+      position: 'absolute',
+      width: '500px',
+      height: '500px',
+      borderRadius: '50%',
+      background: '#B91C1C',
+      opacity: '0.35',
+      top: '-120px',
+      right: '-160px',
+      pointerEvents: 'none',
+    },
+    decorCircle2: {
+      position: 'absolute',
+      width: '300px',
+      height: '300px',
+      borderRadius: '50%',
+      background: '#B91C1C',
+      opacity: '0.2',
+      bottom: '-80px',
+      left: '-80px',
+      pointerEvents: 'none',
+    },
+    rightContent: {
+      position: 'relative',
+      zIndex: 1,
+      textAlign: 'center',
+      maxWidth: '320px',
+    },
+    brandHeading: {
+      fontSize: '2rem',
+      fontWeight: '800',
+      color: '#fff',
+      marginBottom: '0.35rem',
+    },
+    brandSubtitle: {
+      fontSize: '1rem',
+      color: 'rgba(255,255,255,0.8)',
+      marginBottom: '2.5rem',
+      fontWeight: '400',
+    },
+    featureList: {
+      listStyle: 'none',
+      textAlign: 'left',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1rem',
+      margin: 0,
+      padding: 0,
+    },
+    featureItem: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.75rem',
+      color: 'rgba(255,255,255,0.92)',
+      fontSize: '0.9375rem',
       fontWeight: '500',
-      transition: 'color 0.15s ease',
+    },
+    featureIcon: {
+      fontSize: '1.25rem',
+      flexShrink: 0,
+      display: 'flex',
+      alignItems: 'center',
     },
   };
 
@@ -471,168 +309,73 @@ export default function LecturerLogin() {
           to { transform: rotate(360deg); }
         }
         .lp-input:focus {
-          border-color: #2563eb !important;
-          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+          border-color: #DC2626 !important;
+          background: #FFFFFF !important;
         }
         .lp-input::placeholder {
-          color: #94a3b8;
+          color: #9CA3AF;
         }
         .lp-submit:hover:not(:disabled) {
-          background: #1d4ed8 !important;
-          box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+          background: #B91C1C !important;
         }
-        .lp-footer-link:hover {
-          color: #2563eb !important;
+        .lp-forgot-link:hover {
+          opacity: 0.8;
         }
-        .lp-carousel-dot {
-          cursor: pointer;
-          transition: all 0.3s ease;
+        .lp-pw-toggle:hover {
+          color: #6B7280 !important;
         }
-        .lp-carousel-dot:hover {
-          background: rgba(255, 255, 255, 0.7) !important;
+        @media (max-width: 900px) {
+          .lp-right-panel { display: none !important; }
+          .lp-left-panel { flex: 1 !important; }
         }
-        @media (max-width: 1024px) {
-          .lp-brand-panel { width: 38% !important; }
-        }
-        @media (max-width: 768px) {
-          .lp-brand-panel { display: none !important; }
-          .lp-form-panel { padding: 2rem 1.5rem !important; }
+        @media (max-width: 480px) {
+          .lp-left-panel { padding: 1.5rem 1rem !important; }
+          .lp-card { padding: 1.75rem 1.25rem !important; }
         }
       `}</style>
       <div style={styles.container}>
-        <div className="lp-brand-panel" style={styles.brandPanel}>
-          <div style={styles.brandOverlay} />
-          <div style={styles.decorCircle1} />
-          <div style={styles.decorCircle2} />
-          
-          <div style={styles.decorLines}>
-            <div style={styles.decorLine} />
-            <div style={{ ...styles.decorLine, width: '16px' }} />
-            <div style={styles.decorLine} />
-          </div>
-          
-          <div style={styles.decorDots}>
-            {[...Array(12)].map((_, i) => (
-              <div key={i} style={styles.decorDot} />
-            ))}
-          </div>
-
-          <div style={styles.brandHeader}>
-            <div style={styles.logoBox}><Pulse weight="fill" size={24} /></div>
+        {/* LEFT SIDE — FORM */}
+        <div className="lp-left-panel" style={styles.leftPanel}>
+          <div style={styles.leftHeader}>
+            <div style={styles.logoCircle}>P</div>
             <span style={styles.logoText}>ClassPulse</span>
           </div>
 
-          <div style={styles.cardsContainer}>
-            <div style={styles.dashboardCard}>
-              <div style={styles.dashboardHeader}>
-                <div style={styles.statBox}>
-                  <div style={styles.statLabel}>Present</div>
-                  <div style={{ ...styles.statValue, color: '#16a34a' }}>245</div>
-                </div>
-                <div style={styles.statBox}>
-                  <div style={styles.statLabel}>Absent</div>
-                  <div style={{ ...styles.statValue, color: '#dc2626' }}>12</div>
-                </div>
-                <div style={styles.statBox}>
-                  <div style={styles.statLabel}>Late</div>
-                  <div style={{ ...styles.statValue, color: '#f59e0b' }}>8</div>
-                </div>
-              </div>
-
-              <div style={styles.chartArea}>
-                <div style={{ ...styles.chartBar, height: '65%' }} />
-                <div style={{ ...styles.chartBar, height: '85%' }} />
-                <div style={{ ...styles.chartBar, height: '45%' }} />
-                <div style={{ ...styles.chartBar, height: '90%' }} />
-                <div style={{ ...styles.chartBar, height: '70%' }} />
-                <div style={{ ...styles.chartBar, height: '55%' }} />
-                <div style={{ ...styles.chartBar, height: '80%' }} />
-              </div>
-
-              <div style={styles.transactionList}>
-                <div style={styles.transactionItem}>
-                  <div style={styles.transactionLeft}>
-                    <div style={{ ...styles.transactionIcon, background: '#dcfce7' }}>&#10003;</div>
-                    <div>
-                      <div style={styles.transactionName}>CS101 - Checked in</div>
-                      <div style={styles.transactionTime}>Today at 9:00 AM</div>
-                    </div>
-                  </div>
-                  <div style={{ ...styles.transactionAmount, color: '#16a34a' }}>+42</div>
-                </div>
-                <div style={styles.transactionItem}>
-                  <div style={styles.transactionLeft}>
-                    <div style={{ ...styles.transactionIcon, background: '#fee2e2' }}>&#10007;</div>
-                    <div>
-                      <div style={styles.transactionName}>MATH201 - Absent</div>
-                      <div style={styles.transactionTime}>Today at 8:30 AM</div>
-                    </div>
-                  </div>
-                  <div style={{ ...styles.transactionAmount, color: '#dc2626' }}>-3</div>
-                </div>
-              </div>
-
-              <div style={styles.successCard}>
-                <div style={styles.successIcon}>&#10003;</div>
-                <div>
-                  <div style={styles.successText}>Attendance synced!</div>
-                  <div style={styles.successSubtext}>All records updated</div>
-                </div>
-              </div>
-
-              <div style={styles.notificationCard}>
-                <div style={styles.notifIcon}>&#128202;</div>
-                <div>
-                  <div style={styles.notifText}>Report Generated</div>
-                  <div style={styles.notifAmount}>Weekly summary ready</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style={styles.brandBottom}>
-            <h2 style={styles.brandHeadline}>{carouselContent[activeSlide].headline}</h2>
-            <p style={styles.brandDescription}>
-              {carouselContent[activeSlide].description}
-            </p>
-            <div style={styles.paginationDots}>
-              {carouselContent.map((_, index) => (
-                <div
-                  key={index}
-                  className="lp-carousel-dot"
-                  style={activeSlide === index ? styles.dotActive : styles.dot}
-                  onClick={() => setActiveSlide(index)}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="lp-form-panel" style={styles.formPanel}>
-          <div style={styles.card}>
-            <h2 style={styles.heading}>Welcome back</h2>
-            <p style={styles.description}>Sign in to your account to continue</p>
+          <div className="lp-card" style={styles.card}>
+            <h1 style={styles.heading}>Welcome back</h1>
+            <p style={styles.subtitle}>Sign in to your account</p>
 
             {error && <div style={styles.error}>{error}</div>}
 
             <form onSubmit={handleSubmit}>
+              {/* EMAIL */}
               <div style={styles.formGroup}>
                 <label style={styles.label} htmlFor="email">Email</label>
-                <input
-                  className="lp-input"
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={form.email}
-                  onChange={handleChange}
-                  style={styles.input}
-                  required
-                />
+                <div style={styles.inputWrapper}>
+                  <span style={styles.inputIcon}>
+                    <EnvelopeSimple size={18} />
+                  </span>
+                  <input
+                    className="lp-input"
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="you@classpulse.edu"
+                    value={form.email}
+                    onChange={handleChange}
+                    style={styles.input}
+                    required
+                  />
+                </div>
               </div>
+
+              {/* PASSWORD */}
               <div style={styles.formGroup}>
                 <label style={styles.label} htmlFor="password">Password</label>
                 <div style={styles.inputWrapper}>
+                  <span style={styles.inputIcon}>
+                    <LockKey size={18} />
+                  </span>
                   <input
                     className="lp-input"
                     id="password"
@@ -646,6 +389,7 @@ export default function LecturerLogin() {
                   />
                   <button
                     type="button"
+                    className="lp-pw-toggle"
                     style={styles.passwordToggle}
                     onClick={() => setShowPassword((v) => !v)}
                     tabIndex={-1}
@@ -659,6 +403,23 @@ export default function LecturerLogin() {
                   </button>
                 </div>
               </div>
+
+              {/* REMEMBER / FORGOT */}
+              <div style={styles.formExtras}>
+                <div style={styles.rememberMe}>
+                  <input
+                    type="checkbox"
+                    id="remember"
+                    style={styles.checkbox}
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                  />
+                  <label htmlFor="remember" style={styles.rememberLabel}>Remember me</label>
+                </div>
+                <Link to="/forgot-password" className="lp-forgot-link" style={styles.forgotLink}>Forgot password?</Link>
+              </div>
+
+              {/* SIGN IN */}
               <button
                 type="submit"
                 className="lp-submit"
@@ -674,11 +435,36 @@ export default function LecturerLogin() {
                   'Sign In'
                 )}
               </button>
-            </form>
 
-            <div style={styles.footer}>
-              <Link to="/forgot-password" className="lp-footer-link" style={styles.footerLink}>Forgot password?</Link>
-            </div>
+              <hr style={styles.divider} />
+
+              {/* FOOTER */}
+              <p style={styles.footer}>Don't have an account? Contact your administrator</p>
+            </form>
+          </div>
+        </div>
+
+        {/* RIGHT SIDE — BRANDING */}
+        <div className="lp-right-panel" style={styles.rightPanel}>
+          <div style={styles.decorCircle1} />
+          <div style={styles.decorCircle2} />
+          <div style={styles.rightContent}>
+            <h2 style={styles.brandHeading}>ClassPulse</h2>
+            <p style={styles.brandSubtitle}>Smart Attendance Management</p>
+            <ul style={styles.featureList}>
+              <li style={styles.featureItem}>
+                <span style={styles.featureIcon}><CheckCircle weight="fill" size={20} /></span>
+                Real-time attendance tracking
+              </li>
+              <li style={styles.featureItem}>
+                <span style={styles.featureIcon}><CheckCircle weight="fill" size={20} /></span>
+                GPS-verified check-ins
+              </li>
+              <li style={styles.featureItem}>
+                <span style={styles.featureIcon}><CheckCircle weight="fill" size={20} /></span>
+                Automated reporting
+              </li>
+            </ul>
           </div>
         </div>
       </div>

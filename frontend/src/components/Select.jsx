@@ -16,11 +16,14 @@ export default function Select({ children, className = '', style, name, value, o
   const positionDropdown = useCallback(() => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const flipUp = spaceBelow < 208;
     setDropdownStyle({
       position: 'fixed',
-      top: rect.bottom + 4,
+      top: flipUp ? rect.top - 208 - 4 : rect.bottom + 4,
       left: rect.left,
       width: rect.width,
+      maxHeight: '240px',
       zIndex: 9999,
     });
   }, []);

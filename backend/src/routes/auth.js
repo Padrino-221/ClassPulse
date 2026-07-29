@@ -79,7 +79,9 @@ router.post(
 
       if (user.rows.length === 0) {
         user = await pool.query(
-          'SELECT id, name, email, password_hash, \'admin\' AS role FROM admins WHERE email = $1',
+          `SELECT id, name, email, password_hash, 'admin' AS role,
+                  role AS admin_level, university_id, school_id, department_id
+           FROM admins WHERE email = $1 AND (deleted_at IS NULL)`,
           [email]
         );
       }
@@ -93,14 +95,42 @@ router.post(
         return res.status(401).json({ error: 'Wrong email or password.' });
       }
 
-      const { id, name, role } = user.rows[0];
+      const { id, name, role, admin_level, university_id, school_id, department_id } = user.rows[0];
+      const tokenPayload = { id, name, email, role };
+      if (role === 'admin') {
+        tokenPayload.admin_level = admin_level || 'university';
+        tokenPayload.university_id = university_id;
+        tokenPayload.school_id = school_id;
+        tokenPayload.department_id = department_id;
+      }
       const token = jwt.sign(
-        { id, name, email, role },
+        tokenPayload,
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
       );
 
-      res.json({ token, user: { id, name, email, role } });
+      const userResponse = { id, name, email, role };
+      if (role === 'admin') {
+        userResponse.admin_level = admin_level || 'university';
+        userResponse.university_id = university_id;
+        userResponse.school_id = school_id;
+        userResponse.department_id = department_id;
+
+        // Fetch institution name based on admin level
+        try {
+          if (admin_level === 'university' && university_id) {
+            const uRes = await pool.query('SELECT name FROM universities WHERE id = $1', [university_id]);
+            if (uRes.rows.length) userResponse.institution_name = uRes.rows[0].name;
+          } else if (admin_level === 'school' && school_id) {
+            const sRes = await pool.query('SELECT name FROM schools WHERE id = $1', [school_id]);
+            if (sRes.rows.length) userResponse.institution_name = sRes.rows[0].name;
+          } else if (admin_level === 'department' && department_id) {
+            const dRes = await pool.query('SELECT name FROM departments WHERE id = $1', [department_id]);
+            if (dRes.rows.length) userResponse.institution_name = dRes.rows[0].name;
+          }
+        } catch { /* ignore — optional field */ }
+      }
+      res.json({ token, user: userResponse });
     } catch (err) {
       console.error('Login error:', err);
       res.status(500).json({ error: 'Something went wrong.' });
@@ -139,7 +169,11 @@ router.post(
         [userType, user.rows[0].id, token]
       );
 
-      await sendResetEmail(email, token, userType);
+      try {
+        await sendResetEmail(email, token, userType);
+      } catch (emailErr) {
+        console.error('Failed to send reset email:', emailErr.message);
+      }
       res.json({ message: 'If the email exists, a reset link has been sent.' });
     } catch (err) {
       console.error('Forgot password error:', err);

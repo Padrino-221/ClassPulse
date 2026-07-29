@@ -1,74 +1,77 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { House } from '@phosphor-icons/react';
+import { Link } from 'react-router-dom';
 
 export default function NotFound() {
-  const navigate = useNavigate();
-
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'var(--bg-global)',
-      padding: '2rem',
-    }}>
-      <div style={{
-        textAlign: 'center',
-        maxWidth: 480,
-      }}>
-        <h1 style={{
-          fontSize: '7rem',
-          fontWeight: 800,
-          color: 'var(--brand)',
-          lineHeight: 1,
-          marginBottom: '0.5rem',
-          letterSpacing: '-2px',
-        }}>404</h1>
-        <h2 style={{
-          fontSize: '1.5rem',
-          fontWeight: 700,
-          color: 'var(--text-primary)',
-          marginBottom: '0.75rem',
-        }}>Page not found</h2>
-        <p style={{
-          fontSize: '0.9375rem',
-          color: 'var(--text-secondary)',
-          marginBottom: '2rem',
-          lineHeight: 1.6,
-        }}>
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <button
-          onClick={() => navigate('/')}
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#F5F5F5',
+        padding: '2rem',
+      }}
+    >
+      <div
+        style={{
+          background: '#FFFFFF',
+          border: '1px solid #E5E7EB',
+          borderRadius: 8,
+          maxWidth: 420,
+          width: '100%',
+          padding: '2.5rem',
+          textAlign: 'center',
+        }}
+      >
+        <h1
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            height: 42,
-            padding: '0 1.5rem',
-            background: 'var(--brand)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 10,
-            fontSize: '0.9375rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'var(--brand-dark)';
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(var(--brand-rgb), 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'var(--brand)';
-            e.currentTarget.style.boxShadow = 'none';
+            fontSize: '4rem',
+            fontWeight: 800,
+            color: '#DC2626',
+            lineHeight: 1,
+            margin: 0,
           }}
         >
-          <House size={20} weight="bold" />
+          404
+        </h1>
+        <h2
+          style={{
+            fontSize: '1.5rem',
+            fontWeight: 700,
+            color: '#1A1A1A',
+            margin: '0.75rem 0',
+          }}
+        >
+          Page Not Found
+        </h2>
+        <p
+          style={{
+            fontSize: '0.9375rem',
+            color: '#6B7280',
+            marginBottom: '2rem',
+            lineHeight: 1.6,
+          }}
+        >
+          The page you're looking for doesn't exist or has been moved.
+        </p>
+        <Link
+          to="/"
+          style={{
+            display: 'inline-block',
+            background: '#DC2626',
+            color: '#FFFFFF',
+            border: 'none',
+            borderRadius: 6,
+            padding: '0.75rem 1.5rem',
+            fontSize: '0.9375rem',
+            fontWeight: 600,
+            textDecoration: 'none',
+            cursor: 'pointer',
+          }}
+        >
           Go Home
-        </button>
+        </Link>
       </div>
     </div>
   );

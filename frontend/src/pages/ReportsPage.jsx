@@ -6,29 +6,30 @@ import Select from '../components/Select';
 import Spinner from '../components/Spinner';
 import Pagination from '../components/Pagination';
 import { useToast } from '../components/Toast';
+import PageHeader from '../components/PageHeader';
 
-const BRAND = '#0730A3';
-const BRAND_LIGHT = '#3B5FCC';
+const BRAND = '#DC2626';
+const BRAND_LIGHT = '#FEF2F2';
 const SUCCESS = '#16A34A';
-const WARNING = '#D97706';
+const WARNING = '#F59E0B';
 const PAGE_SIZE = 10;
 
 function StatCard({ icon, label, value, sub }) {
   return (
     <div style={{
       background: 'var(--bg-card, #fff)',
-      borderRadius: 'var(--radius-lg, 18px)',
+      borderRadius: 'var(--radius-lg, 8px)',
       padding: '1.25rem 1.5rem',
       boxShadow: 'none',
       display: 'flex',
       alignItems: 'center',
       gap: '1rem',
-      border: '1px solid var(--border-light, #f0f0f0)',
+      border: '1px solid var(--border-light, #E5E7EB)',
     }}>
       <div style={{
         width: '48px',
         height: '48px',
-        borderRadius: 'var(--radius-lg, 18px)',
+        borderRadius: 'var(--radius-lg, 8px)',
         background: 'var(--kpi-icon-bg, #eff6ff)',
         display: 'flex',
         alignItems: 'center',
@@ -39,7 +40,7 @@ function StatCard({ icon, label, value, sub }) {
         {icon}
       </div>
       <div>
-        <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary, #1a1a2e)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>{value}</div>
+        <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>{value}</div>
         <div style={{ fontSize: '0.6875rem', color: 'var(--text-secondary, #6b7280)', fontWeight: 600, marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
         {sub && <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted, #9ca3af)', marginTop: '2px' }}>{sub}</div>}
       </div>
@@ -52,12 +53,12 @@ function CourseBarChart({ data }) {
   return (
     <div style={{
       background: 'var(--bg-card, #fff)',
-      borderRadius: 'var(--radius-lg, 18px)',
+      borderRadius: 'var(--radius-lg, 8px)',
       padding: '1.25rem 1.5rem',
       boxShadow: 'none',
-      border: '1px solid var(--border-light, #f0f0f0)',
+      border: '1px solid var(--border-light, #E5E7EB)',
     }}>
-      <h4 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary, #1a1a2e)' }}>Attendance by Course</h4>
+      <h4 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>Attendance by Course</h4>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data} layout="vertical" margin={{ left: 20, right: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
@@ -76,12 +77,12 @@ function ClassBarChart({ data }) {
   return (
     <div style={{
       background: 'var(--bg-card, #fff)',
-      borderRadius: 'var(--radius-lg, 18px)',
+      borderRadius: 'var(--radius-lg, 8px)',
       padding: '1.25rem 1.5rem',
       boxShadow: 'none',
-      border: '1px solid var(--border-light, #f0f0f0)',
+      border: '1px solid var(--border-light, #E5E7EB)',
     }}>
-      <h4 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary, #1a1a2e)' }}>Attendance by Class</h4>
+      <h4 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>Attendance by Class</h4>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data} layout="vertical" margin={{ left: 20, right: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
@@ -106,17 +107,17 @@ function WeeklyLineChart({ data }) {
     classMap[key].push(d);
   });
   const classNames = Object.keys(classMap);
-  const colors = [BRAND, SUCCESS, WARNING, '#8B5CF6', '#EC4899', '#06B6D4'];
+  const colors = [BRAND, SUCCESS, WARNING, '#F87171', '#EC4899', '#06B6D4'];
 
   return (
     <div style={{
       background: 'var(--bg-card, #fff)',
-      borderRadius: 'var(--radius-lg, 18px)',
+      borderRadius: 'var(--radius-lg, 8px)',
       padding: '1.25rem 1.5rem',
       boxShadow: 'none',
-      border: '1px solid var(--border-light, #f0f0f0)',
+      border: '1px solid var(--border-light, #E5E7EB)',
     }}>
-      <h4 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary, #1a1a2e)' }}>Weekly Attendance Trend</h4>
+      <h4 style={{ margin: '0 0 1rem', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>Weekly Attendance Trend</h4>
       <ResponsiveContainer width="100%" height={320}>
         <LineChart data={data} margin={{ left: 10, right: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" />
@@ -226,10 +227,10 @@ export default function ReportsPage() {
 
   return (
     <div style={{ padding: '0', maxWidth: '1200px' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1a1a2e', marginBottom: '0.25rem' }}>Reports</div>
-        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Attendance summary across courses and classes.</div>
-      </div>
+      <PageHeader
+        title="Reports"
+        description="Attendance summary across courses and classes."
+      />
 
       {/* Filters + Export */}
       <div style={{
@@ -239,13 +240,13 @@ export default function ReportsPage() {
         flexWrap: 'wrap',
         gap: '1rem',
         background: 'var(--bg-card, #fff)',
-        borderRadius: 'var(--radius-lg, 18px)',
+        borderRadius: 'var(--radius-lg, 8px)',
         padding: '1rem 1.25rem',
         boxShadow: 'none',
-        border: '1px solid var(--border-light, #f0f0f0)',
+        border: '1px solid var(--border-light, #E5E7EB)',
         marginBottom: '1.25rem',
       }}>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', flex: 1 }}>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', flex: 1, alignItems: 'flex-end' }}>
           <div className="form-group" style={{ marginBottom: 0, minWidth: 180, flex: 1 }}>
             <label>Course</label>
             <Select value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)}>
@@ -264,41 +265,43 @@ export default function ReportsPage() {
               ))}
             </Select>
           </div>
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              height: '42px',
+              padding: '0 1.25rem',
+              background: '#fff',
+              color: BRAND,
+              border: `1px solid ${BRAND}`,
+              borderRadius: 'var(--radius-full, 6px)',
+              fontWeight: 600,
+              fontSize: '0.8125rem',
+              cursor: exporting ? 'not-allowed' : 'pointer',
+              opacity: exporting ? 0.7 : 1,
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            <Download weight="duotone" size={16} />
+            {exporting ? <><Spinner size={14} /> Exporting...</> : 'Export CSV'}
+          </button>
         </div>
-        <button
-          onClick={handleExport}
-          disabled={exporting}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.5rem 1.25rem',
-            background: '#fff',
-            color: BRAND,
-            border: `1px solid ${BRAND}`,
-            borderRadius: 'var(--radius-full, 9999px)',
-            fontWeight: 600,
-            fontSize: '0.8125rem',
-            cursor: exporting ? 'not-allowed' : 'pointer',
-            opacity: exporting ? 0.7 : 1,
-            transition: 'all 0.15s ease',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <Download weight="duotone" size={16} />
-          {exporting ? <><Spinner size={14} /> Exporting...</> : 'Export CSV'}
-        </button>
       </div>
 
       {loading ? (
         <div style={{
           background: 'var(--bg-card, #fff)',
-          borderRadius: 'var(--radius-lg, 18px)',
+          borderRadius: 'var(--radius-lg, 8px)',
           padding: '3rem',
           textAlign: 'center',
           color: 'var(--text-secondary, #6b7280)',
           boxShadow: 'none',
-          border: '1px solid var(--border-light, #f0f0f0)',
+          border: '1px solid var(--border-light, #E5E7EB)',
         }}>
           Loading report data...
         </div>
@@ -352,26 +355,26 @@ export default function ReportsPage() {
           {/* Per-Class Table */}
           <div style={{
             background: 'var(--bg-card, #fff)',
-            borderRadius: 'var(--radius-lg, 18px)',
+            borderRadius: 'var(--radius-lg, 8px)',
             boxShadow: 'none',
-            border: '1px solid var(--border-light, #f0f0f0)',
+            border: '1px solid var(--border-light, #E5E7EB)',
             overflow: 'hidden',
           }}>
             <div style={{
               padding: '1rem 1.5rem',
-              borderBottom: '1px solid var(--border-light, #f0f0f0)',
+              borderBottom: '1px solid var(--border-light, #E5E7EB)',
             }}>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary, #1a1a2e)' }}>Per-Class Breakdown</h3>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>Per-Class Breakdown</h3>
             </div>
             <div style={{ padding: '0', overflowX: 'auto' }}>
               <table className="matrix-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
-                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #fafafa)', borderBottom: '1px solid var(--border-light, #f0f0f0)' }}>Class</th>
-                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #fafafa)', borderBottom: '1px solid var(--border-light, #f0f0f0)' }}>Students</th>
-                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #fafafa)', borderBottom: '1px solid var(--border-light, #f0f0f0)' }}>Sessions</th>
-                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #fafafa)', borderBottom: '1px solid var(--border-light, #f0f0f0)' }}>Check-ins</th>
-                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #fafafa)', borderBottom: '1px solid var(--border-light, #f0f0f0)' }}>Avg Attendance</th>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #F5F5F5)', borderBottom: '1px solid var(--border-light, #E5E7EB)' }}>Class</th>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #F5F5F5)', borderBottom: '1px solid var(--border-light, #E5E7EB)' }}>Students</th>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #F5F5F5)', borderBottom: '1px solid var(--border-light, #E5E7EB)' }}>Sessions</th>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #F5F5F5)', borderBottom: '1px solid var(--border-light, #E5E7EB)' }}>Check-ins</th>
+                    <th style={{ padding: '0.75rem 1.5rem', textAlign: 'left', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--bg-global, #F5F5F5)', borderBottom: '1px solid var(--border-light, #E5E7EB)' }}>Avg Attendance</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -389,17 +392,17 @@ export default function ReportsPage() {
                     const startIdx = (classPage - 1) * PAGE_SIZE;
                     const pageClasses = classes.slice(startIdx, startIdx + PAGE_SIZE);
                     return pageClasses.map((c) => (
-                    <tr key={c.class_id} style={{ borderBottom: '1px solid var(--border-light, #f0f0f0)' }}>
-                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-primary, #1a1a2e)', fontWeight: 600 }}>{c.class_name}</td>
-                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary, #374151)' }}>{c.total_students}</td>
-                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary, #374151)' }}>{c.total_sessions}</td>
-                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary, #374151)' }}>{c.total_checkins}</td>
+                    <tr key={c.class_id} style={{ borderBottom: '1px solid var(--border-light, #E5E7EB)' }}>
+                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-primary, #1A1A1A)', fontWeight: 600 }}>{c.class_name}</td>
+                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary, #6B7280)' }}>{c.total_students}</td>
+                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary, #6B7280)' }}>{c.total_sessions}</td>
+                      <td style={{ padding: '0.75rem 1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary, #6B7280)' }}>{c.total_checkins}</td>
                       <td style={{ padding: '0.75rem 1.5rem' }}>
                         <span className={`badge ${c.avg_attendance_pct >= 70 ? 'badge-success' : c.avg_attendance_pct >= 50 ? 'badge-warning' : ''}`}
                           style={{
                             ...(c.avg_attendance_pct < 50 ? { background: 'var(--error-bg)', color: 'var(--error)' } : {}),
                             padding: '0.25rem 0.75rem',
-                            borderRadius: 'var(--radius-full, 9999px)',
+                            borderRadius: 'var(--radius-full, 6px)',
                             fontSize: '0.6875rem',
                             fontWeight: 700,
                           }}>

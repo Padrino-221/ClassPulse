@@ -61,7 +61,7 @@ async function createSession(week) {
       course_code: TEST_COURSE,
       class_ids: [TEST_CLASS_ID],
       week_number: week,
-      building_id: 1,
+      lecture_hall_id: 1,
       duration_minutes: 30,
     });
   return res.body.sessions[0];

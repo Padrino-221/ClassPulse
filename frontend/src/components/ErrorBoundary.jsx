@@ -28,7 +28,7 @@ export default class ErrorBoundary extends React.Component {
           fontFamily: "'Plus Jakarta Sans', sans-serif",
         }}>
           <div style={{
-            background: '#0730A3',
+            background: '#DC2626',
             width: 56,
             height: 56,
             borderRadius: 16,
@@ -48,7 +48,7 @@ export default class ErrorBoundary extends React.Component {
           <button
             onClick={() => window.location.reload()}
             style={{
-              background: '#0730A3',
+              background: '#DC2626',
               color: '#FFF',
               border: 'none',
               borderRadius: 10,

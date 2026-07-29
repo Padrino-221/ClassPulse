@@ -1,9 +1,9 @@
 /**
  * In-memory active session cache.
  * Stores active session data for fast cache-first validation
- * (building geofence + PIN) without hitting PostgreSQL on every student submission.
+ * (lecture hall geofence + PIN) without hitting PostgreSQL on every student submission.
  */
-const { getCurrentPin } = require('./pin');
+const { getCurrentPin, staticPinFromSeed } = require('./pin');
 
 const MAX_MATRIX_CACHE_SIZE = 500;
 
@@ -12,53 +12,65 @@ class SessionCache {
     this.sessions = new Map();
     this.byCourse = new Map();
     this.matrixCache = new Map();
-    this.buildings = new Map();
+    this.lectureHalls = new Map();
+    this.activeSemester = null;
   }
 
-  // ---- Building Cache ----
+  // ---- Lecture Hall Cache ----
 
-  setBuilding(building) {
-    this.buildings.set(building.id, {
-      id: building.id,
-      name: building.name,
-      latitude: parseFloat(building.latitude),
-      longitude: parseFloat(building.longitude),
-      radius: building.radius || 400,
+  setLectureHall(lectureHall) {
+    this.lectureHalls.set(lectureHall.id, {
+      id: lectureHall.id,
+      name: lectureHall.name,
+      latitude: parseFloat(lectureHall.latitude),
+      longitude: parseFloat(lectureHall.longitude),
+      radius: lectureHall.radius || 400,
     });
   }
 
-  getBuilding(buildingId) {
-    return this.buildings.get(buildingId) || null;
+  getLectureHall(lectureHallId) {
+    return this.lectureHalls.get(lectureHallId) || null;
   }
 
-  async loadBuildings(pool) {
-    const res = await pool.query('SELECT id, name, latitude, longitude, radius FROM buildings');
-    this.buildings.clear();
+  async loadLectureHalls(pool) {
+    const res = await pool.query('SELECT id, name, latitude, longitude, radius FROM lecture_halls');
+    this.lectureHalls.clear();
     for (const row of res.rows) {
-      this.setBuilding(row);
+      this.setLectureHall(row);
     }
-    console.log(`SessionCache: loaded ${res.rows.length} buildings`);
+    console.log(`SessionCache: loaded ${res.rows.length} lecture halls`);
+  }
+
+  async loadActiveSemester(pool) {
+    const res = await pool.query(
+      `SELECT s.*, ay.label AS year_label, ay.start_year, ay.end_year
+       FROM semesters s
+       JOIN academic_years ay ON ay.id = s.academic_year_id
+       WHERE s.is_active = true
+       LIMIT 1`
+    );
+    this.activeSemester = res.rows[0] || null;
+    console.log(`SessionCache: active semester ${this.activeSemester ? this.activeSemester.label : 'none'}`);
   }
 
   // ---- Active Session Cache ----
 
   set(session) {
-    const building = session.building_id ? this.buildings.get(session.building_id) : null;
+    const lectureHall = session.lecture_hall_id ? this.lectureHalls.get(session.lecture_hall_id) : null;
     const entry = {
       session_id: session.session_id,
       pin_seed: session.pin_seed,
       static_pin: session.static_pin || null,
       pin_spinning: session.pin_spinning !== false,
-      latitude: parseFloat(session.latitude),
-      longitude: parseFloat(session.longitude),
-      radius_meters: session.radius_meters || 400,
-      building_id: session.building_id || null,
-      building_name: building ? building.name : null,
-      building_latitude: building ? building.latitude : null,
-      building_longitude: building ? building.longitude : null,
-      building_radius: building ? building.radius : null,
+      lecture_hall_id: session.lecture_hall_id || null,
+      lecture_hall_name: lectureHall ? lectureHall.name : null,
+      lecture_hall_latitude: lectureHall ? lectureHall.latitude : null,
+      lecture_hall_longitude: lectureHall ? lectureHall.longitude : null,
+      lecture_hall_radius: lectureHall ? lectureHall.radius : null,
       course_code: session.course_code,
+      course_name: session.course_name || null,
       class_id: session.class_id,
+      class_name: session.class_name || null,
       week_number: session.week_number,
       is_active: session.is_active !== false,
       expires_at: session.expires_at ? new Date(session.expires_at).getTime() : null,
@@ -119,19 +131,22 @@ class SessionCache {
   }
 
   async reloadFromDb(pool) {
-    await this.loadBuildings(pool);
+    await this.loadLectureHalls(pool);
+    await this.loadActiveSemester(pool);
 
     const res = await pool.query(
-      `SELECT session_id, pin_seed, pin_spinning, latitude, longitude, radius_meters,
-              building_id, course_code, class_id, week_number, is_active, expires_at
-       FROM active_sessions
-       WHERE is_active = TRUE AND expires_at > NOW()`
+      `SELECT s.session_id, s.pin_seed, s.pin_spinning,
+              s.lecture_hall_id, s.course_code, c.course_name, s.class_id, cl.class_name, s.week_number, s.is_active, s.expires_at
+       FROM active_sessions s
+       LEFT JOIN classes cl ON cl.class_id = s.class_id
+       LEFT JOIN courses c ON c.course_code = s.course_code
+       WHERE s.is_active = TRUE AND s.expires_at > NOW()`
     );
     this.sessions.clear();
     this.byCourse.clear();
     for (const row of res.rows) {
       if (row.pin_spinning === false) {
-        row.static_pin = getCurrentPin(row.pin_seed);
+        row.static_pin = staticPinFromSeed(row.pin_seed);
       }
       this.set(row);
     }
@@ -156,6 +171,10 @@ class SessionCache {
   invalidateMatricesForCourse(courseCode, classId) {
     const key = `${courseCode}:${classId}`;
     this.matrixCache.delete(key);
+  }
+
+  deactivate(sessionId) {
+    this.sessions.delete(sessionId);
   }
 
 }

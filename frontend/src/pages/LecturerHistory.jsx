@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../utils/api';
 import { useSearch } from '../context/SearchContext';
 import DashboardLayout from '../components/DashboardLayout';
+import PageHeader from '../components/PageHeader';
 import AttendanceMatrix from '../components/AttendanceMatrix';
 import SummaryCards from '../components/SummaryCards';
 import Select from '../components/Select';
@@ -20,18 +21,31 @@ export default function LecturerHistory() {
 
   const loadFilters = useCallback(async () => {
     try {
-      const [coursesRes, classesRes] = await Promise.all([
-        api.get('/api/lecturer/courses'),
-        api.get('/api/lecturer/classes'),
-      ]);
+      const coursesRes = await api.get('/api/lecturer/courses');
       setCourses(coursesRes.data.courses);
-      setClasses(classesRes.data.classes);
     } catch {
       setError("Couldn't load filters.");
     }
   }, []);
 
   useEffect(() => { loadFilters(); }, [loadFilters]);
+
+  // Fetch filtered classes when course changes
+  useEffect(() => {
+    if (!filters.course_code) {
+      setClasses([]);
+      return;
+    }
+    const fetchClasses = async () => {
+      try {
+        const res = await api.get(`/api/lecturer/courses/${filters.course_code}/classes`);
+        setClasses(res.data);
+      } catch {
+        setClasses([]);
+      }
+    };
+    fetchClasses();
+  }, [filters.course_code]);
 
   useEffect(() => {
     if (!filters.course_code || !filters.class_id) return;
@@ -53,7 +67,13 @@ export default function LecturerHistory() {
   }, [filters.course_code, filters.class_id]);
 
   const handleFilterChange = (e) => {
-    setFilters((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFilters((prev) => {
+      if (name === 'course_code') {
+        return { course_code: value, class_id: '' };
+      }
+      return { ...prev, [name]: value };
+    });
   };
 
   const [exporting, setExporting] = useState(false);
@@ -125,6 +145,11 @@ export default function LecturerHistory() {
 
   return (
     <DashboardLayout>
+      <PageHeader
+        title="Lecturer History"
+        description="Review past class sessions and student attendance records."
+      />
+
       {/* Summary Cards */}
       <SummaryCards cards={summaryCards} />
 
@@ -133,11 +158,11 @@ export default function LecturerHistory() {
           background: 'var(--error-bg, #fef2f2)',
           color: 'var(--error, #dc2626)',
           padding: '0.75rem 1rem',
-          borderRadius: 'var(--radius-md, 14px)',
+          borderRadius: 'var(--radius-md, 8px)',
           fontSize: '0.8125rem',
           fontWeight: 500,
           marginBottom: '1rem',
-          border: '1px solid #fecaca',
+          border: '1px solid #FCA5A5',
         }}>
           {error}
         </div>
@@ -147,22 +172,22 @@ export default function LecturerHistory() {
         {/* Filter Card */}
         <div style={{
           background: 'var(--bg-card, #fff)',
-          borderRadius: 'var(--radius-lg, 18px)',
+          borderRadius: 'var(--radius-lg, 8px)',
           boxShadow: 'none',
-          border: '1px solid var(--border-light, #f0f0f0)',
+          border: '1px solid var(--border-light, #E5E7EB)',
           overflow: 'hidden',
           marginBottom: '1.25rem',
         }}>
           <div style={{
             padding: '1rem 1.5rem',
-            borderBottom: '1px solid var(--border-light, #f0f0f0)',
+            borderBottom: '1px solid var(--border-light, #E5E7EB)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: '0.75rem',
           }}>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary, #1a1a2e)' }}>History</h3>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>History</h3>
             <button
               onClick={handleExport}
               disabled={!filters.course_code || !filters.class_id || exporting}
@@ -174,7 +199,7 @@ export default function LecturerHistory() {
                 background: (!filters.course_code || !filters.class_id) ? '#e5e7eb' : BRAND,
                 color: '#fff',
                 border: 'none',
-                borderRadius: 'var(--radius-full, 9999px)',
+                borderRadius: 'var(--radius-full, 6px)',
                 fontWeight: 600,
                 fontSize: '0.8125rem',
                 cursor: (!filters.course_code || !filters.class_id || exporting) ? 'not-allowed' : 'pointer',
@@ -189,7 +214,7 @@ export default function LecturerHistory() {
           <div style={{ padding: '1.25rem 1.5rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#374151' }}>Course</label>
+                <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#6B7280' }}>Course</label>
                 <Select name="course_code" value={filters.course_code} onChange={handleFilterChange}>
                   <option value="">All Courses</option>
                   {courses.map((c) => (
@@ -200,7 +225,7 @@ export default function LecturerHistory() {
                 </Select>
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#374151' }}>Class / Cohort</label>
+                <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#6B7280' }}>Class / Cohort</label>
                 <Select name="class_id" value={filters.class_id} onChange={handleFilterChange}>
                   <option value="">All Classes</option>
                   {classes.map((c) => (
@@ -215,12 +240,12 @@ export default function LecturerHistory() {
         {loading && (
           <div style={{
             background: 'var(--bg-card, #fff)',
-            borderRadius: 'var(--radius-lg, 18px)',
+            borderRadius: 'var(--radius-lg, 8px)',
             padding: '3rem',
             textAlign: 'center',
             color: 'var(--text-secondary, #6b7280)',
             boxShadow: 'none',
-            border: '1px solid var(--border-light, #f0f0f0)',
+            border: '1px solid var(--border-light, #E5E7EB)',
           }}>
             Loading...
           </div>
@@ -229,9 +254,9 @@ export default function LecturerHistory() {
         {filteredHistoryData && !loading && (
           <div style={{
             background: 'var(--bg-card, #fff)',
-            borderRadius: 'var(--radius-lg, 18px)',
+            borderRadius: 'var(--radius-lg, 8px)',
             boxShadow: 'none',
-            border: '1px solid var(--border-light, #f0f0f0)',
+            border: '1px solid var(--border-light, #E5E7EB)',
             overflow: 'hidden',
           }}>
             <div style={{ padding: 0 }}>
@@ -243,9 +268,9 @@ export default function LecturerHistory() {
         {!filters.course_code && !loading && (
           <div style={{
             background: 'var(--bg-card, #fff)',
-            borderRadius: 'var(--radius-lg, 18px)',
+            borderRadius: 'var(--radius-lg, 8px)',
             boxShadow: 'none',
-            border: '1px solid var(--border-light, #f0f0f0)',
+            border: '1px solid var(--border-light, #E5E7EB)',
             overflow: 'hidden',
           }}>
             <EmptyState
@@ -260,4 +285,4 @@ export default function LecturerHistory() {
   );
 }
 
-const BRAND = '#0730A3';
+const BRAND = '#DC2626';

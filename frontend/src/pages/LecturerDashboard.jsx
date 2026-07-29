@@ -1,654 +1,308 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Pulse, CheckCircle, BookOpen, Users, CalendarBlank } from '@phosphor-icons/react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Pulse, BookOpen, Users, CheckCircle, CalendarBlank, ArrowRight, Clock, MapPin } from '@phosphor-icons/react';
 import api from '../utils/api';
-import { useSearch } from '../context/SearchContext';
 import DashboardLayout from '../components/DashboardLayout';
+import PageHeader from '../components/PageHeader';
 import SummaryCards from '../components/SummaryCards';
-import LiveTracker from '../components/LiveTracker';
-import ManualOverrideModal from '../components/ManualOverrideModal';
-import MultiSelect from '../components/MultiSelect';
-import Select from '../components/Select';
-import EmptyState from '../components/EmptyState';
-import Pagination from '../components/Pagination';
-import AlertModal from '../components/AlertModal';
-import Spinner from '../components/Spinner';
 
-const PAGE_SIZE = 15;
-
-function RollingPinDisplay({ sessionId, pinSpinning }) {
-  const [pin, setPin] = useState('');
-  const [expiresIn, setExpiresIn] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const intervalRef = useRef(null);
-  const tickRef = useRef(null);
-
-  const fetchPin = useCallback(async () => {
-    try {
-      const res = await api.get(`/api/lecturer/session/${sessionId}/pin`);
-      if (res.data.active) {
-        setPin(res.data.pin);
-        setExpiresIn(res.data.expiresIn);
-      } else {
-        setPin('--');
-        setExpiresIn(0);
-      }
-    } catch {
-      setPin('--');
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionId]);
-
-  useEffect(() => {
-    fetchPin();
-    intervalRef.current = setInterval(fetchPin, 5000);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [fetchPin]);
-
-  useEffect(() => {
-    if (!pinSpinning) return;
-    tickRef.current = setInterval(() => {
-      setExpiresIn((prev) => Math.max(0, prev - 1000));
-    }, 1000);
-    return () => {
-      if (tickRef.current) clearInterval(tickRef.current);
-    };
-  }, [pinSpinning]);
-
-  const barWidth = expiresIn > 0 ? ((expiresIn / 60000) * 100) : 0;
-  const secondsLeft = Math.ceil(expiresIn / 1000);
-
-  const pinLabel = loading
-    ? 'Session PIN'
-    : !pinSpinning
-      ? 'Session PIN (static)'
-      : 'Session PIN (rolling — refreshes every 60s)';
-
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '2rem 1.5rem',
-        background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%)',
-        borderRadius: '16px',
-        color: '#fff',
-      }}>
-        <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.85, marginBottom: '0.75rem' }}>
-          {pinLabel}
-        </span>
-        <span style={{ fontSize: '4.5rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.15em' }}>---</span>
-      </div>
-    );
-  }
-
-  if (!pinSpinning) {
-    return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '2rem 1.5rem',
-        background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%)',
-        borderRadius: '16px',
-        color: '#fff',
-      }}>
-        <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.85, marginBottom: '0.75rem' }}>
-          {pinLabel}
-        </span>
-        <span style={{ fontSize: '4.5rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.15em' }}>{pin}</span>
-      </div>
-    );
-  }
-
-  const barColor = secondsLeft <= 10 ? '#ef4444' : secondsLeft <= 20 ? '#f59e0b' : '#60a5fa';
-
-  return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      padding: '2rem 1.5rem',
-      background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%)',
-      borderRadius: '16px',
-      color: '#fff',
-    }}>
-      <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.85, marginBottom: '0.75rem' }}>
-        {pinLabel}
-      </span>
-      <span style={{ fontSize: '4.5rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.15em' }}>
-        {pin}
-      </span>
-      <div style={{ width: '100%', marginTop: '1.25rem' }}>
-        <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.25)', borderRadius: '4px', overflow: 'hidden' }}>
-          <div
-            style={{
-              width: `${barWidth}%`,
-              height: '100%',
-              background: barColor,
-              borderRadius: '4px',
-              transition: 'width 1s linear',
-            }}
-          />
-        </div>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          marginTop: '0.75rem',
-          padding: '0.375rem 0.75rem',
-          background: 'rgba(255,255,255,0.15)',
-          borderRadius: '8px',
-          width: 'fit-content',
-          marginLeft: 'auto',
-          marginRight: 'auto',
-        }}>
-          <span style={{ fontSize: '1rem', color: '#fff', fontWeight: 700 }}>
-            {secondsLeft}s left
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
+const RECENT_LIMIT = 5;
 
 export default function LecturerDashboard() {
-  const { searchQuery } = useSearch();
-  const [courses, setCourses] = useState([]);
-  const [classes, setClasses] = useState([]);
-  const [buildings, setBuildings] = useState([]);
-  const [activeSessions, setActiveSessions] = useState([]);
-  const [manualSessionId, setManualSessionId] = useState(null);
-  const [sessions, setSessions] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [sessionPage, setSessionPage] = useState(1);
-
-  const [form, setForm] = useState({
-    course_code: '',
-    class_ids: [],
-    week_number: '',
-    building_id: '',
-    pin_spinning: true,
-  });
-  const [activating, setActivating] = useState(false);
+  const navigate = useNavigate();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [alertMsg, setAlertMsg] = useState('');
 
-  const loadData = useCallback(async (page) => {
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError('');
     try {
-      const [coursesRes, classesRes, sessionsRes, buildingsRes] = await Promise.all([
+      const [coursesRes, classesRes, sessionsRes, scheduledRes] = await Promise.all([
         api.get('/api/lecturer/courses'),
         api.get('/api/lecturer/classes'),
-        api.get('/api/lecturer/sessions', { params: { limit: PAGE_SIZE, offset: ((page || 1) - 1) * PAGE_SIZE } }),
-        api.get('/api/lecturer/buildings'),
+        api.get('/api/lecturer/sessions', { params: { limit: 100, offset: 0 } }),
+        api.get('/api/lecturer/scheduled'),
       ]);
-      setCourses(coursesRes.data.courses);
-      setClasses(classesRes.data.classes);
-      setSessions(sessionsRes.data.sessions);
-      setTotal(sessionsRes.data.total || 0);
-      setBuildings(buildingsRes.data.buildings);
-
-      const active = sessionsRes.data.sessions?.filter((s) => s.is_active) || [];
-      setActiveSessions(active);
+      const courses = coursesRes.data.courses || [];
+      const classes = classesRes.data.classes || [];
+      const sessions = sessionsRes.data.sessions || [];
+      const scheduled = scheduledRes.data || [];
+      const active = sessions.filter((s) => s.is_active);
+      const todayTotal = sessions.reduce((sum, s) => sum + parseInt(s.attendance_count || 0), 0);
+      const recent = [...sessions].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, RECENT_LIMIT);
+      setData({
+        courses,
+        classes,
+        sessions,
+        scheduled,
+        active,
+        todayTotal,
+        recent,
+        totalCourses: courses.length,
+        totalClasses: classes.length,
+        totalSessions: sessions.length,
+      });
     } catch {
-      setError("Couldn't load.");
+      setError("Couldn't load dashboard data.");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadData(1);
+    loadData();
   }, [loadData]);
 
-  const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const activateSession = async () => {
-    if (!form.building_id) {
-      setError('Select a building.');
-      return;
-    }
-    if (form.class_ids.length === 0) {
-      setError('Select at least one class.');
-      return;
-    }
-    setActivating(true);
-    setError('');
-    try {
-      await api.post('/api/lecturer/activate', {
-        course_code: form.course_code,
-        class_ids: form.class_ids,
-        week_number: parseInt(form.week_number),
-        building_id: parseInt(form.building_id),
-        pin_spinning: form.pin_spinning,
-      });
-      setForm((prev) => ({ ...prev, class_ids: [] }));
-      loadData();
-    } catch (err) {
-      const msg = err.response?.data?.error || "Couldn't start session.";
-      if (err.response?.status === 409) {
-        setAlertMsg(msg);
-      } else {
-        setError(msg);
-      }
-    } finally {
-      setActivating(false);
-    }
-  };
-
-  const handleSessionPageChange = (p) => {
-    setSessionPage(p);
-    loadData(p);
-  };
-
-  const filteredSessions = useMemo(() => {
-    if (!searchQuery) return sessions;
-    const q = searchQuery.toLowerCase();
-    return sessions.filter((s) =>
-      [s.course_code, s.class_name, String(s.week_number), s.course_name]
-        .some((v) => v?.toLowerCase().includes(q))
-    );
-  }, [sessions, searchQuery]);
-
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-
-  const deactivateSession = async (sessionId) => {
-    try {
-      await api.post(`/api/lecturer/deactivate/${sessionId}`);
-      setActiveSessions((prev) => prev.filter((s) => s.session_id !== sessionId));
-      loadData();
-    } catch {
-      setError("Couldn't end session.");
-    }
-  };
-
-  const todayTotal = sessions.reduce((sum, s) => sum + parseInt(s.attendance_count || 0), 0);
-
-  const summaryCards = [
-    {
-      value: activeSessions.length,
-      label: 'Active Sessions',
-      change: null,
-      icon: <Pulse weight="duotone" size={24} />,
-    },
-    {
-      value: todayTotal,
-      label: "Today's Total",
-      change: sessions.length > 0 ? 12 : null,
-      icon: <CheckCircle weight="duotone" size={24} />,
-    },
-    {
-      value: courses.length,
-      label: 'Courses',
-      change: null,
-      icon: <BookOpen weight="duotone" size={24} />,
-    },
-    {
-      value: classes.length,
-      label: 'Classes',
-      change: null,
-      icon: <Users weight="duotone" size={24} />,
-    },
-  ];
-
-  const hasActive = activeSessions.length > 0;
+  const summaryCards = useMemo(() => {
+    if (!data) return [];
+    return [
+      {
+        value: data.active.length,
+        label: 'Active Sessions',
+        change: null,
+        icon: <Pulse weight="duotone" size={24} />,
+      },
+      {
+        value: data.todayTotal,
+        label: "Today's Attendance",
+        change: null,
+        icon: <CheckCircle weight="duotone" size={24} />,
+      },
+      {
+        value: data.totalCourses,
+        label: 'Courses',
+        change: null,
+        icon: <BookOpen weight="duotone" size={24} />,
+      },
+      {
+        value: data.totalClasses,
+        label: 'Classes',
+        change: null,
+        icon: <Users weight="duotone" size={24} />,
+      },
+    ];
+  }, [data]);
 
   const cardStyle = {
     background: 'var(--bg-card, #fff)',
-    borderRadius: 'var(--radius-lg, 18px)',
-    boxShadow: 'none',
+    borderRadius: 'var(--radius-lg, 8px)',
     border: '1px solid var(--border-light, #e5e7eb)',
     overflow: 'hidden',
   };
 
   const cardHeaderStyle = {
-    padding: '1.125rem 1.5rem',
-    borderBottom: '1px solid var(--border-light, #f3f4f6)',
+    padding: '1rem 1.5rem',
+    borderBottom: '1px solid var(--border-light, #F5F5F5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   };
 
   const cardBodyStyle = {
     padding: '1.5rem',
   };
 
-  const labelStyle = {
-    display: 'block',
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    color: 'var(--text-secondary, #374151)',
-    marginBottom: '0.5rem',
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em',
-  };
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <PageHeader title="Dashboard" description="Overview of your teaching activity." />
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px', color: 'var(--text-muted)' }}>Loading...</div>
+      </DashboardLayout>
+    );
+  }
 
-  const inputStyle = {
-    width: '100%',
-    padding: '0.625rem 0.875rem',
-    border: '1px solid var(--border, #d1d5db)',
-    borderRadius: 'var(--radius-md, 14px)',
-    fontSize: '0.875rem',
-    color: 'var(--text-primary, #111827)',
-    background: 'var(--bg-input, #fff)',
-    outline: 'none',
-    transition: 'border-color 0.15s',
-    height: '42px',
-  };
+  const firstActive = data?.active?.[0];
 
   return (
     <DashboardLayout>
       {error && (
         <div style={{
-          background: '#fef2f2',
-          color: '#991b1b',
-          border: '1px solid #fecaca',
-          borderRadius: '10px',
-          padding: '0.85rem 1.25rem',
-          marginBottom: '1.25rem',
-          fontSize: '0.9rem',
-          fontWeight: 500,
+          background: 'var(--brand-light)', color: 'var(--brand-dark)', border: '1px solid var(--brand)',
+          borderRadius: '6px', padding: '0.85rem 1.25rem', marginBottom: '1.25rem',
+          fontSize: '0.9rem', fontWeight: 500,
         }}>
           {error}
         </div>
       )}
 
-      {!hasActive ? (
-        <>
-          <SummaryCards cards={summaryCards} />
-          <div style={{ ...cardStyle, marginTop: '1.25rem' }}>
-            <div style={cardHeaderStyle}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#111827' }}>New Session</h3>
-            </div>
-            <div style={cardBodyStyle}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem', maxWidth: '600px' }}>
-                <div>
-                  <label style={labelStyle}>Course</label>
-                  <Select name="course_code" value={form.course_code} onChange={handleChange}>
-                    <option value="">Select Course</option>
-                    {courses.map((c) => (
-                      <option key={c.course_code} value={c.course_code}>
-                        {c.course_code} - {c.course_name}
-                      </option>
-                    ))}
-                  </Select>
+      <PageHeader title="Dashboard" description="Overview of your teaching activity." />
+
+      <SummaryCards cards={summaryCards} />
+
+      {/* Active Session Banner */}
+      {firstActive && (
+        <div style={{ ...cardStyle, marginTop: '1.25rem' }}>
+          <div style={cardHeaderStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+              <div style={{
+                width: '32px', height: '32px', borderRadius: '6px',
+                background: 'var(--brand-light)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Pulse weight="duotone" size={18} color="var(--brand)" />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                  Active Session — {firstActive.course_code} &middot; {firstActive.class_name}
                 </div>
-                <div>
-                  <MultiSelect
-                    label="Classes"
-                    options={classes.map((c) => ({ value: c.class_id, label: c.class_name }))}
-                    value={form.class_ids}
-                    onChange={(val) => setForm((prev) => ({ ...prev, class_ids: val }))}
-                  />
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.125rem' }}>
+                  Week {firstActive.week_number} &middot; Ends {new Date(firstActive.expires_at).toLocaleTimeString()}
                 </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <div style={{ flex: '0 0 120px' }}>
-                    <label style={labelStyle}>Week</label>
-                    <input
-                      type="number"
-                      name="week_number"
-                      min="1"
-                      max="52"
-                      value={form.week_number}
-                      onChange={handleChange}
-                      placeholder="e.g. 1"
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={labelStyle}>Building</label>
-                    <Select name="building_id" value={form.building_id} onChange={handleChange}>
-                      <option value="">Select Building</option>
-                      {buildings.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', marginTop: '0.25rem' }}>
-                  <input
-                    type="checkbox"
-                    checked={form.pin_spinning}
-                    onChange={(e) => setForm((prev) => ({ ...prev, pin_spinning: e.target.checked }))}
-                    style={{ width: '18px', height: '18px', accentColor: '#667eea' }}
-                  />
-                  <span style={{ fontSize: '0.9rem', color: '#374151', fontWeight: 500 }}>Rolling PIN</span>
-                </label>
-                <button
-                  onClick={activateSession}
-                  disabled={activating || !form.course_code || form.class_ids.length === 0 || !form.week_number || !form.building_id}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    padding: '0.625rem 1.5rem',
-                    background: activating || !form.course_code || form.class_ids.length === 0 || !form.week_number || !form.building_id ? '#93c5fd' : '#3b82f6',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 'var(--radius-full, 9999px)',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                    cursor: activating || !form.course_code || form.class_ids.length === 0 || !form.week_number || !form.building_id ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.15s',
-                    marginTop: '0.5rem',
-                    alignSelf: 'flex-start',
-                  }}
-                >
-                  {activating ? <><Spinner size={14} /> Starting...</> : 'Start Session'}
-                </button>
               </div>
             </div>
+            <button
+              onClick={() => navigate('/lecturer/live-session')}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+                padding: '0.5rem 1rem', background: 'var(--brand)', color: 'var(--text-inverse)',
+                border: 'none', borderRadius: '6px', fontSize: '0.8125rem', fontWeight: 600,
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}
+            >
+              Go to Live Session <ArrowRight size={14} />
+            </button>
           </div>
-        </>
-      ) : (
-        <>
-          <SummaryCards cards={summaryCards} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1.25rem' }}>
-            {activeSessions.map((s) => (
-              <div key={s.session_id} style={cardStyle}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '1rem 1.5rem',
-                  borderBottom: '1px solid var(--border-light, #f3f4f6)',
-                  flexWrap: 'wrap',
-                  gap: '0.75rem',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary, #111827)' }}>
-                      {s.course_code} &middot; {s.class_name}
-                    </span>
-                    <span style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      padding: '0.25rem 0.75rem',
-                      background: 'var(--brand-light, #eff6ff)',
-                      color: 'var(--brand, #3b82f6)',
-                      borderRadius: 'var(--radius-full, 9999px)',
-                      fontSize: '0.6875rem',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.03em',
-                    }}>
-                      Week {s.week_number}
-                    </span>
-                    <span style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      padding: '0.25rem 0.75rem',
-                      background: 'var(--bg-hover, #f3f4f6)',
-                      color: 'var(--text-secondary, #6b7280)',
-                      borderRadius: 'var(--radius-full, 9999px)',
-                      fontSize: '0.6875rem',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.03em',
-                    }}>
-                      Ends {new Date(s.expires_at).toLocaleTimeString()}
-                    </span>
-                    {s.pin_spinning === false && (
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '0.25rem 0.75rem',
-                        background: 'var(--warning-bg, #fef3c7)',
-                        color: 'var(--warning, #92400e)',
-                        borderRadius: 'var(--radius-full, 9999px)',
-                        fontSize: '0.6875rem',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.03em',
-                      }}>
-                        Static PIN
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
-                      onClick={() => setManualSessionId(s.session_id)}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        background: 'var(--bg-hover, #f3f4f6)',
-                        color: 'var(--text-primary, #374151)',
-                        border: '1px solid var(--border, #d1d5db)',
-                        borderRadius: 'var(--radius-full, 9999px)',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      Manual
-                    </button>
-                    <button
-                      onClick={() => deactivateSession(s.session_id)}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        background: 'var(--error, #ef4444)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: 'var(--radius-full, 9999px)',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      End
-                    </button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ padding: '1.5rem' }}>
-                    <RollingPinDisplay sessionId={s.session_id} pinSpinning={s.pin_spinning !== false} />
-                  </div>
-                  <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
-                    <LiveTracker sessionId={s.session_id} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
+        </div>
       )}
 
-      <div style={{ ...cardStyle, marginTop: '1.25rem' }}>
-        <div style={cardHeaderStyle}>
-          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#111827' }}>Past Sessions</h3>
-        </div>
-        <div style={cardBodyStyle}>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table-bordered" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-              <thead>
-                <tr>
-                  {['Course', 'Class', 'Week', 'Status', 'Marked', 'Date'].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        textAlign: 'left',
-                        padding: '0.75rem 1rem',
-                        borderBottom: '2px solid #e5e7eb',
-                        borderRight: '1px solid #e5e7eb',
-                        color: '#6b7280',
-                        fontWeight: 600,
-                        fontSize: '0.75rem',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSessions.length === 0 && (
-                  <tr>
-                    <td colSpan={6}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3rem 1rem', color: '#9ca3af' }}>
-                        <CalendarBlank weight="duotone" size={40} style={{ marginBottom: '0.75rem', opacity: 0.5 }} />
-                        <div style={{ fontWeight: 600, color: '#6b7280', marginBottom: '0.25rem' }}>No sessions yet</div>
-                        <div style={{ fontSize: '0.85rem' }}>Your past sessions will appear here.</div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-                {filteredSessions.map((s, idx) => (
-                  <tr
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginTop: '1.25rem' }}>
+        {/* Recent Sessions */}
+        <div style={cardStyle}>
+          <div style={cardHeaderStyle}>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>Recent Sessions</h3>
+            <button
+              onClick={() => navigate('/lecturer/live-session')}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                border: 'none', background: 'none', color: 'var(--brand)', fontSize: '0.75rem',
+                fontWeight: 600, cursor: 'pointer', padding: 0,
+              }}
+            >
+              View All <ArrowRight size={12} />
+            </button>
+          </div>
+          <div style={cardBodyStyle}>
+            {data?.recent.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                No sessions yet.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {data?.recent.map((s) => (
+                  <div
                     key={s.session_id}
                     style={{
-                      background: idx % 2 === 0 ? '#fff' : '#fafbfc',
-                      transition: 'background 0.1s',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '0.625rem 0', borderBottom: '1px solid #F5F5F5',
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#f0f4ff'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = idx % 2 === 0 ? '#fff' : '#fafbfc'}
                   >
-                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb', color: '#111827', fontWeight: 500 }}>{s.course_code}</td>
-                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb', color: '#374151' }}>{s.class_name}</td>
-                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb', color: '#374151' }}>Week {s.week_number}</td>
-                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb' }}>
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '0.2rem 0.6rem',
-                        borderRadius: '20px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        background: s.is_active ? '#dcfce7' : '#f3f4f6',
-                        color: s.is_active ? '#166534' : '#6b7280',
-                      }}>
-                        {s.is_active ? 'Active' : 'Closed'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb', color: '#374151' }}>{s.attendance_count}</td>
-                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e5e7eb', color: '#6b7280' }}>{new Date(s.created_at).toLocaleDateString()}</td>
-                  </tr>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                      <Clock size={16} color="#9CA3AF" weight="duotone" />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
+                          {s.course_code} &middot; {s.class_name}
+                        </div>
+                        <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                          Week {s.week_number} &middot; {new Date(s.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                    <span style={{
+                      padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.6875rem',
+                      fontWeight: 600, background: s.is_active ? 'var(--success-bg)' : 'var(--bg-hover)',
+                      color: s.is_active ? 'var(--success)' : 'var(--text-secondary)',
+                    }}>
+                      {s.is_active ? 'Active' : 'Closed'}
+                    </span>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            )}
           </div>
-          <div style={{ marginTop: '1rem' }}>
-            <Pagination page={sessionPage} totalPages={totalPages} onPageChange={handleSessionPageChange} />
+        </div>
+
+        {/* Upcoming Scheduled */}
+        <div style={cardStyle}>
+          <div style={cardHeaderStyle}>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>Upcoming Scheduled</h3>
+            <button
+              onClick={() => navigate('/lecturer/live-session')}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                border: 'none', background: 'none', color: 'var(--brand)', fontSize: '0.75rem',
+                fontWeight: 600, cursor: 'pointer', padding: 0,
+              }}
+            >
+              Manage <ArrowRight size={12} />
+            </button>
+          </div>
+          <div style={cardBodyStyle}>
+            {data?.scheduled.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                No upcoming scheduled sessions.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {data?.scheduled.map((s) => (
+                  <div
+                    key={s.session_id}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '0.625rem 0', borderBottom: '1px solid #F5F5F5',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                      <CalendarBlank size={16} color="#9CA3AF" weight="duotone" />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
+                          {s.course_code} &middot; {s.class_name}
+                        </div>
+                        <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                          Week {s.week_number} &middot; {s.lecture_hall_name}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                      {new Date(s.scheduled_at).toLocaleDateString()} at {new Date(s.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {manualSessionId && (
-        <ManualOverrideModal
-          sessionId={manualSessionId}
-          onClose={() => setManualSessionId(null)}
-          onSuccess={() => { setManualSessionId(null); loadData(); }}
-        />
-      )}
-
-      {alertMsg && (
-        <AlertModal type="warning" message={alertMsg} onClose={() => setAlertMsg('')} />
-      )}
+      {/* Quick Actions */}
+      <div style={{ ...cardStyle, marginTop: '1.25rem' }}>
+        <div style={cardHeaderStyle}>
+          <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>Quick Actions</h3>
+        </div>
+        <div style={{ padding: '1.25rem 1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => navigate('/lecturer/live-session')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+              padding: '0.625rem 1.25rem', background: 'var(--brand)', color: 'var(--text-inverse)',
+              border: 'none', borderRadius: '6px', fontSize: '0.8125rem', fontWeight: 600,
+              cursor: 'pointer', transition: 'all 0.15s',
+            }}
+          >
+            <Pulse size={16} weight="duotone" /> Start New Session
+          </button>
+          <button
+            onClick={() => navigate('/lecturer/history')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+              padding: '0.625rem 1.25rem', background: 'var(--bg-hover)', color: 'var(--text-primary)',
+              border: '1px solid var(--border, #E5E7EB)', borderRadius: '6px', fontSize: '0.8125rem', fontWeight: 600,
+              cursor: 'pointer', transition: 'all 0.15s',
+            }}
+          >
+            <Clock size={16} weight="duotone" /> View History
+          </button>
+        </div>
+      </div>
     </DashboardLayout>
   );
 }

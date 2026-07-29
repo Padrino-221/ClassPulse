@@ -1,5 +1,5 @@
 /**
- * Haversine distance calculation for building geofencing.
+ * Haversine distance calculation for lecture hall geofencing.
  * Uses plain distance — no accuracy buffer.
  * Accuracy gating is handled on the frontend before submission.
  */

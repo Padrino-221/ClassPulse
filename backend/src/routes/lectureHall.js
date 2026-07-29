@@ -1,31 +1,38 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { pool } = require('../config/db');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, verifyScope } = require('../middleware/auth');
 const sessionCache = require('../services/sessionCache');
 
 const router = express.Router();
 router.use(verifyToken('admin'));
+router.use(verifyScope());
 
-// List all buildings
+// List all lecture halls (filtered by university scope)
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM buildings ORDER BY name');
-    res.json({ buildings: result.rows });
+    const { university_id } = req.scope;
+    let result;
+    if (university_id) {
+      result = await pool.query('SELECT * FROM lecture_halls WHERE university_id = $1 ORDER BY name', [university_id]);
+    } else {
+      result = await pool.query('SELECT * FROM lecture_halls ORDER BY name');
+    }
+    res.json({ lecture_halls: result.rows });
   } catch (err) {
-    console.error('List buildings error:', err);
+    console.error('List lecture halls error:', err);
     res.status(500).json({ error: 'Something went wrong.' });
   }
 });
 
-// Create building
+// Create lecture hall
 router.post(
   '/',
   [
     body('name').isString().trim().notEmpty(),
     body('latitude').isFloat({ min: -90, max: 90 }),
     body('longitude').isFloat({ min: -180, max: 180 }),
-    body('radius').isInt({ min: 100, max: 5000 }),
+    body('radius').isInt({ min: 10, max: 5000 }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -34,30 +41,31 @@ router.post(
     }
 
     const { name, latitude, longitude, radius } = req.body;
+    const { university_id } = req.scope;
 
     try {
       const result = await pool.query(
-        'INSERT INTO buildings (name, latitude, longitude, radius) VALUES ($1, $2, $3, $4) RETURNING *',
-        [name, latitude, longitude, radius]
+        'INSERT INTO lecture_halls (name, latitude, longitude, radius, university_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [name, latitude, longitude, radius, university_id || null]
       );
 
-      sessionCache.setBuilding(result.rows[0]);
-      res.status(201).json({ building: result.rows[0] });
+      sessionCache.setLectureHall(result.rows[0]);
+      res.status(201).json({ lecture_hall: result.rows[0] });
     } catch (err) {
-      console.error('Create building error:', err);
+      console.error('Create lecture hall error:', err);
       res.status(500).json({ error: 'Something went wrong.' });
     }
   }
 );
 
-// Update building
+// Update lecture hall
 router.put(
   '/:id',
   [
     body('name').optional().isString().trim().notEmpty(),
     body('latitude').optional().isFloat({ min: -90, max: 90 }),
     body('longitude').optional().isFloat({ min: -180, max: 180 }),
-    body('radius').optional().isInt({ min: 100, max: 5000 }),
+    body('radius').optional().isInt({ min: 10, max: 5000 }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -89,36 +97,36 @@ router.put(
 
     try {
       const result = await pool.query(
-        `UPDATE buildings SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+        `UPDATE lecture_halls SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
         values
       );
 
       if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Building not found.' });
+        return res.status(404).json({ error: 'Lecture Hall not found.' });
       }
 
-      sessionCache.setBuilding(result.rows[0]);
-      res.json({ building: result.rows[0] });
+      sessionCache.setLectureHall(result.rows[0]);
+      res.json({ lecture_hall: result.rows[0] });
     } catch (err) {
-      console.error('Update building error:', err);
+      console.error('Update lecture hall error:', err);
       res.status(500).json({ error: 'Something went wrong.' });
     }
   }
 );
 
-// Delete building
+// Delete lecture hall
 router.delete('/:id', async (req, res) => {
   try {
-    const result = await pool.query('DELETE FROM buildings WHERE id = $1 RETURNING id', [req.params.id]);
+    const result = await pool.query('DELETE FROM lecture_halls WHERE id = $1 RETURNING id', [req.params.id]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Building not found.' });
+      return res.status(404).json({ error: 'Lecture Hall not found.' });
     }
 
-    sessionCache.buildings.delete(parseInt(req.params.id));
-    res.json({ message: 'Building deleted.' });
+    sessionCache.lectureHalls.delete(parseInt(req.params.id));
+    res.json({ message: 'Lecture Hall deleted.' });
   } catch (err) {
-    console.error('Delete building error:', err);
+    console.error('Delete lecture hall error:', err);
     res.status(500).json({ error: 'Something went wrong.' });
   }
 });

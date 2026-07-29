@@ -115,7 +115,7 @@ describe('Double Submission Prevention', () => {
         course_code: TEST_COURSE,
         class_ids: [TEST_CLASS_ID],
         week_number: 11,
-        building_id: 1,
+      lecture_hall_id: 1,
         duration_minutes: 30,
       });
     const newPin = activateRes.body.sessions[0].pin;

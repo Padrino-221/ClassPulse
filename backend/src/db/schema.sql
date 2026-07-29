@@ -1,8 +1,8 @@
 -- ClassPulse: University Attendance Management System
--- PostgreSQL Schema (v4 - Building Geofence + Rolling PIN)
+-- PostgreSQL Schema (v4 - Lecture Hall Geofence + Rolling PIN)
 
--- 0. Buildings (lecturer halls)
-CREATE TABLE IF NOT EXISTS buildings (
+-- 0. Lecture Halls
+CREATE TABLE IF NOT EXISTS lecture_halls (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     latitude DECIMAL(9,6) NOT NULL,
@@ -71,18 +71,15 @@ CREATE TABLE IF NOT EXISTS student_roster (
 
 CREATE INDEX IF NOT EXISTS idx_student_roster_class ON student_roster(class_id);
 
--- 6. Active Sessions (v4: building geofence replaces classroom geofence)
+-- 6. Active Sessions (v4: lecture hall geofence replaces classroom geofence)
 CREATE TABLE IF NOT EXISTS active_sessions (
     session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     course_code VARCHAR(20) NOT NULL REFERENCES courses(course_code) ON DELETE CASCADE,
     class_id INTEGER NOT NULL REFERENCES classes(class_id) ON DELETE CASCADE,
     lecturer_id INTEGER NOT NULL REFERENCES lecturers(id) ON DELETE CASCADE,
-    building_id INTEGER REFERENCES buildings(id) ON DELETE SET NULL,
+    lecture_hall_id INTEGER REFERENCES lecture_halls(id) ON DELETE SET NULL,
     week_number INTEGER NOT NULL CHECK (week_number > 0),
     pin_seed VARCHAR(255) NOT NULL,
-    latitude DECIMAL(9,6) NOT NULL,
-    longitude DECIMAL(9,6) NOT NULL,
-    radius_meters INTEGER DEFAULT 400,
     pin_spinning BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT NOW(),
     expires_at TIMESTAMP NOT NULL,
@@ -98,7 +95,6 @@ CREATE TABLE IF NOT EXISTS attendance_records (
     record_id SERIAL PRIMARY KEY,
     session_id UUID NOT NULL REFERENCES active_sessions(session_id) ON DELETE CASCADE,
     index_number VARCHAR(50) NOT NULL,
-    student_name VARCHAR(255) NOT NULL,
     verification_method VARCHAR(10) NOT NULL CHECK (verification_method IN ('GPS', 'MANUAL')),
     marked_by INTEGER REFERENCES lecturers(id) ON DELETE SET NULL,
     device_fingerprint_hash VARCHAR(64),

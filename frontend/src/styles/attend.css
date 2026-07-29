@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: linear-gradient(155deg, #0730A3 0%, #05237E 40%, #031A5E 100%);
+  background: linear-gradient(155deg, #991B1B 0%, #B91C1C 40%, #991B1B 100%);
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   position: relative;
   overflow: hidden;
@@ -55,7 +55,7 @@
   width: 52px;
   height: 52px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #0730A3, #4B7BF5);
+  background: linear-gradient(135deg, #991B1B, #F87171);
   color: #fff;
   display: inline-flex;
   align-items: center;
@@ -236,8 +236,8 @@
   text-transform: uppercase;
 }
 
-/* Building validation badge */
-.attend-building-status {
+/* Lecture hall validation badge */
+.attend-hall-status {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -247,22 +247,22 @@
   font-weight: 500;
 }
 
-.attend-building-loading {
+.attend-hall-loading {
   background: var(--warning-bg);
   color: var(--warning);
 }
 
-.attend-building-ok {
+.attend-hall-ok {
   background: var(--success-bg);
   color: var(--success);
 }
 
-.attend-building-err {
+.attend-hall-err {
   background: var(--error-bg);
   color: var(--error);
 }
 
-.attend-building-spinner {
+.attend-hall-spinner {
   width: 14px;
   height: 14px;
   border: 2px solid rgba(0, 0, 0, 0.15);
