@@ -216,6 +216,16 @@ export default function LecturerLiveSession() {
     loadData(1);
   }, [loadData]);
 
+  useEffect(() => {
+    const poll = setInterval(() => loadData(sessionPage), 15000);
+    const onVisible = () => { if (document.visibilityState === 'visible') loadData(sessionPage); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(poll);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [loadData, sessionPage]);
+
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
