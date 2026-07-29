@@ -5,6 +5,7 @@ const cron = require('node-cron');
 require('dotenv').config();
 
 const { pool } = require('./config/db');
+const { runMigrations } = require('./db/migrate');
 const { getCurrentPin, staticPinFromSeed } = require('./services/pin');
 const sessionCache = require('./services/sessionCache');
 
@@ -108,17 +109,25 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// ── Session cache + interval cleanup ──
+// ── Run migrations then load session cache ──
 let cacheInterval = null;
 
-sessionCache.reloadFromDb(pool).then(() => {
-  console.log('Session cache primed with active sessions.');
-  cacheInterval = setInterval(() => {
-    sessionCache.reloadFromDb(pool).catch((err) => {
-      console.error('Session cache refresh error:', err);
-    });
-  }, 30000);
-});
+runMigrations(pool)
+  .catch((err) => {
+    console.error('Migration warning:', err.message);
+  })
+  .then(() => sessionCache.reloadFromDb(pool))
+  .then(() => {
+    console.log('Session cache primed with active sessions.');
+    cacheInterval = setInterval(() => {
+      sessionCache.reloadFromDb(pool).catch((err) => {
+        console.error('Session cache refresh error:', err);
+      });
+    }, 30000);
+  })
+  .catch((err) => {
+    console.error('Startup error:', err.message);
+  });
 
 // ── Graceful shutdown ──
 function gracefulShutdown(signal) {
