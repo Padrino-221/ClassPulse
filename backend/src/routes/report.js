@@ -94,7 +94,7 @@ router.get('/summary', async (req, res) => {
     courseQuery += scopeSql;
     const extraCourseConds = [];
     applyExtraFilters(extraCourseConds, courseParams, filters);
-    extraCourseConds.forEach(c => { courseQuery += ` ${c}`; });
+    extraCourseConds.forEach(c => { courseQuery += ` AND ${c}`; });
     courseQuery += ` GROUP BY s.course_code, co.course_name ORDER BY co.course_name`;
 
     const courseResult = await pool.query(courseQuery, courseParams);
@@ -170,7 +170,7 @@ router.get('/summary', async (req, res) => {
     overallWhere += overallScopeSql;
     const overallExtraConds = [];
     applyExtraFilters(overallExtraConds, overallParams, filters);
-    overallExtraConds.forEach(c => { overallWhere += ` ${c}`; });
+    overallExtraConds.forEach(c => { overallWhere += ` AND ${c}`; });
 
     const overallRes = await pool.query(`
       SELECT
