@@ -24,9 +24,19 @@ This guide walks you through deploying ClassPulse on Oracle Cloud's **Always Fre
 ## Prerequisites
 
 - A GitHub account (your repo: `Padrino-221/ClassPulse`)
-- Your Neon database URL (already configured on Render)
 - A terminal with `ssh` and `scp` access
 - (Optional) A domain name for SSL
+
+---
+
+## Local Development vs Production
+
+| Environment | Database | Where to configure |
+|-------------|----------|-------------------|
+| **Local development** | Local PostgreSQL (`localhost:5432`) | `backend/.env` (gitignored) |
+| **Oracle Cloud** | Neon (or local PostgreSQL on instance) | `/opt/classpulse/backend/.env` on server |
+
+Your `backend/.env` is **gitignored** — it stays on your machine and is never pushed to GitHub. Each deployment has its own `.env` on the server.
 
 ---
 
@@ -142,10 +152,10 @@ cp .env.example backend/.env
 nano backend/.env
 ```
 
-Fill in your values:
+Fill in your values — **use your Neon database URL** (not localhost):
 
 ```env
-# Your Neon database URL (from your existing Render .env)
+# Neon database URL (from your Render dashboard)
 DATABASE_URL=postgresql://neondb_owner:xxxx@ep-xxx.us-east-2.aws.neon.tech/classpulse?sslmode=require
 
 # Generate a new secret: openssl rand -hex 32
@@ -327,9 +337,10 @@ node -e "const {pool} = require('./config/db'); pool.query('SELECT NOW()').then(
 ```
 
 Common causes:
+- Wrong `DATABASE_URL` — **on the server, use Neon URL, not localhost**
+- Wrong `DATABASE_URL` — **locally, use localhost, not Neon**
 - Neon database is paused (free tier pauses after inactivity)
-- Wrong `DATABASE_URL` in `.env`
-- `sslmode=require` missing from connection string
+- `sslmode=require` missing from Neon connection string
 
 ### PM2 won't start
 
@@ -426,4 +437,7 @@ sudo apt-get install -y postgresql postgresql-contrib
 sudo -u postgres createdb classpulse
 sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'your_password';"
 ```
-Then update `DATABASE_URL` in `.env` to point to `localhost`.
+Then update `DATABASE_URL` in `.env` to point to `localhost`:
+```
+DATABASE_URL=postgresql://postgres:your_password@localhost:5432/classpulse
+```
