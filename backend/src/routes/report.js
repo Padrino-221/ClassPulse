@@ -32,11 +32,45 @@ function scopeClassFilter(level, school_id, department_id, params) {
   return [sql, params];
 }
 
+function applyExtraFilters(conditions, params, filters) {
+  const { school_id, department_id, lecturer_id } = filters;
+  if (school_id) {
+    params.push(school_id);
+    conditions.push(`co.department_id IN (SELECT id FROM departments WHERE school_id = $${params.length})`);
+  }
+  if (department_id) {
+    params.push(department_id);
+    conditions.push(`co.department_id = $${params.length}`);
+  }
+  if (lecturer_id) {
+    params.push(lecturer_id);
+    conditions.push(`s.session_id IN (SELECT session_id FROM attendance_records) AND s.course_code IN (SELECT course_code FROM course_lecturers WHERE lecturer_id = $${params.length})`);
+  }
+}
+
+function applyExtraFiltersClass(conditions, params, filters) {
+  const { school_id, department_id, lecturer_id } = filters;
+  if (school_id) {
+    params.push(school_id);
+    conditions.push(`cl.department_id IN (SELECT id FROM departments WHERE school_id = $${params.length})`);
+  }
+  if (department_id) {
+    params.push(department_id);
+    conditions.push(`cl.department_id = $${params.length}`);
+  }
+  if (lecturer_id) {
+    params.push(lecturer_id);
+    conditions.push(`s.session_id IN (SELECT session_id FROM attendance_records) AND s.course_code IN (SELECT course_code FROM course_lecturers WHERE lecturer_id = $${params.length})`);
+  }
+}
+
 // GET /api/reports/summary — aggregate stats per course and per class
 router.get('/summary', async (req, res) => {
   try {
-    const { course_code, class_id } = req.query;
-    const { level, university_id, school_id, department_id } = req.scope;
+    const { course_code, class_id, school_id, department_id, lecturer_id } = req.query;
+    const { level, university_id, school_id: scopeSchoolId, department_id: scopeDeptId } = req.scope;
+
+    const filters = { school_id, department_id, lecturer_id };
 
     // Per-course summary
     let courseQuery = `
@@ -56,8 +90,11 @@ router.get('/summary', async (req, res) => {
       courseParams.push(course_code);
       courseQuery += ` AND s.course_code = $${courseParams.length}`;
     }
-    let [scopeSql] = scopeCourseFilter(level, school_id, department_id, courseParams);
+    let [scopeSql] = scopeCourseFilter(level, scopeSchoolId, scopeDeptId, courseParams);
     courseQuery += scopeSql;
+    const extraCourseConds = [];
+    applyExtraFilters(extraCourseConds, courseParams, filters);
+    extraCourseConds.forEach(c => { courseQuery += ` ${c}`; });
     courseQuery += ` GROUP BY s.course_code, co.course_name ORDER BY co.course_name`;
 
     const courseResult = await pool.query(courseQuery, courseParams);
@@ -97,22 +134,23 @@ router.get('/summary', async (req, res) => {
       LEFT JOIN attendance_records ar ON s.session_id = ar.session_id
     `;
     const classParams = [];
-    const conditions = [];
+    const classConditions = [];
     if (class_id) {
       classParams.push(class_id);
-      conditions.push(`cl.class_id = $${classParams.length}`);
+      classConditions.push(`cl.class_id = $${classParams.length}`);
     }
     if (course_code) {
       classParams.push(course_code);
-      conditions.push(`s.course_code = $${classParams.length}`);
+      classConditions.push(`s.course_code = $${classParams.length}`);
     }
-    let [classScopeSql, classScopeParams] = scopeClassFilter(level, school_id, department_id, classParams);
+    let [classScopeSql, classScopeParams] = scopeClassFilter(level, scopeSchoolId, scopeDeptId, classParams);
     classParams.push(...classScopeParams.slice(classParams.length));
     if (classScopeSql) {
-      conditions.push(classScopeSql.replace(' AND ', ''));
+      classConditions.push(classScopeSql.replace(' AND ', ''));
     }
-    if (conditions.length > 0) {
-      classQuery += ` WHERE ${conditions.join(' AND ')}`;
+    applyExtraFiltersClass(classConditions, classParams, filters);
+    if (classConditions.length > 0) {
+      classQuery += ` WHERE ${classConditions.join(' AND ')}`;
     }
     classQuery += ` GROUP BY cl.class_id, cl.class_name ORDER BY cl.class_name`;
 
@@ -128,8 +166,11 @@ router.get('/summary', async (req, res) => {
     // Overall stats
     const overallParams = [];
     let overallWhere = `WHERE (s.is_active = FALSE OR s.expires_at < NOW())`;
-    let [overallScopeSql] = scopeCourseFilter(level, school_id, department_id, overallParams);
+    let [overallScopeSql] = scopeCourseFilter(level, scopeSchoolId, scopeDeptId, overallParams);
     overallWhere += overallScopeSql;
+    const overallExtraConds = [];
+    applyExtraFilters(overallExtraConds, overallParams, filters);
+    overallExtraConds.forEach(c => { overallWhere += ` ${c}`; });
 
     const overallRes = await pool.query(`
       SELECT
@@ -154,11 +195,13 @@ router.get('/summary', async (req, res) => {
   }
 });
 
-// GET /api/reports/weekly?course_code=&class_id= — per-week breakdown for charts
+// GET /api/reports/weekly?course_code=&class_id=&school_id=&department_id=&lecturer_id= — per-week breakdown for charts
 router.get('/weekly', async (req, res) => {
   try {
-    const { course_code, class_id } = req.query;
-    const { level, school_id, department_id } = req.scope;
+    const { course_code, class_id, school_id, department_id, lecturer_id } = req.query;
+    const { level, school_id: scopeSchoolId, department_id: scopeDeptId } = req.scope;
+
+    const filters = { school_id, department_id, lecturer_id };
 
     let query = `
       SELECT
@@ -185,10 +228,11 @@ router.get('/weekly', async (req, res) => {
       params.push(class_id);
       conditions.push(`s.class_id = $${params.length}`);
     }
-    let [scopeSql] = scopeCourseFilter(level, school_id, department_id, params);
+    let [scopeSql] = scopeCourseFilter(level, scopeSchoolId, scopeDeptId, params);
     if (scopeSql) {
       conditions.push(scopeSql.replace(' AND ', ''));
     }
+    applyExtraFilters(conditions, params, filters);
     if (conditions.length > 0) {
       query += ` AND ${conditions.join(' AND ')}`;
     }
@@ -210,11 +254,13 @@ router.get('/weekly', async (req, res) => {
   }
 });
 
-// GET /api/reports/export?course_code=&class_id= — CSV download
+// GET /api/reports/export?course_code=&class_id=&school_id=&department_id=&lecturer_id= — CSV download
 router.get('/export', async (req, res) => {
   try {
-    const { course_code, class_id } = req.query;
-    const { level, school_id, department_id } = req.scope;
+    const { course_code, class_id, school_id, department_id, lecturer_id } = req.query;
+    const { level, school_id: scopeSchoolId, department_id: scopeDeptId } = req.scope;
+
+    const filters = { school_id, department_id, lecturer_id };
 
     let query = `
       SELECT
@@ -243,10 +289,11 @@ router.get('/export', async (req, res) => {
       params.push(class_id);
       conditions.push(`s.class_id = $${params.length}`);
     }
-    let [scopeSql] = scopeCourseFilter(level, school_id, department_id, params);
+    let [scopeSql] = scopeCourseFilter(level, scopeSchoolId, scopeDeptId, params);
     if (scopeSql) {
       conditions.push(scopeSql.replace(' AND ', ''));
     }
+    applyExtraFilters(conditions, params, filters);
     if (conditions.length > 0) {
       query += ` AND ${conditions.join(' AND ')}`;
     }
@@ -276,38 +323,75 @@ router.get('/export', async (req, res) => {
   }
 });
 
-// GET /api/reports/filters — return available courses and classes for filter dropdowns
+// GET /api/reports/filters — return available filter options based on scope
 router.get('/filters', async (req, res) => {
   try {
-    const { level, school_id, department_id } = req.scope;
+    const { level, university_id, school_id, department_id } = req.scope;
 
-    let courseSql = 'SELECT course_code, course_name FROM courses';
-    let classSql = 'SELECT class_id, class_name FROM classes';
+    // Schools (university admin only)
+    let schools = [];
+    if (level === 'university') {
+      const r = await pool.query('SELECT id, name FROM schools WHERE university_id = $1 ORDER BY name', [university_id]);
+      schools = r.rows;
+    }
+
+    // Departments (university + school admin)
+    let departments = [];
+    if (level === 'university') {
+      const r = await pool.query(
+        `SELECT d.id, d.name, d.school_id FROM departments d
+         JOIN schools s ON s.id = d.school_id
+         WHERE s.university_id = $1 ORDER BY d.name`, [university_id]
+      );
+      departments = r.rows;
+    } else if (level === 'school') {
+      const r = await pool.query('SELECT id, name FROM departments WHERE school_id = $1 ORDER BY name', [school_id]);
+      departments = r.rows;
+    }
+
+    // Courses (scoped)
+    let courseSql = 'SELECT course_code, course_name, department_id FROM courses WHERE deleted_at IS NULL';
+    let classSql = 'SELECT class_id, class_name, department_id FROM classes WHERE deleted_at IS NULL';
+    let lecturerSql = `SELECT l.id, l.name, l.department_id FROM lecturers l WHERE l.deleted_at IS NULL`;
     const courseParams = [];
     const classParams = [];
+    const lecturerParams = [];
 
     if (level === 'department') {
-      courseSql += ' WHERE department_id = $1';
+      courseSql += ` AND department_id = $1`;
       courseParams.push(department_id);
-      classSql += ' WHERE department_id = $1';
+      classSql += ` AND department_id = $1`;
       classParams.push(department_id);
+      lecturerSql += ` AND l.department_id = $1`;
+      lecturerParams.push(department_id);
     } else if (level === 'school') {
-      courseSql += ' WHERE department_id IN (SELECT id FROM departments WHERE school_id = $1)';
+      courseSql += ` AND department_id IN (SELECT id FROM departments WHERE school_id = $1)`;
       courseParams.push(school_id);
-      classSql += ' WHERE department_id IN (SELECT id FROM departments WHERE school_id = $1)';
+      classSql += ` AND department_id IN (SELECT id FROM departments WHERE school_id = $1)`;
       classParams.push(school_id);
+      lecturerSql += ` AND l.department_id IN (SELECT id FROM departments WHERE school_id = $1)`;
+      lecturerParams.push(school_id);
+    } else if (level === 'university') {
+      lecturerSql += ` AND l.department_id IN (SELECT d.id FROM departments d JOIN schools s ON s.id = d.school_id WHERE s.university_id = $1)`;
+      lecturerParams.push(university_id);
     }
 
     courseSql += ' ORDER BY course_name';
     classSql += ' ORDER BY class_name';
+    lecturerSql += ' ORDER BY l.name';
 
-    const [coursesRes, classesRes] = await Promise.all([
+    const [coursesRes, classesRes, lecturersRes] = await Promise.all([
       pool.query(courseSql, courseParams),
       pool.query(classSql, classParams),
+      pool.query(lecturerSql, lecturerParams),
     ]);
+
     res.json({
+      schools,
+      departments,
       courses: coursesRes.rows,
       classes: classesRes.rows,
+      lecturers: lecturersRes.rows,
     });
   } catch (err) {
     console.error('Report filters error:', err);

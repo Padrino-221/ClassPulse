@@ -68,8 +68,9 @@ router.get('/lecturers', async (req, res) => {
 
     const qParams = [...params, limit, offset];
     const result = await pool.query(
-      `SELECT l.id, l.name, l.email, l.created_at
+      `SELECT l.id, l.name, l.email, l.created_at, d.name AS department_name
        FROM lecturers l
+       LEFT JOIN departments d ON d.id = l.department_id
        ${whereClause}
        ORDER BY l.name
        LIMIT $${idx++} OFFSET $${idx++}`,

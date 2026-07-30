@@ -197,7 +197,7 @@ function EditModal({ entityLabel, fields, data, onSave, onClose }) {
               disabled={saving}
               style={{
                 padding: '0.625rem 1.5rem', fontSize: '0.8125rem', fontWeight: 600,
-                color: 'var(--bg-card)', backgroundColor: 'var(--brand, #DC2626)', border: 'none',
+                color: 'var(--text-inverse)', backgroundColor: 'var(--brand, #DC2626)', border: 'none',
                 borderRadius: 'var(--radius-full, 6px)', cursor: 'pointer', display: 'flex',
                 alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s',
                 opacity: saving ? 0.7 : 1,
@@ -702,7 +702,7 @@ function AdminOverviewPage({ courses, lecturers, classes, students, lectureHalls
                       <div style={{
                         width: 34, height: 34, borderRadius: '50%',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.75rem', fontWeight: 700, color: 'var(--bg-card)', flexShrink: 0,
+                        fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-inverse)', flexShrink: 0,
                         background: a.status === 'completed' ? 'var(--success)' : a.status === 'in_progress' ? '#D97706' : '#DC2626',
                       }}>
                         {a.course_name?.split(' ')[0]?.substring(0, 2)?.toUpperCase() || '?'}
@@ -1407,7 +1407,7 @@ function StudentsPage() {
                 display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
                 padding: '0.65rem 1.25rem',
                 background: 'rgba(255,255,255,0.15)',
-                color: 'var(--bg-card)',
+                color: 'var(--text-inverse)',
                 border: '1px solid rgba(255,255,255,0.3)',
                 borderRadius: '6px',
                 fontSize: '0.8125rem',
@@ -2321,7 +2321,8 @@ function ToolsPage() {
                 style={{
                   width: '100%', padding: '0.625rem 0.875rem', fontSize: '0.875rem',
                   border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-                  outline: 'none', backgroundColor: 'var(--bg-input)', height: '42px', boxSizing: 'border-box',
+                  outline: 'none', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)',
+                  height: '42px', boxSizing: 'border-box',
                 }}
               />
             </div>
@@ -2338,7 +2339,8 @@ function ToolsPage() {
                 style={{
                   width: '100%', padding: '0.625rem 0.875rem', fontSize: '0.875rem',
                   border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-                  outline: 'none', backgroundColor: 'var(--bg-input)', height: '42px', boxSizing: 'border-box',
+                  outline: 'none', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)',
+                  height: '42px', boxSizing: 'border-box',
                 }}
               />
             </div>
@@ -2348,7 +2350,7 @@ function ToolsPage() {
               onClick={handleExport}
               style={{
                 padding: '0.625rem 1.5rem', fontSize: '0.8125rem', fontWeight: 600,
-                color: 'var(--bg-card)', backgroundColor: exporting ? 'var(--brand-dark)' : 'var(--brand)',
+                color: 'var(--text-inverse)', backgroundColor: exporting ? 'var(--brand-dark)' : 'var(--brand)',
                 border: 'none', borderRadius: 'var(--radius-full)', cursor: exporting ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s', height: '42px', whiteSpace: 'nowrap',
                 display: 'flex', alignItems: 'center', gap: '0.5rem',
@@ -2413,7 +2415,7 @@ function ToolsPage() {
               onClick={handleReset}
               style={{
                 padding: '0.625rem 1.5rem', fontSize: '0.8125rem', fontWeight: 600,
-                color: 'var(--bg-card)', backgroundColor: 'var(--error)',
+                color: 'var(--text-inverse)', backgroundColor: 'var(--error)',
                 border: 'none', borderRadius: 'var(--radius-full)',
                 cursor: resetting || confirmText !== 'DELETE ALL' || !resetScope ? 'not-allowed' : 'pointer',
                 opacity: resetting || confirmText !== 'DELETE ALL' || !resetScope ? 0.5 : 1,

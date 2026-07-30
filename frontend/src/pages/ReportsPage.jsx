@@ -147,9 +147,12 @@ function WeeklyLineChart({ data }) {
 export default function ReportsPage() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ courses: [], classes: [] });
+  const [filters, setFilters] = useState({ schools: [], departments: [], courses: [], classes: [], lecturers: [] });
+  const [selectedSchool, setSelectedSchool] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
+  const [selectedLecturer, setSelectedLecturer] = useState('');
   const [summary, setSummary] = useState(null);
   const [weekly, setWeekly] = useState([]);
   const [exporting, setExporting] = useState(false);
@@ -167,26 +170,32 @@ export default function ReportsPage() {
   const loadSummary = useCallback(async () => {
     try {
       const params = {};
+      if (selectedSchool) params.school_id = selectedSchool;
+      if (selectedDepartment) params.department_id = selectedDepartment;
       if (selectedCourse) params.course_code = selectedCourse;
       if (selectedClass) params.class_id = selectedClass;
+      if (selectedLecturer) params.lecturer_id = selectedLecturer;
       const res = await api.get('/api/reports/summary', { params });
       setSummary(res.data);
     } catch {
       toast.error('Failed to load report data.');
     }
-  }, [selectedCourse, selectedClass, toast]);
+  }, [selectedSchool, selectedDepartment, selectedCourse, selectedClass, selectedLecturer, toast]);
 
   const loadWeekly = useCallback(async () => {
     try {
       const params = {};
+      if (selectedSchool) params.school_id = selectedSchool;
+      if (selectedDepartment) params.department_id = selectedDepartment;
       if (selectedCourse) params.course_code = selectedCourse;
       if (selectedClass) params.class_id = selectedClass;
+      if (selectedLecturer) params.lecturer_id = selectedLecturer;
       const res = await api.get('/api/reports/weekly', { params });
       setWeekly(res.data.weekly);
     } catch {
       // Non-critical — chart just won't render
     }
-  }, [selectedCourse, selectedClass]);
+  }, [selectedSchool, selectedDepartment, selectedCourse, selectedClass, selectedLecturer]);
 
   useEffect(() => { loadFilters(); }, [loadFilters]);
 
@@ -195,11 +204,49 @@ export default function ReportsPage() {
     Promise.all([loadSummary(), loadWeekly()]).finally(() => setLoading(false));
   }, [loadSummary, loadWeekly]);
 
+  // Cascading resets
+  const handleSchoolChange = (val) => {
+    setSelectedSchool(val);
+    setSelectedDepartment('');
+    setSelectedCourse('');
+    setSelectedClass('');
+    setSelectedLecturer('');
+  };
+  const handleDepartmentChange = (val) => {
+    setSelectedDepartment(val);
+    setSelectedCourse('');
+    setSelectedClass('');
+    setSelectedLecturer('');
+  };
+
+  // Filter dropdowns based on cascading selection
+  const visibleDepartments = selectedSchool
+    ? filters.departments.filter(d => d.school_id === selectedSchool)
+    : filters.departments;
+  const visibleCourses = selectedDepartment
+    ? filters.courses.filter(c => c.department_id === parseInt(selectedDepartment))
+    : selectedSchool
+      ? filters.courses.filter(c => visibleDepartments.some(d => d.id === c.department_id))
+      : filters.courses;
+  const visibleClasses = selectedDepartment
+    ? filters.classes.filter(c => c.department_id === parseInt(selectedDepartment))
+    : selectedSchool
+      ? filters.classes.filter(c => visibleDepartments.some(d => d.id === c.department_id))
+      : filters.classes;
+  const visibleLecturers = selectedDepartment
+    ? filters.lecturers.filter(l => l.department_id === parseInt(selectedDepartment))
+    : selectedSchool
+      ? filters.lecturers.filter(l => visibleDepartments.some(d => d.id === l.department_id))
+      : filters.lecturers;
+
   const handleExport = () => {
     setExporting(true);
     const params = new URLSearchParams();
+    if (selectedSchool) params.set('school_id', selectedSchool);
+    if (selectedDepartment) params.set('department_id', selectedDepartment);
     if (selectedCourse) params.set('course_code', selectedCourse);
     if (selectedClass) params.set('class_id', selectedClass);
+    if (selectedLecturer) params.set('lecturer_id', selectedLecturer);
     const token = localStorage.getItem('token');
     const url = `${api.defaults.baseURL}/api/reports/export?${params.toString()}`;
 
@@ -247,21 +294,52 @@ export default function ReportsPage() {
         marginBottom: '1.25rem',
       }}>
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', flex: 1, alignItems: 'flex-end' }}>
-          <div className="form-group" style={{ marginBottom: 0, minWidth: 180, flex: 1 }}>
+          {filters.schools.length > 0 && (
+            <div className="form-group" style={{ marginBottom: 0, minWidth: 160, flex: 1 }}>
+              <label>School</label>
+              <Select value={selectedSchool} onChange={(e) => handleSchoolChange(e.target.value)}>
+                <option value="">All Schools</option>
+                {filters.schools.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </Select>
+            </div>
+          )}
+          {visibleDepartments.length > 0 && (
+            <div className="form-group" style={{ marginBottom: 0, minWidth: 160, flex: 1 }}>
+              <label>Department</label>
+              <Select value={selectedDepartment} onChange={(e) => handleDepartmentChange(e.target.value)}>
+                <option value="">All Departments</option>
+                {visibleDepartments.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </Select>
+            </div>
+          )}
+          <div className="form-group" style={{ marginBottom: 0, minWidth: 160, flex: 1 }}>
             <label>Course</label>
             <Select value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)}>
               <option value="">All Courses</option>
-              {filters.courses.map((c) => (
+              {visibleCourses.map((c) => (
                 <option key={c.course_code} value={c.course_code}>{c.course_code} — {c.course_name}</option>
               ))}
             </Select>
           </div>
-          <div className="form-group" style={{ marginBottom: 0, minWidth: 180, flex: 1 }}>
+          <div className="form-group" style={{ marginBottom: 0, minWidth: 160, flex: 1 }}>
             <label>Class</label>
             <Select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
               <option value="">All Classes</option>
-              {filters.classes.map((c) => (
+              {visibleClasses.map((c) => (
                 <option key={c.class_id} value={c.class_id}>{c.class_name}</option>
+              ))}
+            </Select>
+          </div>
+          <div className="form-group" style={{ marginBottom: 0, minWidth: 160, flex: 1 }}>
+            <label>Lecturer</label>
+            <Select value={selectedLecturer} onChange={(e) => setSelectedLecturer(e.target.value)}>
+              <option value="">All Lecturers</option>
+              {visibleLecturers.map((l) => (
+                <option key={l.id} value={l.id}>{l.name}</option>
               ))}
             </Select>
           </div>

@@ -60,7 +60,7 @@ export default function NotFound() {
           style={{
             display: 'inline-block',
             background: '#DC2626',
-            color: '#FFFFFF',
+            color: 'var(--text-inverse)',
             border: 'none',
             borderRadius: 6,
             padding: '0.75rem 1.5rem',

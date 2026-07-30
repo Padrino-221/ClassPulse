@@ -75,7 +75,7 @@ function RollingPinDisplay({ sessionId, pinSpinning }) {
         padding: '2rem 1.5rem',
         background: 'linear-gradient(135deg, #B91C1C 0%, #DC2626 50%, #F87171 100%)',
         borderRadius: '8px',
-        color: '#FFFFFF',
+        color: 'var(--text-inverse)',
       }}>
         <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.85, marginBottom: '0.75rem' }}>
           {pinLabel}
@@ -94,7 +94,7 @@ function RollingPinDisplay({ sessionId, pinSpinning }) {
         padding: '2rem 1.5rem',
         background: 'linear-gradient(135deg, #B91C1C 0%, #DC2626 50%, #F87171 100%)',
         borderRadius: '8px',
-        color: 'var(--bg-card)',
+        color: 'var(--text-inverse)',
       }}>
         <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.85, marginBottom: '0.75rem' }}>
           {pinLabel}
@@ -455,7 +455,7 @@ export default function LecturerLiveSession() {
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
                     padding: '0.625rem 1.5rem',
                     background: 'var(--brand)',
-                    color: 'var(--bg-card)', border: 'none', borderRadius: 'var(--radius-full, 6px)',
+                    color: 'var(--text-inverse)', border: 'none', borderRadius: 'var(--radius-full, 6px)',
                     fontSize: '0.875rem', fontWeight: 600,
                     cursor: 'pointer',
                     transition: 'all 0.15s', marginTop: '0.5rem', alignSelf: 'flex-start',
@@ -586,7 +586,7 @@ export default function LecturerLiveSession() {
                       style={{
                         padding: '0.5rem 1rem',
                         background: 'var(--error, #EF4444)',
-                        color: 'var(--bg-card)',
+                        color: 'var(--text-inverse)',
                         border: 'none',
                         borderRadius: 'var(--radius-full, 6px)',
                         fontSize: '0.75rem',
