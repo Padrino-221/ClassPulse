@@ -21,13 +21,20 @@ const BG = '#F5F5F5';
 const CARD = '#FFFFFF';
 const FONT = "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
-function iconUrl(name) {
-  const base = process.env.BACKEND_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
-  return `${base}/api/email-icons/${name}`;
+const ICONS = {
+  shield: '&#128737;',
+  clock: '&#9200;',
+  lock: '&#128274;',
+  wave: '&#128075;',
+  check: '&#9989;',
+  warning: '&#9888;',
+};
+
+function iconSpan(name) {
+  return `<span style="font-size:18px;line-height:1;display:inline-block;vertical-align:middle;">${ICONS[name] || ''}</span>`;
 }
 
 function baseShell(title, headerIconKey, headerTitle, contentHtml) {
-  const iconSrc = iconUrl(headerIconKey);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -57,8 +64,8 @@ function baseShell(title, headerIconKey, headerTitle, contentHtml) {
                   <td style="background:${BRAND};padding:32px 40px 28px;text-align:center;">
                     <table cellpadding="0" cellspacing="0" role="presentation" style="margin:0 auto 14px;">
                       <tr>
-                        <td align="center" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.2);width:56px;height:56px;border-radius:50%;">
-                          <img src="${iconSrc}" alt="" width="28" height="28" style="display:block;margin:14px auto 0;" />
+                        <td align="center" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.2);width:56px;height:56px;border-radius:50%;font-size:28px;line-height:56px;color:#FFFFFF;">
+                          ${ICONS[headerIconKey] || ''}
                         </td>
                       </tr>
                     </table>
@@ -110,7 +117,7 @@ function resetTemplate(resetUrl, userName) {
           <table cellpadding="0" cellspacing="0" role="presentation">
             <tr>
               <td style="vertical-align:middle;padding-right:10px;">
-                <img src="${iconUrl('clock')}" alt="" width="18" height="18" style="display:block;" />
+                ${iconSpan('clock')}
               </td>
               <td>
                 <p style="margin:0;font-size:0.8125rem;color:${TEXT_SEC};line-height:1.6;">This link expires in <strong style="color:${TEXT};">1 hour</strong>.</p>
@@ -126,7 +133,7 @@ function resetTemplate(resetUrl, userName) {
           <table cellpadding="0" cellspacing="0" role="presentation">
             <tr>
               <td style="vertical-align:middle;padding-right:10px;">
-                <img src="${iconUrl('lock')}" alt="" width="18" height="18" style="display:block;" />
+                ${iconSpan('lock')}
               </td>
               <td>
                 <p style="margin:0;font-size:0.8125rem;color:${TEXT_SEC};line-height:1.6;">If you didn't request this, ignore this email. Your password stays unchanged.</p>
@@ -184,7 +191,7 @@ function welcomeTemplate(userName, userEmail, resetUrl) {
           <table cellpadding="0" cellspacing="0" role="presentation">
             <tr>
               <td style="vertical-align:middle;padding-right:10px;">
-                <img src="${iconUrl('clock')}" alt="" width="18" height="18" style="display:block;" />
+                ${iconSpan('clock')}
               </td>
               <td>
                 <p style="margin:0;font-size:0.8125rem;color:${TEXT_SEC};line-height:1.6;">Link expires in <strong style="color:${TEXT};">1 hour</strong>. Email: <strong style="color:${TEXT};">${userEmail}</strong></p>
@@ -200,7 +207,7 @@ function welcomeTemplate(userName, userEmail, resetUrl) {
           <table cellpadding="0" cellspacing="0" role="presentation">
             <tr>
               <td style="vertical-align:middle;padding-right:10px;">
-                <img src="${iconUrl('lock')}" alt="" width="18" height="18" style="display:block;" />
+                ${iconSpan('lock')}
               </td>
               <td>
                 <p style="margin:0;font-size:0.8125rem;color:${TEXT_SEC};line-height:1.6;">If you didn't expect this, ignore it. Your account stays inactive until you set a password.</p>
