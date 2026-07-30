@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import ClassPulseLogo from './ClassPulseLogo';
+import { getStoredUser, clearStoredAuth } from '../utils/api';
 import {
   Pulse,
   Clock,
@@ -50,12 +51,7 @@ const navItems = [
 const levelOrder = { university: 3, school: 2, department: 1 };
 
 function getUser() {
-  try {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
-  } catch {
-    return null;
-  }
+  return getStoredUser();
 }
 
 export default React.memo(function Sidebar() {
@@ -67,8 +63,7 @@ export default React.memo(function Sidebar() {
   const adminLevel = user?.admin_level || 'university';
 
   const handleSignOut = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearStoredAuth();
     navigate('/lecturer/login');
   };
 

@@ -23,8 +23,13 @@ export default function LecturerLogin() {
 
     try {
       const res = await api.post('/api/auth/login', form);
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem('token', res.data.token);
+      storage.setItem('user', JSON.stringify(res.data.user));
+      // Clear the other storage
+      const other = rememberMe ? sessionStorage : localStorage;
+      other.removeItem('token');
+      other.removeItem('user');
 
       if (res.data.user.role === 'admin') {
         navigate('/admin');

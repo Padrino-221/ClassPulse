@@ -1,14 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import useGeolocation from '../hooks/useGeolocation';
-import useLocalStorage from '../hooks/useLocalStorage';
 import { generateFingerprint } from '../utils/fingerprint';
 import api from '../utils/api';
 import { CheckCircle, XCircle, Check, MapPin, ArrowLeft } from '@phosphor-icons/react';
 import ClassPulseLogo from '../components/ClassPulseLogo';
 
 export default function Attend() {
-  const { coords, error: geoError, loading: geoLoading, accuracy, refresh: refreshGeo, startWatching } = useGeolocation();
-  const [submittedSessions, setSubmittedSessions] = useLocalStorage('attended_sessions', []);
+  const { coords, error: geoError, accuracy, startWatching } = useGeolocation();
 
   const [form, setForm] = useState({ name: '', index_number: '', pin: '' });
   const [step, setStep] = useState('form');     // form | confirm | loading | success | error
@@ -67,7 +65,6 @@ export default function Attend() {
       });
 
       setStep('success');
-      setSubmittedSessions([...submittedSessions, { pin: form.pin }]);
     } catch (err) {
       setErrorMessage(err.response?.data?.error || 'Check-in failed. Try again.');
       setStep('error');

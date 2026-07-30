@@ -247,7 +247,7 @@ export default function ReportsPage() {
     if (selectedCourse) params.set('course_code', selectedCourse);
     if (selectedClass) params.set('class_id', selectedClass);
     if (selectedLecturer) params.set('lecturer_id', selectedLecturer);
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const url = `${api.defaults.baseURL}/api/reports/export?${params.toString()}`;
 
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })

@@ -3,16 +3,11 @@ import { useTheme } from '../context/ThemeContext';
 import { useSearch } from '../context/SearchContext';
 import { useNavigate } from 'react-router-dom';
 import { MagnifyingGlass, Moon, Sun, CaretDown, SignOut, User } from '@phosphor-icons/react';
-import api from '../utils/api';
+import api, { getStoredUser, clearStoredAuth } from '../utils/api';
 import SearchResults from './SearchResults';
 
 function getUser() {
-  try {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
-  } catch {
-    return null;
-  }
+  return getStoredUser();
 }
 
 const styles = {
@@ -303,8 +298,7 @@ export default React.memo(function TopBar() {
     : '??';
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearStoredAuth();
     navigate('/lecturer/login');
   };
 

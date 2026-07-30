@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
-import api from '../utils/api';
+import api, { getStoredUser } from '../utils/api';
 import DashboardLayout from '../components/DashboardLayout';
 import Select from '../components/Select';
 import MultiSelect from '../components/MultiSelect';
@@ -404,7 +404,7 @@ function ScopeFilter({ user, schools, departments, filterSchool, setFilterSchool
 
 function AdminOverviewPage({ courses, lecturers, classes, students, lectureHalls }) {
   const user = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
+    try { return getStoredUser(); } catch { return null; }
   }, []);
   const isUniversity = user?.admin_level === 'university';
   const isSchoolAdmin = user?.admin_level === 'school';
@@ -738,7 +738,7 @@ function CoursesPage() {
   const toast = useToast();
 
   const user = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
+    try { return getStoredUser(); } catch { return null; }
   }, []);
   const isReadOnly = user?.admin_level !== 'department';
   const isUniversity = user?.admin_level === 'university';
@@ -936,7 +936,7 @@ function ClassesPage() {
   const toast = useToast();
 
   const user = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
+    try { return getStoredUser(); } catch { return null; }
   }, []);
   const isReadOnly = user?.admin_level !== 'department';
   const isUniversity = user?.admin_level === 'university';
@@ -1131,7 +1131,7 @@ function LecturersPage() {
   const toast = useToast();
 
   const user = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
+    try { return getStoredUser(); } catch { return null; }
   }, []);
   const isReadOnly = user?.admin_level !== 'department';
   const isUniversity = user?.admin_level === 'university';
@@ -1299,7 +1299,7 @@ function StudentsPage() {
   const toast = useToast();
 
   const user = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
+    try { return getStoredUser(); } catch { return null; }
   }, []);
   const isReadOnly = user?.admin_level !== 'department';
   const isUniversity = user?.admin_level === 'university';
@@ -1505,7 +1505,7 @@ function StudentsPage() {
                             }}>
                               <PencilSimple size={14} />
                             </button>
-                            <button onClick={() => remove(s.id)} style={{
+                            <button onClick={() => setDeleting(s)} style={{
                               width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #FCA5A5',
                               background: 'var(--brand-light)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                               color: 'var(--brand)', transition: 'all 0.15s',
@@ -1721,7 +1721,7 @@ function DepartmentsPage() {
   const toast = useToast();
 
   const user = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
+    try { return getStoredUser(); } catch { return null; }
   }, []);
 
   const isReadOnly = user?.admin_level === 'university';
@@ -2206,7 +2206,7 @@ function AcademicTermsPage() {
 function ToolsPage() {
   const toast = useToast();
   const user = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
+    try { return getStoredUser(); } catch { return null; }
   }, []);
   const isUniversity = user?.admin_level === 'university';
   const [startDate, setStartDate] = useState('');

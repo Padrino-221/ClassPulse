@@ -41,8 +41,9 @@ export default function Profile() {
     setSaving(true);
     try {
       const res = await api.put('/api/auth/profile', { name, email });
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      if (res.data.token) localStorage.setItem('token', res.data.token);
+      const storage = localStorage.getItem('token') ? localStorage : sessionStorage;
+      storage.setItem('user', JSON.stringify(res.data.user));
+      if (res.data.token) storage.setItem('token', res.data.token);
       toast.success('Profile updated.');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to update profile.');

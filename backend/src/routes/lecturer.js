@@ -631,7 +631,7 @@ router.get('/history/export', async (req, res) => {
     const hierarchy = hierarchyRes.rows[0];
     const deptName = hierarchy?.dept_name || '';
     const schoolName = hierarchy?.school_name || '';
-    const orgLine = [schoolName, deptName].filter(Boolean).join(' - ') || 'School of Computing & Information Sciences';
+    const orgLine = [schoolName, deptName].filter(Boolean).join(' - ') || '';
 
     // Column widths
     ws.getColumn(1).width = 22;

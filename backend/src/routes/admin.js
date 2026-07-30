@@ -673,9 +673,19 @@ router.get('/export/semester', async (req, res) => {
   try {
     // Fetch university name for header
     let uniName = 'ClassPulse University';
+    let schoolName = '';
+    let deptName = '';
     if (req.scope.university_id) {
       const uniRes = await pool.query('SELECT name FROM universities WHERE id = $1', [req.scope.university_id]);
       if (uniRes.rows.length > 0) uniName = uniRes.rows[0].name;
+    }
+    if (school_id) {
+      const schoolRes = await pool.query('SELECT name FROM schools WHERE id = $1', [school_id]);
+      if (schoolRes.rows.length > 0) schoolName = schoolRes.rows[0].name;
+    }
+    if (department_id) {
+      const deptRes = await pool.query('SELECT name FROM departments WHERE id = $1', [department_id]);
+      if (deptRes.rows.length > 0) deptName = deptRes.rows[0].name;
     }
 
     const ExcelJS = require('exceljs');
@@ -792,7 +802,7 @@ router.get('/export/semester', async (req, res) => {
     const deptRow = wsOverview.getRow(2);
     deptRow.height = 22;
     const deptCell = deptRow.getCell(1);
-    deptCell.value = 'School of Computing & Information Sciences';
+    deptCell.value = [schoolName, deptName].filter(Boolean).join(' - ') || uniName;
     deptCell.font = { bold: true, size: 11, color: { argb: darkText }, name: 'Calibri' };
     deptCell.alignment = { horizontal: 'center', vertical: 'middle' };
     wsOverview.mergeCells(2, 1, 2, totalCols);

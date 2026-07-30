@@ -297,7 +297,7 @@ export default function LecturerLiveSession() {
     {
       value: todayTotal,
       label: "Today's Total",
-      change: sessions.length > 0 ? 12 : null,
+      change: null,
       icon: <CheckCircle weight="duotone" size={24} />,
     },
     {

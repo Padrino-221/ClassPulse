@@ -1,18 +1,14 @@
 import React, { useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
+import { getStoredToken, getStoredUser } from '../utils/api';
 
 export default function ProtectedRoute({ children, role }) {
   const auth = useMemo(() => {
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-    if (!token || !userStr) return { valid: false };
-    try {
-      const user = JSON.parse(userStr);
-      if (role && user.role !== role) return { valid: false };
-      return { valid: true, token, user };
-    } catch {
-      return { valid: false };
-    }
+    const token = getStoredToken();
+    const user = getStoredUser();
+    if (!token || !user) return { valid: false };
+    if (role && user.role !== role) return { valid: false };
+    return { valid: true, token, user };
   }, [role]);
 
   if (!auth.valid) {
