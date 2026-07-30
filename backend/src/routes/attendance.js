@@ -10,6 +10,23 @@ const sessionCache = require('../services/sessionCache');
 
 const router = express.Router();
 
+function normalizeName(name) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function namesMatch(submitted, roster) {
+  const a = normalizeName(submitted);
+  const b = normalizeName(roster);
+  if (a === b) return true;
+  const aWords = a.split(' ').filter(Boolean).sort();
+  const bWords = b.split(' ').filter(Boolean).sort();
+  return aWords.length === bWords.length && aWords.every((w, i) => w === bWords[i]);
+}
+
 const attendanceLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: process.env.NODE_ENV === 'test' ? 100 : 5,
@@ -121,9 +138,8 @@ router.post(
       );
 
       if (studentCheck.rows.length > 0) {
-        const rosterName = studentCheck.rows[0].student_name.trim().toLowerCase();
-        const submittedName = name.trim().toLowerCase();
-        if (rosterName !== submittedName) {
+        const rosterName = studentCheck.rows[0].student_name;
+        if (!namesMatch(name, rosterName)) {
           return res.status(400).json({ error: 'Name does not match your index number.' });
         }
       }
@@ -292,9 +308,8 @@ router.post(
       );
 
       if (studentCheck.rows.length > 0) {
-        const rosterName = studentCheck.rows[0].student_name.trim().toLowerCase();
-        const submittedName = name.trim().toLowerCase();
-        if (rosterName !== submittedName) {
+        const rosterName = studentCheck.rows[0].student_name;
+        if (!namesMatch(name, rosterName)) {
           return res.status(400).json({ error: 'Name does not match your index number.' });
         }
       }
