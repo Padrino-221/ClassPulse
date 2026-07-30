@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import ClassPulseLogo from './ClassPulseLogo';
 import {
   Pulse,
   Clock,
@@ -74,7 +75,7 @@ export default React.memo(function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <div className="sidebar-brand-icon"><Pulse weight="fill" size={24} /></div>
+        <ClassPulseLogo size={38} />
         <span className="sidebar-brand-text">ClassPulse</span>
       </div>
 

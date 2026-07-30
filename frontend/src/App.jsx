@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
+import ClassPulseLogo from './components/ClassPulseLogo';
 
 const Attend = React.lazy(() => import('./pages/Attend'));
 const LecturerLogin = React.lazy(() => import('./pages/LecturerLogin'));
@@ -16,7 +17,7 @@ const NotFound = React.lazy(() => import('./pages/NotFound'));
 function PageLoader() {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <div className="sidebar-brand-icon" style={{ width: 48, height: 48, fontSize: 20, animation: 'pulse 1.5s infinite' }}>C</div>
+      <ClassPulseLogo size={48} />
     </div>
   );
 }

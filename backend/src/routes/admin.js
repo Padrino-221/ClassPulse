@@ -1372,6 +1372,10 @@ router.get('/recent-sessions', async (req, res) => {
                      TO_CHAR(ss.created_at, 'Mon DD, YYYY') AS date,
                      COALESCE((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id), 0) AS present_count,
                      COALESCE((SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id), 0) AS total_students,
+                     CASE WHEN (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id) > 0
+                       THEN ROUND((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id)::numeric /
+                           (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id) * 100, 0)
+                       ELSE 0 END AS attendance_rate,
                      CASE WHEN ss.is_active = true THEN 'in_progress' ELSE 'completed' END AS status
               FROM active_sessions ss
               JOIN courses co ON co.course_code = ss.course_code
@@ -1385,6 +1389,10 @@ router.get('/recent-sessions', async (req, res) => {
                      TO_CHAR(ss.created_at, 'Mon DD, YYYY') AS date,
                      COALESCE((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id), 0) AS present_count,
                      COALESCE((SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id), 0) AS total_students,
+                     CASE WHEN (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id) > 0
+                       THEN ROUND((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id)::numeric /
+                           (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id) * 100, 0)
+                       ELSE 0 END AS attendance_rate,
                      CASE WHEN ss.is_active = true THEN 'in_progress' ELSE 'completed' END AS status
               FROM active_sessions ss
               JOIN courses co ON co.course_code = ss.course_code
@@ -1397,6 +1405,10 @@ router.get('/recent-sessions', async (req, res) => {
                      TO_CHAR(ss.created_at, 'Mon DD, YYYY') AS date,
                      COALESCE((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id), 0) AS present_count,
                      COALESCE((SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id), 0) AS total_students,
+                     CASE WHEN (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id) > 0
+                       THEN ROUND((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id)::numeric /
+                           (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id) * 100, 0)
+                       ELSE 0 END AS attendance_rate,
                      CASE WHEN ss.is_active = true THEN 'in_progress' ELSE 'completed' END AS status
               FROM active_sessions ss
               JOIN courses co ON co.course_code = ss.course_code

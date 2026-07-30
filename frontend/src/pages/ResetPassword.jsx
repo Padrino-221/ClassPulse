@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Pulse, Lock, Eye, EyeSlash } from '@phosphor-icons/react';
+import { Lock, Eye, EyeSlash } from '@phosphor-icons/react';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
+import ClassPulseLogo from '../components/ClassPulseLogo';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -198,7 +199,7 @@ export default function ResetPassword() {
         <div style={styles.page}>
           <div style={styles.card}>
             <div style={styles.header}>
-              <div style={styles.logo}><Pulse weight="fill" size={28} /></div>
+              <div style={styles.logo}><ClassPulseLogo size={28} /></div>
               <h1 style={styles.title}>ClassPulse</h1>
             </div>
             <div style={styles.invalidCard}>
@@ -235,7 +236,7 @@ export default function ResetPassword() {
       <div style={styles.page}>
         <div style={styles.card}>
           <div style={styles.header}>
-            <div style={styles.logo}><Pulse weight="fill" size={28} /></div>
+            <div style={styles.logo}><ClassPulseLogo size={28} /></div>
             <h1 style={styles.title}>Set New Password</h1>
             <p style={styles.subtitle}>Enter your new password below</p>
           </div>

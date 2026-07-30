@@ -4,6 +4,7 @@ import useLocalStorage from '../hooks/useLocalStorage';
 import { generateFingerprint } from '../utils/fingerprint';
 import api from '../utils/api';
 import { CheckCircle, XCircle, Check, MapPin, ArrowLeft } from '@phosphor-icons/react';
+import ClassPulseLogo from '../components/ClassPulseLogo';
 
 export default function Attend() {
   const { coords, error: geoError, loading: geoLoading, accuracy, refresh: refreshGeo, startWatching } = useGeolocation();
@@ -212,7 +213,7 @@ export default function Attend() {
       <div style={s.page}>
         <div style={s.container}>
           <div style={s.logoSection}>
-            <div style={s.logoCircle}>P</div>
+            <ClassPulseLogo size={48} />
             <div style={s.brandText}>ClassPulse</div>
             <div style={s.subtitle}>Student Attendance</div>
           </div>

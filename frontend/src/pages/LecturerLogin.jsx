@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../utils/api';
 import { Eye, EyeSlash, EnvelopeSimple, LockKey, CheckCircle } from '@phosphor-icons/react';
+import ClassPulseLogo from '../components/ClassPulseLogo';
 
 export default function LecturerLogin() {
   const navigate = useNavigate();
@@ -264,12 +265,16 @@ export default function LecturerLogin() {
       zIndex: 1,
       textAlign: 'center',
       maxWidth: '320px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '0.5rem',
     },
     brandHeading: {
       fontSize: '2rem',
       fontWeight: '800',
       color: '#fff',
-      marginBottom: '0.35rem',
+      margin: 0,
     },
     brandSubtitle: {
       fontSize: '1rem',
@@ -336,11 +341,6 @@ export default function LecturerLogin() {
       <div style={styles.container}>
         {/* LEFT SIDE — FORM */}
         <div className="lp-left-panel" style={styles.leftPanel}>
-          <div style={styles.leftHeader}>
-            <div style={styles.logoCircle}>P</div>
-            <span style={styles.logoText}>ClassPulse</span>
-          </div>
-
           <div className="lp-card" style={styles.card}>
             <h1 style={styles.heading}>Welcome back</h1>
             <p style={styles.subtitle}>Sign in to your account</p>
@@ -449,6 +449,7 @@ export default function LecturerLogin() {
           <div style={styles.decorCircle1} />
           <div style={styles.decorCircle2} />
           <div style={styles.rightContent}>
+            <ClassPulseLogo size={64} />
             <h2 style={styles.brandHeading}>ClassPulse</h2>
             <p style={styles.brandSubtitle}>Smart Attendance Management</p>
             <ul style={styles.featureList}>

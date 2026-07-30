@@ -16,35 +16,59 @@ async function seed() {
   await pool.query('DELETE FROM courses');
   await pool.query('DELETE FROM lecturers');
   await pool.query('DELETE FROM admins');
+  await pool.query('DELETE FROM departments');
+  await pool.query('DELETE FROM schools');
+  await pool.query('DELETE FROM universities');
+
+  // University
+  const uniRes = await pool.query(
+    'INSERT INTO universities (name, code) VALUES ($1, $2) RETURNING id',
+    ['Demo University', 'DU']
+  );
+  const universityId = uniRes.rows[0].id;
+
+  // School
+  const schoolRes = await pool.query(
+    'INSERT INTO schools (name, code, university_id) VALUES ($1, $2, $3) RETURNING id',
+    ['School of Computing', 'SC', universityId]
+  );
+  const schoolId = schoolRes.rows[0].id;
+
+  // Department
+  const deptRes = await pool.query(
+    'INSERT INTO departments (name, code, school_id) VALUES ($1, $2, $3) RETURNING id',
+    ['Computer Science', 'CS', schoolId]
+  );
+  const departmentId = deptRes.rows[0].id;
 
   // Admin
   await pool.query(
-    'INSERT INTO admins (name, email, password_hash) VALUES ($1, $2, $3)',
-    ['System Admin', 'admin@classpulse.com', adminHash]
+    'INSERT INTO admins (name, email, password_hash, role, university_id) VALUES ($1, $2, $3, $4, $5)',
+    ['System Admin', 'admin@classpulse.com', adminHash, 'university', universityId]
   );
 
   // Lecturers
   await pool.query(
-    'INSERT INTO lecturers (name, email, password_hash) VALUES ($1, $2, $3)',
-    ['Dr. Kwame Asante', 'kasante@university.edu', lecturerHash]
+    'INSERT INTO lecturers (name, email, password_hash, department_id) VALUES ($1, $2, $3, $4)',
+    ['Dr. Kwame Asante', 'kasante@university.edu', lecturerHash, departmentId]
   );
   await pool.query(
-    'INSERT INTO lecturers (name, email, password_hash) VALUES ($1, $2, $3)',
-    ['Prof. Ama Serwaa', 'aserwaa@university.edu', lecturerHash]
+    'INSERT INTO lecturers (name, email, password_hash, department_id) VALUES ($1, $2, $3, $4)',
+    ['Prof. Ama Serwaa', 'aserwaa@university.edu', lecturerHash, departmentId]
   );
 
   // Courses
   await pool.query(
-    'INSERT INTO courses (course_code, course_name, total_weeks) VALUES ($1, $2, $3)',
-    ['CS101', 'Introduction to Computer Science', 12]
+    'INSERT INTO courses (course_code, course_name, total_weeks, department_id) VALUES ($1, $2, $3, $4)',
+    ['CS101', 'Introduction to Computer Science', 12, departmentId]
   );
   await pool.query(
-    'INSERT INTO courses (course_code, course_name, total_weeks) VALUES ($1, $2, $3)',
-    ['CS201', 'Data Structures & Algorithms', 12]
+    'INSERT INTO courses (course_code, course_name, total_weeks, department_id) VALUES ($1, $2, $3, $4)',
+    ['CS201', 'Data Structures & Algorithms', 12, departmentId]
   );
   await pool.query(
-    'INSERT INTO courses (course_code, course_name, total_weeks) VALUES ($1, $2, $3)',
-    ['MATH101', 'Calculus I', 12]
+    'INSERT INTO courses (course_code, course_name, total_weeks, department_id) VALUES ($1, $2, $3, $4)',
+    ['MATH101', 'Calculus I', 12, departmentId]
   );
 
   // Course ↔ Lecturer assignments (many-to-many)
@@ -53,8 +77,8 @@ async function seed() {
   await pool.query('INSERT INTO course_lecturers (course_code, lecturer_id) VALUES ($1, $2)', ['MATH101', 2]);
 
   // Classes
-  await pool.query('INSERT INTO classes (class_name) VALUES ($1)', ['BSc Computer Science - Year 1']);
-  await pool.query('INSERT INTO classes (class_name) VALUES ($1)', ['BSc Computer Science - Year 2']);
+  await pool.query('INSERT INTO classes (class_name, department_id) VALUES ($1, $2)', ['BSc Computer Science - Year 1', departmentId]);
+  await pool.query('INSERT INTO classes (class_name, department_id) VALUES ($1, $2)', ['BSc Computer Science - Year 2', departmentId]);
 
   // Class ↔ Lecturer assignments (many-to-many)
   await pool.query('INSERT INTO class_lecturers (class_id, lecturer_id) VALUES (1, 1)');
