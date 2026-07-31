@@ -235,9 +235,9 @@ function LectureHallsPage() {
   const add = async (form) => {
     await api.post('/api/lecture-halls', {
       name: form.name,
-      latitude: parseFloat(form.latitude),
-      longitude: parseFloat(form.longitude),
-      radius: parseInt(form.radius),
+      latitude: form.latitude,
+      longitude: form.longitude,
+      radius: form.radius,
     });
     toast.success('Lecture Hall created');
     await load();
@@ -246,9 +246,9 @@ function LectureHallsPage() {
   const saveEdit = async (form) => {
     await api.put(`/api/lecture-halls/${editing.id}`, {
       name: form.name,
-      latitude: parseFloat(form.latitude),
-      longitude: parseFloat(form.longitude),
-      radius: parseInt(form.radius),
+      latitude: form.latitude,
+      longitude: form.longitude,
+      radius: form.radius,
     });
     await load();
   };
@@ -324,7 +324,7 @@ function LectureHallsPage() {
             { name: 'name', label: 'Name', placeholder: 'e.g. Main Lecture Hall' },
             { name: 'latitude', label: 'Latitude', type: 'number', placeholder: 'e.g. 5.650000' },
             { name: 'longitude', label: 'Longitude', type: 'number', placeholder: 'e.g. -0.186000' },
-            { name: 'radius', label: 'Radius (m)', type: 'number', min: 10, max: 5000 },
+            { name: 'radius', label: 'Radius (m)', type: 'number', min: 10, max: 5000, step: 1 },
           ]}
           onSave={add}
           onClose={() => setShowCreate(false)}
@@ -337,7 +337,7 @@ function LectureHallsPage() {
             { name: 'name', label: 'Name' },
             { name: 'latitude', label: 'Latitude', type: 'number' },
             { name: 'longitude', label: 'Longitude', type: 'number' },
-            { name: 'radius', label: 'Radius (m)', type: 'number', min: 10, max: 5000 },
+            { name: 'radius', label: 'Radius (m)', type: 'number', min: 10, max: 5000, step: 1 },
           ]}
           data={editing}
           onSave={saveEdit}

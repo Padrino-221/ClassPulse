@@ -62,6 +62,23 @@ app.use(cors({
 
 app.use(express.json({ limit: '1mb' }));
 
+// ── Coerce body numbers to strings for express-validator ──
+// validator.js requires string input but express.json() sends native JS types.
+function coerceBodyNumbers(req, res, next) {
+  if (req.body && typeof req.body === 'object') {
+    for (const key of Object.keys(req.body)) {
+      if (typeof req.body[key] === 'number') {
+        req.body[key] = String(req.body[key]);
+      }
+      if (Array.isArray(req.body[key])) {
+        req.body[key] = req.body[key].map(v => typeof v === 'number' ? String(v) : v);
+      }
+    }
+  }
+  next();
+}
+app.use(coerceBodyNumbers);
+
 // ── Health check (no DB) ──
 app.get('/api/ping', (req, res) => {
   res.json({ status: 'ok' });
