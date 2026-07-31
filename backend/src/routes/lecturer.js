@@ -270,6 +270,7 @@ router.get('/scheduled', async (req, res) => {
        WHERE s.lecturer_id = $1
          AND s.is_active = FALSE
          AND s.scheduled_at IS NOT NULL
+         AND s.scheduled_at > NOW()
        ORDER BY s.expires_at ASC`,
       [req.user.id]
     );
