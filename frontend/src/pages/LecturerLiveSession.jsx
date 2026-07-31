@@ -165,19 +165,13 @@ export default function LecturerLiveSession() {
   const [total, setTotal] = useState(0);
   const [sessionPage, setSessionPage] = useState(1);
 
+  const [mode, setMode] = useState('now');
   const [form, setForm] = useState({
     course_code: '',
     class_ids: [],
     week_number: '',
     lecture_hall_id: '',
     pin_spinning: true,
-    duration_minutes: 120,
-  });
-  const [scheduleForm, setScheduleForm] = useState({
-    course_code: '',
-    class_ids: [],
-    week_number: '',
-    lecture_hall_id: '',
     duration_minutes: 120,
     scheduled_date: '',
   });
@@ -232,49 +226,35 @@ export default function LecturerLiveSession() {
     if (form.class_ids.length === 0) { toast.error('Select at least one class.'); return; }
     if (!form.lecture_hall_id) { toast.error('Select a lecture hall.'); return; }
     if (!form.week_number) { toast.error('Enter a week number.'); return; }
+    if (mode === 'schedule' && !form.scheduled_date) { toast.error('Select a date and time.'); return; }
 
     setSubmitting(true);
     try {
-      await api.post('/api/lecturer/activate', {
-        course_code: form.course_code,
-        class_ids: form.class_ids,
-        week_number: parseInt(form.week_number),
-        lecture_hall_id: parseInt(form.lecture_hall_id),
-        pin_spinning: form.pin_spinning,
-        duration_minutes: parseInt(form.duration_minutes),
-      });
-      toast.success('Session started!');
-      setForm((prev) => ({ ...prev, class_ids: [] }));
+      if (mode === 'now') {
+        await api.post('/api/lecturer/activate', {
+          course_code: form.course_code,
+          class_ids: form.class_ids,
+          week_number: parseInt(form.week_number),
+          lecture_hall_id: parseInt(form.lecture_hall_id),
+          pin_spinning: form.pin_spinning,
+          duration_minutes: parseInt(form.duration_minutes),
+        });
+        toast.success('Session started!');
+      } else {
+        await api.post('/api/lecturer/schedule', {
+          course_code: form.course_code,
+          class_ids: form.class_ids,
+          scheduled_date: form.scheduled_date,
+          duration_minutes: parseInt(form.duration_minutes),
+          week_number: parseInt(form.week_number),
+          lecture_hall_id: parseInt(form.lecture_hall_id),
+        });
+        toast.success('Session scheduled!');
+      }
+      setForm((prev) => ({ ...prev, class_ids: [], scheduled_date: '' }));
       loadData();
     } catch (err) {
-      toast.error(err.response?.data?.error || "Couldn't start session.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleSchedule = async () => {
-    if (!scheduleForm.course_code) { toast.error('Select a course.'); return; }
-    if (scheduleForm.class_ids.length === 0) { toast.error('Select at least one class.'); return; }
-    if (!scheduleForm.lecture_hall_id) { toast.error('Select a lecture hall.'); return; }
-    if (!scheduleForm.week_number) { toast.error('Enter a week number.'); return; }
-    if (!scheduleForm.scheduled_date) { toast.error('Select a date and time.'); return; }
-
-    setSubmitting(true);
-    try {
-      await api.post('/api/lecturer/schedule', {
-        course_code: scheduleForm.course_code,
-        class_ids: scheduleForm.class_ids,
-        scheduled_date: scheduleForm.scheduled_date,
-        duration_minutes: parseInt(scheduleForm.duration_minutes),
-        week_number: parseInt(scheduleForm.week_number),
-        lecture_hall_id: parseInt(scheduleForm.lecture_hall_id),
-      });
-      toast.success('Session scheduled!');
-      setScheduleForm((prev) => ({ ...prev, class_ids: [], scheduled_date: '' }));
-      loadData();
-    } catch (err) {
-      toast.error(err.response?.data?.error || "Couldn't schedule session.");
+      toast.error(err.response?.data?.error || `Couldn't ${mode === 'now' ? 'start' : 'schedule'} session.`);
     } finally {
       setSubmitting(false);
     }
@@ -388,10 +368,30 @@ export default function LecturerLiveSession() {
           <SummaryCards cards={summaryCards} />
 
           <div style={{ display: 'flex', gap: '1.25rem', marginTop: '1.25rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            {/* ── Start Now card ── */}
+            {/* ── New / Schedule Session card ── */}
             <div style={{ ...cardStyle, flex: '1 1 480px', minWidth: 0 }}>
-              <div style={cardHeaderStyle}>
+              <div style={{ ...cardHeaderStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>New Session</h3>
+                <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--bg-hover, #F5F5F5)', borderRadius: '8px', padding: '0.25rem' }}>
+                  {[
+                    { value: 'now', label: 'Start Now' },
+                    { value: 'schedule', label: 'Schedule' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setMode(opt.value)}
+                      style={{
+                        padding: '0.4rem 1rem', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600,
+                        background: mode === opt.value ? 'var(--bg-card, #fff)' : 'transparent',
+                        color: mode === opt.value ? 'var(--text-primary, #1a1a1a)' : 'var(--text-secondary, #6b7280)',
+                        boxShadow: mode === opt.value ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div style={cardBodyStyle}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
@@ -432,18 +432,26 @@ export default function LecturerLiveSession() {
                       <label style={labelStyle}>Duration (min)</label>
                       <input type="number" name="duration_minutes" min="1" max="480" value={form.duration_minutes} onChange={handleChange} style={inputStyle} />
                     </div>
+                    {mode === 'schedule' && (
+                      <div style={{ flex: 1 }}>
+                        <label style={labelStyle}>Date & Time</label>
+                        <input type="datetime-local" name="scheduled_date" value={form.scheduled_date} onChange={handleChange} style={inputStyle} />
+                      </div>
+                    )}
                   </div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', marginTop: '0.25rem' }}>
-                    <input
-                      type="checkbox"
-                      checked={form.pin_spinning}
-                      onChange={(e) => setForm((prev) => ({ ...prev, pin_spinning: e.target.checked }))}
-                      style={{ width: '18px', height: '18px', accentColor: '#667eea' }}
-                    />
-                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Rolling PIN</span>
-                  </label>
+                  {mode === 'now' && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', marginTop: '0.25rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={form.pin_spinning}
+                        onChange={(e) => setForm((prev) => ({ ...prev, pin_spinning: e.target.checked }))}
+                        style={{ width: '18px', height: '18px', accentColor: '#667eea' }}
+                      />
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Rolling PIN</span>
+                    </label>
+                  )}
                   <button
-                    onClick={() => handleSubmit('now')}
+                    onClick={handleSubmit}
                     disabled={submitting}
                     style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
@@ -455,114 +463,50 @@ export default function LecturerLiveSession() {
                       transition: 'all 0.15s', marginTop: '0.5rem', alignSelf: 'flex-start',
                     }}
                   >
-                    {submitting ? <><Spinner size={14} /> Starting...</> : 'Start Session'}
+                    {submitting ? <><Spinner size={14} /> {mode === 'now' ? 'Starting...' : 'Scheduling...'}</> : mode === 'now' ? 'Start Session' : 'Schedule Session'}
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* ── Schedule Session card ── */}
-            <div style={{ ...cardStyle, flex: '1 1 480px', minWidth: 0 }}>
-              <div style={cardHeaderStyle}>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Schedule Session</h3>
-              </div>
-              <div style={cardBodyStyle}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={labelStyle}>Course</label>
-                      <Select name="course_code" value={scheduleForm.course_code} onChange={(e) => { setScheduleForm((prev) => ({ ...prev, course_code: e.target.value, class_ids: [] })); }}>
-                        <option value="">Select Course</option>
-                        {courses.map((c) => (
-                          <option key={c.course_code} value={c.course_code}>{c.course_code} - {c.course_name}</option>
-                        ))}
-                      </Select>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <label style={labelStyle}>Lecture Hall</label>
-                      <Select name="lecture_hall_id" value={scheduleForm.lecture_hall_id} onChange={(e) => setScheduleForm((prev) => ({ ...prev, lecture_hall_id: e.target.value }))}>
-                        <option value="">Select Hall</option>
-                        {lectureHalls.map((lh) => (
-                          <option key={lh.id} value={lh.id}>{lh.name}</option>
-                        ))}
-                      </Select>
-                    </div>
-                  </div>
-                  <div>
-                    <MultiSelect
-                      label="Classes"
-                      options={classes.map((c) => ({ value: c.class_id, label: c.class_name }))}
-                      value={scheduleForm.class_ids}
-                      onChange={(val) => setScheduleForm((prev) => ({ ...prev, class_ids: val }))}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <div style={{ flex: '0 0 120px' }}>
-                      <label style={labelStyle}>Week</label>
-                      <input type="number" name="week_number" min="1" max="52" value={scheduleForm.week_number} onChange={(e) => setScheduleForm((prev) => ({ ...prev, week_number: e.target.value }))} placeholder="e.g. 1" style={inputStyle} />
-                    </div>
-                    <div style={{ flex: '0 0 140px' }}>
-                      <label style={labelStyle}>Duration (min)</label>
-                      <input type="number" name="duration_minutes" min="1" max="480" value={scheduleForm.duration_minutes} onChange={(e) => setScheduleForm((prev) => ({ ...prev, duration_minutes: e.target.value }))} style={inputStyle} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <label style={labelStyle}>Date & Time</label>
-                      <input type="datetime-local" name="scheduled_date" value={scheduleForm.scheduled_date} onChange={(e) => setScheduleForm((prev) => ({ ...prev, scheduled_date: e.target.value }))} style={inputStyle} />
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleSchedule}
-                    disabled={submitting}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                      padding: '0.625rem 1.5rem',
-                      background: 'var(--brand)',
-                      color: 'var(--text-inverse)', border: 'none', borderRadius: 'var(--radius-full, 6px)',
-                      fontSize: '0.875rem', fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s', marginTop: '0.5rem', alignSelf: 'flex-start',
-                    }}
-                  >
-                    {submitting ? <><Spinner size={14} /> Scheduling...</> : 'Schedule Session'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Upcoming Scheduled ── */}
-          {scheduledSessions.length > 0 && (
-            <div style={{ ...cardStyle, marginTop: '1.25rem' }}>
+            {/* ── Upcoming Scheduled card ── */}
+            <div style={{ ...cardStyle, flex: '1 1 340px', minWidth: 0 }}>
               <div style={cardHeaderStyle}>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Upcoming Scheduled</h3>
               </div>
               <div style={cardBodyStyle}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {scheduledSessions.map((s) => (
-                    <div key={s.session_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: 'var(--bg-hover)', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{s.course_code} &middot; {s.class_name}</span>
-                        <span style={{ padding: '0.15rem 0.6rem', background: 'var(--brand-light)', color: 'var(--brand)', borderRadius: '6px', fontSize: '0.6875rem', fontWeight: 600 }}>Week {s.week_number}</span>
-                        <span style={{ padding: '0.15rem 0.6rem', background: 'var(--bg-hover)', color: 'var(--text-secondary)', borderRadius: '6px', fontSize: '0.6875rem', fontWeight: 600 }}>{s.lecture_hall_name}</span>
-                        {s.pin && <span style={{ padding: '0.15rem 0.6rem', background: 'var(--brand-light)', color: 'var(--brand)', borderRadius: '6px', fontSize: '0.6875rem', fontWeight: 700, fontFamily: 'monospace' }}>{s.pin}</span>}
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {new Date(s.scheduled_at).toLocaleDateString()} at {new Date(s.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                {scheduledSessions.length === 0 ? (
+                  <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-muted)' }}>No scheduled sessions.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                    {scheduledSessions.map((s) => (
+                      <div key={s.session_id} style={{ padding: '0.75rem', background: 'var(--bg-hover)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                          <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{s.course_code} &middot; {s.class_name}</span>
+                          <button
+                            onClick={() => cancelScheduled(s.session_id)}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--brand, #DC2626)'; e.currentTarget.style.color = 'var(--text-inverse, #fff)'; e.currentTarget.style.borderColor = 'var(--brand, #DC2626)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--brand-light)'; e.currentTarget.style.color = 'var(--brand)'; e.currentTarget.style.borderColor = '#FCA5A5'; }}
+                            style={{ padding: '0.3rem 0.6rem', background: 'var(--brand-light)', color: 'var(--brand)', border: '1px solid #FCA5A5', borderRadius: '6px', fontSize: '0.6875rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0 }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <span style={{ padding: '0.15rem 0.5rem', background: 'var(--brand-light)', color: 'var(--brand)', borderRadius: '6px', fontSize: '0.6875rem', fontWeight: 600 }}>Week {s.week_number}</span>
+                          <span style={{ padding: '0.15rem 0.5rem', background: 'var(--bg-card)', color: 'var(--text-secondary)', borderRadius: '6px', fontSize: '0.6875rem', fontWeight: 600, border: '1px solid var(--border)' }}>{s.lecture_hall_name}</span>
+                          {s.pin && <span style={{ padding: '0.15rem 0.5rem', background: 'var(--brand-light)', color: 'var(--brand)', borderRadius: '6px', fontSize: '0.6875rem', fontWeight: 700, fontFamily: 'monospace' }}>{s.pin}</span>}
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {new Date(s.scheduled_at).toLocaleDateString()} at {new Date(s.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
                       </div>
-                      <button
-                        onClick={() => cancelScheduled(s.session_id)}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--brand, #DC2626)'; e.currentTarget.style.color = 'var(--text-inverse, #fff)'; e.currentTarget.style.borderColor = 'var(--brand, #DC2626)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--brand-light)'; e.currentTarget.style.color = 'var(--brand)'; e.currentTarget.style.borderColor = '#FCA5A5'; }}
-                        style={{ padding: '0.4rem 0.8rem', background: 'var(--brand-light)', color: 'var(--brand)', border: '1px solid #FCA5A5', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0 }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-          )}
+          </div>
         </>
       ) : (
         <>
