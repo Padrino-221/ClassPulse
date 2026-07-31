@@ -29,7 +29,7 @@ class SessionCache {
   }
 
   getLectureHall(lectureHallId) {
-    return this.lectureHalls.get(lectureHallId) || null;
+    return this.lectureHalls.get(parseInt(lectureHallId)) || null;
   }
 
   async loadLectureHalls(pool) {
