@@ -114,6 +114,18 @@ router.put(
   }
 );
 
+// Delete all lecture halls
+router.delete('/', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM lecture_halls RETURNING id');
+    sessionCache.lectureHalls.clear();
+    res.json({ message: `${result.rowCount} lecture hall(s) deleted.`, count: result.rowCount });
+  } catch (err) {
+    console.error('Delete all lecture halls error:', err);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
 // Delete lecture hall
 router.delete('/:id', async (req, res) => {
   try {

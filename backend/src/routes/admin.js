@@ -167,6 +167,32 @@ router.delete('/lecturers/:id', auditLog('delete', 'lecturer'), async (req, res)
   }
 });
 
+router.delete('/lecturers', auditLog('delete', 'lecturer'), async (req, res) => {
+  if (denyUniversityAdmin(req, res)) return;
+  try {
+    const { level, school_id, department_id } = req.scope;
+    let whereClause = 'deleted_at IS NULL';
+    const params = [];
+    let idx = 1;
+    if (level === 'department') {
+      whereClause += ` AND department_id = $${idx++}`;
+      params.push(department_id);
+    } else if (level === 'school') {
+      whereClause += ` AND department_id IN (SELECT id FROM departments WHERE school_id = $${idx++})`;
+      params.push(school_id);
+      if (req.query.department_id) {
+        whereClause += ` AND department_id = $${idx++}`;
+        params.push(req.query.department_id);
+      }
+    }
+    const result = await pool.query(`UPDATE lecturers SET deleted_at = NOW() WHERE ${whereClause} RETURNING id`, params);
+    res.json({ message: `${result.rowCount} lecturer(s) deleted.`, count: result.rowCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
 // ── Courses ──
 
 router.get('/courses', async (req, res) => {
@@ -323,6 +349,35 @@ router.delete('/courses/:code', auditLog('delete', 'course'), async (req, res) =
   }
 });
 
+router.delete('/courses', auditLog('delete', 'course'), async (req, res) => {
+  if (denyUniversityAdmin(req, res)) return;
+  try {
+    const { level, school_id, department_id } = req.scope;
+    let whereClause = 'deleted_at IS NULL';
+    const params = [];
+    let idx = 1;
+    if (level === 'department') {
+      whereClause += ` AND department_id = $${idx++}`;
+      params.push(department_id);
+    } else if (level === 'school') {
+      whereClause += ` AND department_id IN (SELECT id FROM departments WHERE school_id = $${idx++})`;
+      params.push(school_id);
+      if (req.query.department_id) {
+        whereClause += ` AND department_id = $${idx++}`;
+        params.push(req.query.department_id);
+      }
+    }
+    const result = await pool.query(
+      `UPDATE courses SET deleted_at = NOW() WHERE ${whereClause} RETURNING id`,
+      params
+    );
+    res.json({ message: `${result.rowCount} course(s) deleted.`, count: result.rowCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
 // ── Classes ──
 
 router.get('/classes', async (req, res) => {
@@ -468,6 +523,40 @@ router.delete('/classes/:id', auditLog('delete', 'class'), async (req, res) => {
   }
 });
 
+router.delete('/classes', auditLog('delete', 'class'), async (req, res) => {
+  try {
+    const { level, school_id, department_id } = req.scope;
+    let whereClause = 'deleted_at IS NULL';
+    const params = [];
+    let idx = 1;
+    if (level === 'department') {
+      whereClause += ` AND department_id = $${idx++}`;
+      params.push(department_id);
+    } else if (level === 'school') {
+      whereClause += ` AND department_id IN (SELECT id FROM departments WHERE school_id = $${idx++})`;
+      params.push(school_id);
+      if (req.query.department_id) {
+        whereClause += ` AND department_id = $${idx++}`;
+        params.push(req.query.department_id);
+      }
+    } else if (level === 'university') {
+      if (req.query.school_id) {
+        whereClause += ` AND department_id IN (SELECT id FROM departments WHERE school_id = $${idx++})`;
+        params.push(req.query.school_id);
+      }
+      if (req.query.department_id) {
+        whereClause += ` AND department_id = $${idx++}`;
+        params.push(req.query.department_id);
+      }
+    }
+    const result = await pool.query(`UPDATE classes SET deleted_at = NOW() WHERE ${whereClause} RETURNING class_id`, params);
+    res.json({ message: `${result.rowCount} class(es) deleted.`, count: result.rowCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
 // ── Students ──
 
 router.get('/students', async (req, res) => {
@@ -593,6 +682,44 @@ router.delete('/students/:id', auditLog('delete', 'student'), async (req, res) =
   try {
     await pool.query('UPDATE student_roster SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
     res.json({ message: 'Student deleted.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
+router.delete('/students', auditLog('delete', 'student'), async (req, res) => {
+  if (denyUniversityAdmin(req, res)) return;
+  try {
+    const { level, school_id, department_id } = req.scope;
+    const { class_id } = req.query;
+    let whereClause = 'sr.deleted_at IS NULL';
+    const params = [];
+    let idx = 1;
+
+    if (class_id) {
+      whereClause += ` AND sr.class_id = $${idx++}`;
+      params.push(class_id);
+    } else if (level === 'department') {
+      whereClause += ` AND c.department_id = $${idx++}`;
+      params.push(department_id);
+    } else if (level === 'school') {
+      whereClause += ` AND c.department_id IN (SELECT id FROM departments WHERE school_id = $${idx++})`;
+      params.push(school_id);
+      if (req.query.department_id) {
+        whereClause += ` AND c.department_id = $${idx++}`;
+        params.push(req.query.department_id);
+      }
+    }
+
+    const result = await pool.query(
+      `UPDATE student_roster sr SET deleted_at = NOW()
+       FROM classes c
+       WHERE c.class_id = sr.class_id AND ${whereClause}
+       RETURNING sr.id`,
+      params
+    );
+    res.json({ message: `${result.rowCount} student(s) deleted.`, count: result.rowCount });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Something went wrong.' });
@@ -1137,6 +1264,23 @@ router.delete('/academic-years/:id', async (req, res) => {
   }
 });
 
+router.delete('/academic-years', async (req, res) => {
+  try {
+    const { university_id } = req.scope;
+    let query = 'DELETE FROM academic_years';
+    const params = [];
+    if (university_id) {
+      query = 'DELETE FROM academic_years WHERE university_id = $1';
+      params.push(university_id);
+    }
+    const result = await pool.query(query, params);
+    res.json({ message: `${result.rowCount} academic year(s) deleted.`, count: result.rowCount });
+  } catch (err) {
+    console.error('Delete all academic years error:', err);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
 // ── Semesters ──
 
 router.get('/semesters', async (req, res) => {
@@ -1239,6 +1383,24 @@ router.delete('/semesters/:id', async (req, res) => {
     res.json({ message: 'Semester deleted.' });
   } catch (err) {
     console.error('Delete semester error:', err);
+    res.status(500).json({ error: 'Something went wrong.' });
+  }
+});
+
+router.delete('/semesters', async (req, res) => {
+  try {
+    const { university_id } = req.scope;
+    let query = 'DELETE FROM semesters';
+    const params = [];
+    if (university_id) {
+      query = `DELETE FROM semesters
+               WHERE academic_year_id IN (SELECT id FROM academic_years WHERE university_id = $1)`;
+      params.push(university_id);
+    }
+    const result = await pool.query(query, params);
+    res.json({ message: `${result.rowCount} semester(s) deleted.`, count: result.rowCount });
+  } catch (err) {
+    console.error('Delete all semesters error:', err);
     res.status(500).json({ error: 'Something went wrong.' });
   }
 });

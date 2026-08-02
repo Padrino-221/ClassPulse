@@ -15,6 +15,7 @@ import ReportsPage from './ReportsPage';
 import PageHeader from '../components/PageHeader';
 import CreateModal from '../components/CreateModal';
 import ConfirmModal from '../components/ConfirmModal';
+import BulkDeleteModal from '../components/BulkDeleteModal';
 import Spinner from '../components/Spinner';
 
 const PAGE_SIZE = 20;
@@ -215,6 +216,34 @@ function EditModal({ entityLabel, fields, data, onSave, onClose }) {
 }
 
 
+function DeleteAllButton({ onClick, label = 'Delete All', variant = 'header' }) {
+  const isHeader = variant === 'header';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+        padding: isHeader ? '0.65rem 1.25rem' : '0.5rem 1rem',
+        background: isHeader ? 'rgba(255,255,255,0.15)' : 'var(--brand-light, #FEF2F2)',
+        color: isHeader ? 'var(--text-inverse)' : 'var(--brand, #DC2626)',
+        border: isHeader ? '1px solid rgba(255,255,255,0.3)' : '1px solid #FCA5A5',
+        borderRadius: '6px',
+        fontSize: isHeader ? '0.8125rem' : '0.8125rem',
+        fontWeight: 600,
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+        whiteSpace: 'nowrap',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = isHeader ? 'rgba(255,255,255,0.25)' : 'var(--brand-light)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = isHeader ? 'rgba(255,255,255,0.15)' : 'var(--brand-light, #FEF2F2)'; }}
+    >
+      <Trash weight="bold" size={16} /> {label}
+    </button>
+  );
+}
+
+
 
 
 
@@ -259,6 +288,18 @@ function LectureHallsPage() {
     await load();
   };
 
+  const [deletingAll, setDeletingAll] = useState(false);
+
+  const deleteAll = async () => {
+    try {
+      const res = await api.delete('/api/lecture-halls');
+      toast.success(res.data.message);
+      await load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete lecture halls.');
+    }
+  };
+
   return (
     <div>
       <PageHeader
@@ -267,6 +308,7 @@ function LectureHallsPage() {
         action={() => setShowCreate(true)}
         actionLabel="New Hall"
         actionIcon={Plus}
+        right={<DeleteAllButton onClick={() => setDeletingAll(true)} />}
       />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
         {lectureHalls.map((h) => (
@@ -352,6 +394,15 @@ function LectureHallsPage() {
           danger
           onConfirm={async () => { await remove(deleting.id); setDeleting(null); }}
           onCancel={() => setDeleting(null)}
+        />
+      )}
+      {deletingAll && (
+        <BulkDeleteModal
+          title="Delete All Lecture Halls"
+          message={`Are you sure you want to delete all ${lectureHalls.length} lecture hall(s)? This cannot be undone.`}
+          confirmLabel="Delete All Lecture Halls"
+          onConfirm={deleteAll}
+          onCancel={() => setDeletingAll(false)}
         />
       )}
     </div>
@@ -802,6 +853,22 @@ function CoursesPage() {
     await load(page, filterSchool, filterDepartment);
   };
 
+  const [deletingAll, setDeletingAll] = useState(false);
+
+  const deleteAll = async () => {
+    try {
+      const params = {};
+      if (filterSchool) params.school_id = filterSchool;
+      if (filterDepartment) params.department_id = filterDepartment;
+      const res = await api.delete('/api/admin/courses', { params });
+      toast.success(res.data.message);
+      setPage(1);
+      await load(1, filterSchool, filterDepartment);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete courses.');
+    }
+  };
+
   const lecturerOptions = lecturers.map((l) => ({ value: l.id, label: l.name }));
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -813,6 +880,9 @@ function CoursesPage() {
         action={isReadOnly ? undefined : () => setShowCreate(true)}
         actionLabel="New Course"
         actionIcon={Plus}
+        right={!isReadOnly ? (
+          <DeleteAllButton onClick={() => setDeletingAll(true)} />
+        ) : undefined}
       />
       <ScopeFilter
         user={user} schools={schools} departments={departments}
@@ -921,6 +991,15 @@ function CoursesPage() {
           onCancel={() => setDeleting(null)}
         />
       )}
+      {deletingAll && (
+        <BulkDeleteModal
+          title="Delete All Courses"
+          message={`Are you sure you want to delete all ${total} course(s) in the current view? This cannot be undone.`}
+          confirmLabel="Delete All Courses"
+          onConfirm={deleteAll}
+          onCancel={() => setDeletingAll(false)}
+        />
+      )}
     </div>
   );
 }
@@ -995,6 +1074,22 @@ function ClassesPage() {
     await load(page, filterSchool, filterDepartment);
   };
 
+  const [deletingAll, setDeletingAll] = useState(false);
+
+  const deleteAll = async () => {
+    try {
+      const params = {};
+      if (filterSchool) params.school_id = filterSchool;
+      if (filterDepartment) params.department_id = filterDepartment;
+      const res = await api.delete('/api/admin/classes', { params });
+      toast.success(res.data.message);
+      setPage(1);
+      await load(1, filterSchool, filterDepartment);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete classes.');
+    }
+  };
+
   const lecturerOptions = lecturers.map((l) => ({ value: l.id, label: l.name }));
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -1006,6 +1101,9 @@ function ClassesPage() {
         action={isReadOnly ? undefined : () => setShowCreate(true)}
         actionLabel="New Class"
         actionIcon={Plus}
+        right={!isReadOnly ? (
+          <DeleteAllButton onClick={() => setDeletingAll(true)} />
+        ) : undefined}
       />
       <ScopeFilter
         user={user} schools={schools} departments={departments}
@@ -1117,6 +1215,15 @@ function ClassesPage() {
           onCancel={() => setDeleting(null)}
         />
       )}
+      {deletingAll && (
+        <BulkDeleteModal
+          title="Delete All Classes"
+          message={`Are you sure you want to delete all ${total} class(es) in the current view? This cannot be undone.`}
+          confirmLabel="Delete All Classes"
+          onConfirm={deleteAll}
+          onCancel={() => setDeletingAll(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1182,6 +1289,22 @@ function LecturersPage() {
     await load(page, filterSchool, filterDepartment);
   };
 
+  const [deletingAll, setDeletingAll] = useState(false);
+
+  const deleteAll = async () => {
+    try {
+      const params = {};
+      if (filterSchool) params.school_id = filterSchool;
+      if (filterDepartment) params.department_id = filterDepartment;
+      const res = await api.delete('/api/admin/lecturers', { params });
+      toast.success(res.data.message);
+      setPage(1);
+      await load(1, filterSchool, filterDepartment);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete lecturers.');
+    }
+  };
+
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
@@ -1192,6 +1315,9 @@ function LecturersPage() {
         action={isReadOnly ? undefined : () => setShowCreate(true)}
         actionLabel="New Lecturer"
         actionIcon={Plus}
+        right={!isReadOnly ? (
+          <DeleteAllButton onClick={() => setDeletingAll(true)} />
+        ) : undefined}
       />
       <ScopeFilter
         user={user} schools={schools} departments={departments}
@@ -1283,6 +1409,15 @@ function LecturersPage() {
           onClose={() => setEditing(null)}
         />
       )}
+      {deletingAll && (
+        <BulkDeleteModal
+          title="Delete All Lecturers"
+          message={`Are you sure you want to delete all ${total} lecturer(s) in the current view? This cannot be undone.`}
+          confirmLabel="Delete All Lecturers"
+          onConfirm={deleteAll}
+          onCancel={() => setDeletingAll(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1365,6 +1500,23 @@ function StudentsPage() {
     await loadStudents(selectedClass, page, filterSchool, filterDepartment);
   };
 
+  const [deletingAll, setDeletingAll] = useState(false);
+
+  const deleteAll = async () => {
+    try {
+      const params = {};
+      if (selectedClass) params.class_id = selectedClass;
+      if (filterSchool) params.school_id = filterSchool;
+      if (filterDepartment) params.department_id = filterDepartment;
+      const res = await api.delete('/api/admin/students', { params });
+      toast.success(res.data.message);
+      setPage(1);
+      await loadStudents(selectedClass, 1, filterSchool, filterDepartment);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete students.');
+    }
+  };
+
   const handleBulkImport = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1396,31 +1548,36 @@ function StudentsPage() {
         action={isReadOnly ? undefined : (selectedClass ? () => setShowCreate(true) : undefined)}
         actionLabel="New Student"
         actionIcon={Plus}
-        right={!isReadOnly && selectedClass ? (
+        right={!isReadOnly ? (
           <>
-            <input type="file" accept=".csv" ref={fileRef} onChange={handleBulkImport} style={{ display: 'none' }} />
-            <button
-              type="button"
-              disabled={importing}
-              onClick={() => fileRef.current?.click()}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                padding: '0.65rem 1.25rem',
-                background: 'rgba(255,255,255,0.15)',
-                color: 'var(--text-inverse)',
-                border: '1px solid rgba(255,255,255,0.3)',
-                borderRadius: '6px',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
-            >
-              {importing ? 'Importing...' : 'Import CSV'}
-            </button>
+            {selectedClass && (
+              <input type="file" accept=".csv" ref={fileRef} onChange={handleBulkImport} style={{ display: 'none' }} />
+            )}
+            {selectedClass && (
+              <button
+                type="button"
+                disabled={importing}
+                onClick={() => fileRef.current?.click()}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                  padding: '0.65rem 1.25rem',
+                  background: 'rgba(255,255,255,0.15)',
+                  color: 'var(--text-inverse)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  borderRadius: '6px',
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+              >
+                {importing ? 'Importing...' : 'Import CSV'}
+              </button>
+            )}
+            <DeleteAllButton onClick={() => setDeletingAll(true)} />
             {importResult && (
               <span style={{
                 fontSize: '0.75rem', fontWeight: 600,
@@ -1556,6 +1713,15 @@ function StudentsPage() {
           onCancel={() => setDeleting(null)}
         />
       )}
+      {deletingAll && (
+        <BulkDeleteModal
+          title="Delete All Students"
+          message={`Are you sure you want to delete all ${total} student(s) in the current view? This cannot be undone.`}
+          confirmLabel="Delete All Students"
+          onConfirm={deleteAll}
+          onCancel={() => setDeletingAll(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1605,6 +1771,22 @@ function SchoolsPage() {
     }
   };
 
+  const [deletingAll, setDeletingAll] = useState(false);
+
+  const deleteAll = async () => {
+    try {
+      const res = await api.delete('/api/schools');
+      toast.success(res.data.message);
+      loadSchools();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete schools.');
+    }
+  };
+
+  const isUniversity = useMemo(() => {
+    try { return getStoredUser()?.admin_level === 'university'; } catch { return false; }
+  }, []);
+
   return (
     <div>
       <PageHeader
@@ -1613,6 +1795,9 @@ function SchoolsPage() {
         action={() => setShowCreate(true)}
         actionLabel="New School"
         actionIcon={Plus}
+        right={isUniversity ? (
+          <DeleteAllButton onClick={() => setDeletingAll(true)} />
+        ) : undefined}
       />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
         {schools.map((s) => (
@@ -1693,6 +1878,15 @@ function SchoolsPage() {
           danger
           onConfirm={() => handleDelete(deleting.id)}
           onCancel={() => setDeleting(null)}
+        />
+      )}
+      {deletingAll && (
+        <BulkDeleteModal
+          title="Delete All Schools"
+          message={`Are you sure you want to delete all ${schools.length} school(s)? All departments under them will be removed. This cannot be undone.`}
+          confirmLabel="Delete All Schools"
+          onConfirm={deleteAll}
+          onCancel={() => setDeletingAll(false)}
         />
       )}
       {editing && (
@@ -1776,6 +1970,20 @@ function DepartmentsPage() {
     }
   };
 
+  const [deletingAll, setDeletingAll] = useState(false);
+
+  const deleteAll = async () => {
+    try {
+      const params = {};
+      if (filterSchool) params.school_id = filterSchool;
+      const res = await api.delete('/api/departments', { params });
+      toast.success(res.data.message);
+      loadDepartments();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete departments.');
+    }
+  };
+
   const filtered = useMemo(() => {
     if (!filterSchool) return departments;
     return departments.filter((d) => String(d.school_id) === String(filterSchool));
@@ -1803,6 +2011,9 @@ function DepartmentsPage() {
         action={isReadOnly ? undefined : () => setShowCreate(true)}
         actionLabel="New Department"
         actionIcon={Plus}
+        right={!isReadOnly ? (
+          <DeleteAllButton onClick={() => setDeletingAll(true)} />
+        ) : undefined}
       />
       {isReadOnly && (
         <div style={{ maxWidth: '320px', marginBottom: '1.25rem' }}>
@@ -1917,6 +2128,15 @@ function DepartmentsPage() {
           onCancel={() => setDeleting(null)}
         />
       )}
+      {deletingAll && (
+        <BulkDeleteModal
+          title="Delete All Departments"
+          message={`Are you sure you want to delete all ${filtered.length} department(s) in the current view? Courses and lecturers will be unassigned. This cannot be undone.`}
+          confirmLabel="Delete All Departments"
+          onConfirm={deleteAll}
+          onCancel={() => setDeletingAll(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1974,6 +2194,29 @@ function AcademicTermsPage() {
     await load();
   };
 
+  const [deletingAllYears, setDeletingAllYears] = useState(false);
+  const [deletingAllSemesters, setDeletingAllSemesters] = useState(false);
+
+  const deleteAllYears = async () => {
+    try {
+      const res = await api.delete('/api/admin/academic-years');
+      toast.success(res.data.message);
+      await load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete academic years.');
+    }
+  };
+
+  const deleteAllSemesters = async () => {
+    try {
+      const res = await api.delete('/api/admin/semesters');
+      toast.success(res.data.message);
+      await load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete semesters.');
+    }
+  };
+
   const activateSemester = async (id) => {
     try {
       await api.post(`/api/admin/semesters/${id}/activate`);
@@ -1996,14 +2239,17 @@ function AcademicTermsPage() {
       {/* Academic Years */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
         <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>Academic Years</h2>
-        <button onClick={() => setShowCreateYear(true)} style={{
-          display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-          padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 600,
-          color: '#DC2626', backgroundColor: 'var(--brand-light)', border: 'none', borderRadius: '6px',
-          cursor: 'pointer',
-        }}>
-          <Plus size={14} /> New Year
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <DeleteAllButton label="Delete All Years" onClick={() => setDeletingAllYears(true)} />
+          <button onClick={() => setShowCreateYear(true)} style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+            padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 600,
+            color: '#DC2626', backgroundColor: 'var(--brand-light)', border: 'none', borderRadius: '6px',
+            cursor: 'pointer',
+          }}>
+            <Plus size={14} /> New Year
+          </button>
+        </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
         {academicYears.map((y) => (
@@ -2046,14 +2292,17 @@ function AcademicTermsPage() {
       {/* Semesters */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
         <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>Semesters</h2>
-        <button onClick={() => setShowCreateSemester(true)} style={{
-          display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-          padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 600,
-          color: '#DC2626', backgroundColor: 'var(--brand-light)', border: 'none', borderRadius: '6px',
-          cursor: 'pointer',
-        }}>
-          <Plus size={14} /> New Semester
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <DeleteAllButton label="Delete All Semesters" onClick={() => setDeletingAllSemesters(true)} />
+          <button onClick={() => setShowCreateSemester(true)} style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+            padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 600,
+            color: '#DC2626', backgroundColor: 'var(--brand-light)', border: 'none', borderRadius: '6px',
+            cursor: 'pointer',
+          }}>
+            <Plus size={14} /> New Semester
+          </button>
+        </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
         {semesters.map((s) => (
@@ -2197,6 +2446,24 @@ function AcademicTermsPage() {
           danger
           onConfirm={async () => { await removeSemester(deletingSemester.id); setDeletingSemester(null); }}
           onCancel={() => setDeletingSemester(null)}
+        />
+      )}
+      {deletingAllYears && (
+        <BulkDeleteModal
+          title="Delete All Academic Years"
+          message={`Are you sure you want to delete all ${academicYears.length} academic year(s)? Their semesters will also be removed. This cannot be undone.`}
+          confirmLabel="Delete All Years"
+          onConfirm={deleteAllYears}
+          onCancel={() => setDeletingAllYears(false)}
+        />
+      )}
+      {deletingAllSemesters && (
+        <BulkDeleteModal
+          title="Delete All Semesters"
+          message={`Are you sure you want to delete all ${semesters.length} semester(s)? This cannot be undone.`}
+          confirmLabel="Delete All Semesters"
+          onConfirm={deleteAllSemesters}
+          onCancel={() => setDeletingAllSemesters(false)}
         />
       )}
     </div>

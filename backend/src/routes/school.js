@@ -128,6 +128,75 @@ router.put('/:id', [
   }
 });
 
+// DELETE / — Soft-delete all schools in the admin's university (cascade)
+router.delete('/', async (req, res) => {
+  if (req.scope.level !== 'university') {
+    return res.status(403).json({ error: 'University admin access required.' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { university_id } = req.scope;
+
+    const schoolIds = await client.query(
+      'SELECT id FROM schools WHERE university_id = $1 AND deleted_at IS NULL',
+      [university_id]
+    );
+    const ids = schoolIds.rows.map(r => r.id);
+    if (ids.length === 0) {
+      await client.query('COMMIT');
+      return res.json({ message: '0 school(s) deleted.', count: 0 });
+    }
+
+    // Cascade soft-delete: courses -> deactivate sessions -> classes -> lecturers -> departments
+    await client.query(
+      `UPDATE courses SET deleted_at = NOW()
+       WHERE department_id IN (SELECT id FROM departments WHERE school_id = ANY($1) AND deleted_at IS NULL)
+         AND deleted_at IS NULL`,
+      [ids]
+    );
+    await client.query(
+      `UPDATE active_sessions SET is_active = FALSE
+       WHERE course_id IN (
+         SELECT c.id FROM courses c
+         JOIN departments d ON d.id = c.department_id
+         WHERE d.school_id = ANY($1) AND d.deleted_at IS NULL
+       )
+         AND is_active = TRUE`,
+      [ids]
+    );
+    await client.query(
+      `UPDATE classes SET deleted_at = NOW()
+       WHERE department_id IN (SELECT id FROM departments WHERE school_id = ANY($1) AND deleted_at IS NULL)
+         AND deleted_at IS NULL`,
+      [ids]
+    );
+    await client.query(
+      `UPDATE lecturers SET deleted_at = NOW()
+       WHERE department_id IN (SELECT id FROM departments WHERE school_id = ANY($1) AND deleted_at IS NULL)
+         AND deleted_at IS NULL`,
+      [ids]
+    );
+    await client.query(
+      'UPDATE departments SET deleted_at = NOW() WHERE school_id = ANY($1) AND deleted_at IS NULL',
+      [ids]
+    );
+    const result = await client.query(
+      'UPDATE schools SET deleted_at = NOW() WHERE university_id = $1 AND deleted_at IS NULL RETURNING id',
+      [university_id]
+    );
+
+    await client.query('COMMIT');
+    res.json({ message: `${result.rowCount} school(s) deleted.`, count: result.rowCount });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Delete all schools error:', err);
+    res.status(500).json({ error: 'Something went wrong.' });
+  } finally {
+    client.release();
+  }
+});
+
 // DELETE /:id — Soft-delete school and cascade to departments, courses, classes, lecturers
 router.delete('/:id', [
   param('id').isInt({ min: 1 }),
