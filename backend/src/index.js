@@ -187,13 +187,13 @@ if (require.main === module) {
            WHERE is_active = FALSE
              AND scheduled_at IS NOT NULL
              AND scheduled_at <= NOW()
-           RETURNING session_id, course_code, class_id, week_number, pin_seed,
+           RETURNING session_id, course_id, course_code, class_id, week_number, pin_seed,
                      pin_spinning, lecture_hall_id`
         );
 
         // Fetch class names and course names for activated sessions
         const classIds = result.rows.map((r) => r.class_id);
-        const courseCodes = result.rows.map((r) => r.course_code);
+        const courseIds = result.rows.map((r) => r.course_id);
         const classMap = {};
         const courseMap = {};
         if (classIds.length > 0) {
@@ -205,11 +205,11 @@ if (require.main === module) {
             classMap[row.class_id] = row.class_name;
           }
           const courseRes = await pool.query(
-            `SELECT course_code, course_name FROM courses WHERE course_code = ANY($1)`,
-            [courseCodes]
+            `SELECT id, course_code, course_name FROM courses WHERE id = ANY($1)`,
+            [courseIds]
           );
           for (const row of courseRes.rows) {
-            courseMap[row.course_code] = row.course_name;
+            courseMap[row.id] = row;
           }
         }
 
@@ -223,7 +223,7 @@ if (require.main === module) {
               static_pin: staticPin,
               pin_spinning: row.pin_spinning,
               course_code: row.course_code,
-              course_name: courseMap[row.course_code] || null,
+              course_name: (courseMap[row.course_id] && courseMap[row.course_id].course_name) || null,
               class_id: row.class_id,
               class_name: classMap[row.class_id] || null,
               week_number: row.week_number,

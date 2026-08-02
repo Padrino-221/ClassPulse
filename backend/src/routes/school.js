@@ -19,9 +19,9 @@ router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT s.id, s.name, s.code, s.created_at,
-              (SELECT COUNT(*) FROM departments d WHERE d.school_id = s.id) AS department_count
+              (SELECT COUNT(*) FROM departments d WHERE d.school_id = s.id AND d.deleted_at IS NULL) AS department_count
        FROM schools s
-       WHERE s.university_id = $1
+       WHERE s.university_id = $1 AND s.deleted_at IS NULL
        ORDER BY s.name`,
       [university_id]
     );
@@ -128,7 +128,7 @@ router.put('/:id', [
   }
 });
 
-// DELETE /:id — Delete school (cascades to departments)
+// DELETE /:id — Soft-delete school and cascade to departments, courses, classes, lecturers
 router.delete('/:id', [
   param('id').isInt({ min: 1 }),
 ], async (req, res) => {
@@ -136,16 +136,58 @@ router.delete('/:id', [
     return res.status(403).json({ error: 'University admin access required.' });
   }
   const { id } = req.params;
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
-      'DELETE FROM schools WHERE id = $1 AND university_id = $2 RETURNING id',
+    await client.query('BEGIN');
+    // Cascade soft-delete: departments -> courses/classes/lecturers
+    await client.query(
+      `UPDATE courses SET deleted_at = NOW()
+       WHERE department_id IN (SELECT d.id FROM departments d WHERE d.school_id = $1)
+         AND deleted_at IS NULL`,
+      [id]
+    );
+    await client.query(
+      `UPDATE active_sessions SET is_active = FALSE
+       WHERE course_id IN (
+         SELECT c.id FROM courses c
+         JOIN departments d ON d.id = c.department_id
+         WHERE d.school_id = $1
+       )
+         AND is_active = TRUE`,
+      [id]
+    );
+    await client.query(
+      `UPDATE classes SET deleted_at = NOW()
+       WHERE department_id IN (SELECT d.id FROM departments d WHERE d.school_id = $1)
+         AND deleted_at IS NULL`,
+      [id]
+    );
+    await client.query(
+      `UPDATE lecturers SET deleted_at = NOW()
+       WHERE department_id IN (SELECT d.id FROM departments d WHERE d.school_id = $1)
+         AND deleted_at IS NULL`,
+      [id]
+    );
+    await client.query(
+      'UPDATE departments SET deleted_at = NOW() WHERE school_id = $1 AND deleted_at IS NULL',
+      [id]
+    );
+    const result = await client.query(
+      'UPDATE schools SET deleted_at = NOW() WHERE id = $1 AND university_id = $2 AND deleted_at IS NULL RETURNING id',
       [id, req.scope.university_id]
     );
-    if (result.rows.length === 0) return res.status(404).json({ error: 'School not found.' });
+    if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'School not found.' });
+    }
+    await client.query('COMMIT');
     res.json({ message: 'School deleted.', id: result.rows[0].id });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Delete school error:', err);
     res.status(500).json({ error: 'Something went wrong.' });
+  } finally {
+    client.release();
   }
 });
 

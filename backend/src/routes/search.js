@@ -109,11 +109,11 @@ router.get('/', async (req, res) => {
 
       // Courses assigned to this lecturer
       const courses = await pool.query(
-        `SELECT c.course_code, c.course_name
-         FROM courses c
-         JOIN course_lecturers cl ON cl.course_code = c.course_code AND cl.lecturer_id = $1
-         WHERE (c.course_code ILIKE $2 OR c.course_name ILIKE $2)
-         LIMIT $3`,
+         `SELECT c.course_code, c.course_name
+          FROM courses c
+          JOIN course_lecturers cl ON cl.course_id = c.id AND cl.lecturer_id = $1
+          WHERE (c.course_code ILIKE $2 OR c.course_name ILIKE $2)
+          LIMIT $3`,
         [lecturerId, pattern, MAX_RESULTS]
       );
       for (const r of courses.rows) {
@@ -149,11 +149,11 @@ router.get('/', async (req, res) => {
 
       // Sessions by this lecturer
       const sessions = await pool.query(
-        `SELECT s.session_id, c.course_code, cl.class_name, s.week_number
-         FROM active_sessions s
-         JOIN classes cl ON cl.class_id = s.class_id
-         JOIN courses c ON c.course_code = s.course_code
-         WHERE s.lecturer_id = $1
+         `SELECT s.session_id, c.course_code, cl.class_name, s.week_number
+          FROM active_sessions s
+          JOIN classes cl ON cl.class_id = s.class_id
+          JOIN courses c ON c.id = s.course_id
+          WHERE s.lecturer_id = $1
            AND (c.course_code ILIKE $2 OR cl.class_name ILIKE $2 OR CAST(s.week_number AS TEXT) ILIKE $2)
          ORDER BY s.created_at DESC
          LIMIT $3`,

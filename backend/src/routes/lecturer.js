@@ -42,7 +42,7 @@ router.post(
       }
 
       const courseCheck = await pool.query(
-        'SELECT total_weeks, course_name FROM courses WHERE course_code = $1',
+        'SELECT id, total_weeks, course_name FROM courses WHERE course_code = $1',
         [course_code]
       );
 
@@ -51,6 +51,7 @@ router.post(
       }
 
       const courseName = courseCheck.rows[0].course_name;
+      const courseId = courseCheck.rows[0].id;
 
       const client = await pool.connect();
       const created = [];
@@ -61,9 +62,9 @@ router.post(
           // Prevent duplicate week: one session per course + class + week
           const duplicate = await client.query(
             `SELECT session_id FROM active_sessions
-             WHERE course_code = $1 AND class_id = $2 AND week_number = $3
+             WHERE course_id = $1 AND class_id = $2 AND week_number = $3
              FOR UPDATE`,
-            [course_code, classId, week_number]
+            [courseId, classId, week_number]
           );
           if (duplicate.rows.length > 0) {
             await client.query('ROLLBACK');
@@ -74,12 +75,13 @@ router.post(
 
           const result = await client.query(
             `INSERT INTO active_sessions (
-               course_code, class_id, lecturer_id, week_number, pin_seed,
+               course_id, course_code, class_id, lecturer_id, week_number, pin_seed,
                pin_spinning, lecture_hall_id, semester_id, expires_at
              )
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW() + INTERVAL '1 minute' * $9)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW() + INTERVAL '1 minute' * $10)
              RETURNING session_id, pin_seed, created_at, expires_at`,
             [
+              courseId,
               course_code,
               classId,
               lecturerId,
@@ -174,12 +176,13 @@ router.post(
       }
 
       const courseCheck = await pool.query(
-        'SELECT total_weeks FROM courses WHERE course_code = $1',
+        'SELECT id, total_weeks FROM courses WHERE course_code = $1',
         [course_code]
       );
       if (courseCheck.rows.length === 0) {
         return res.status(404).json({ error: 'Course not found.' });
       }
+      const courseId = courseCheck.rows[0].id;
 
       const sessionDate = new Date(scheduled_date);
       if (isNaN(sessionDate.getTime())) {
@@ -199,9 +202,9 @@ router.post(
         for (const classId of class_ids) {
           const duplicate = await client.query(
             `SELECT session_id FROM active_sessions
-             WHERE course_code = $1 AND class_id = $2 AND week_number = $3
+             WHERE course_id = $1 AND class_id = $2 AND week_number = $3
              FOR UPDATE`,
-            [course_code, classId, week_number]
+            [courseId, classId, week_number]
           );
           if (duplicate.rows.length > 0) {
             await client.query('ROLLBACK');
@@ -213,14 +216,14 @@ router.post(
           const pinSeed = generateSeed();
           const result = await client.query(
             `INSERT INTO active_sessions (
-               course_code, class_id, lecturer_id, week_number, pin_seed,
+               course_id, course_code, class_id, lecturer_id, week_number, pin_seed,
                pin_spinning, lecture_hall_id,
                semester_id, scheduled_at, expires_at, is_active
              )
-             VALUES ($1, $2, $3, $4, $5, FALSE, $6, $7, $8, $9, FALSE)
+             VALUES ($1, $2, $3, $4, $5, $6, FALSE, $7, $8, $9, $10, FALSE)
              RETURNING session_id, created_at, expires_at`,
             [
-              course_code, classId, lecturerId, week_number, pinSeed,
+              courseId, course_code, classId, lecturerId, week_number, pinSeed,
               lecture_hall_id,
               activeSemester.id, sessionDate, expiresAt,
             ]
@@ -264,7 +267,7 @@ router.get('/scheduled', async (req, res) => {
               s.scheduled_at, s.expires_at, s.pin_spinning, s.pin_seed,
               c.course_name, cl.class_name, lh.name AS lecture_hall_name
        FROM active_sessions s
-       JOIN courses c ON c.course_code = s.course_code
+       JOIN courses c ON c.id = s.course_id
        JOIN classes cl ON cl.class_id = s.class_id
        LEFT JOIN lecture_halls lh ON lh.id = s.lecture_hall_id
        WHERE s.lecturer_id = $1
@@ -343,7 +346,8 @@ router.get('/courses/:code/classes', async (req, res) => {
       `SELECT DISTINCT cl.class_id, cl.class_name
        FROM active_sessions s
        JOIN classes cl ON cl.class_id = s.class_id
-       WHERE s.course_code = $1
+       JOIN courses c ON c.id = s.course_id
+       WHERE c.course_code = $1
          AND s.lecturer_id = $2
        ORDER BY cl.class_name`,
       [code, req.user.id]
@@ -386,7 +390,7 @@ router.get('/sessions', async (req, res) => {
               as2.created_at, as2.expires_at, as2.is_active,
               (SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = as2.session_id) AS attendance_count
        FROM active_sessions as2
-       JOIN courses c ON c.course_code = as2.course_code
+       JOIN courses c ON c.id = as2.course_id
        JOIN classes cl ON cl.class_id = as2.class_id
        WHERE as2.lecturer_id = $1
        ORDER BY as2.created_at DESC
@@ -431,8 +435,8 @@ router.get('/history', (req, res, next) => {
   try {
     // Verify the course and class belong to this lecturer
     const course = await pool.query(
-      `SELECT c.total_weeks, c.min_attendance_pct FROM courses c
-       JOIN course_lecturers cl ON cl.course_code = c.course_code AND cl.lecturer_id = $2
+      `SELECT c.id, c.total_weeks, c.min_attendance_pct FROM courses c
+       JOIN course_lecturers cl ON cl.course_id = c.id AND cl.lecturer_id = $2
        WHERE c.course_code = $1`,
       [course_code, req.user.id]
     );
@@ -449,6 +453,7 @@ router.get('/history', (req, res, next) => {
     }
 
     const minPct = course.rows[0].min_attendance_pct;
+    const courseId = course.rows[0].id;
 
     const students = await pool.query(
       'SELECT id, index_number, student_name FROM student_roster WHERE class_id = $1 ORDER BY student_name',
@@ -474,13 +479,13 @@ router.get('/history', (req, res, next) => {
          SELECT generate_series(1, $1) AS week_number
        ) weeks
        LEFT JOIN active_sessions as2
-         ON as2.course_code = $2 AND as2.class_id = $3 AND as2.week_number = weeks.week_number
+         ON as2.course_id = $2 AND as2.class_id = $3 AND as2.week_number = weeks.week_number
        LEFT JOIN attendance_records ar
          ON ar.session_id = as2.session_id AND ar.index_number = sr.index_number
        WHERE sr.class_id = $3
        GROUP BY sr.id, sr.index_number, weeks.week_number
        ORDER BY sr.student_name, weeks.week_number`,
-      [totalWeeks, course_code, class_id]
+      [totalWeeks, courseId, class_id]
     );
 
     // Build matrix from flat result
@@ -489,8 +494,8 @@ router.get('/history', (req, res, next) => {
     const sessionWeeksSet = new Set();
 
     const activeWeeksResult = await pool.query(
-      'SELECT DISTINCT week_number FROM active_sessions WHERE course_code = $1 AND class_id = $2 ORDER BY week_number',
-      [course_code, class_id]
+      'SELECT DISTINCT week_number FROM active_sessions WHERE course_id = $1 AND class_id = $2 ORDER BY week_number',
+      [courseId, class_id]
     );
     const sessionWeeks = activeWeeksResult.rows.map(r => r.week_number);
     sessionWeeks.forEach(w => sessionWeeksSet.add(w));
@@ -560,16 +565,20 @@ router.get('/history/export', async (req, res) => {
     const [studentsRes, courseRes, classRes, sessionsRes, lecturerRes, semesterRes, hierarchyRes] = await Promise.all([
       pool.query('SELECT id, index_number, student_name FROM student_roster WHERE class_id = $1 ORDER BY student_name', [class_id]),
       pool.query(`SELECT c.course_code, c.course_name, c.total_weeks, c.department_id FROM courses c
-        JOIN course_lecturers cl ON cl.course_code = c.course_code AND cl.lecturer_id = $2
+        JOIN course_lecturers cl ON cl.course_id = c.id AND cl.lecturer_id = $2
         WHERE c.course_code = $1`, [course_code, req.user.id]),
       pool.query('SELECT class_name FROM classes WHERE class_id = $1', [class_id]),
-      pool.query('SELECT session_id, week_number FROM active_sessions WHERE course_code = $1 AND class_id = $2 ORDER BY week_number', [course_code, class_id]),
+      pool.query(`SELECT s.session_id, s.week_number
+        FROM active_sessions s
+        JOIN courses c ON c.id = s.course_id
+        WHERE c.course_code = $1 AND s.class_id = $2 ORDER BY s.week_number`, [course_code, class_id]),
       pool.query('SELECT name FROM lecturers WHERE id = $1', [req.user.id]),
       pool.query(`SELECT sem.label AS semester_label, ay.label AS year_label
         FROM active_sessions s
+        JOIN courses c ON c.id = s.course_id
         JOIN semesters sem ON sem.id = s.semester_id
         JOIN academic_years ay ON ay.id = sem.academic_year_id
-        WHERE s.course_code = $1 AND s.class_id = $2 AND s.semester_id IS NOT NULL
+        WHERE c.course_code = $1 AND s.class_id = $2 AND s.semester_id IS NOT NULL
         LIMIT 1`, [course_code, class_id]),
       pool.query(`SELECT d.name AS dept_name, sc.name AS school_name
         FROM courses c
@@ -864,7 +873,7 @@ router.get('/courses', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT c.* FROM courses c
-       JOIN course_lecturers cl ON cl.course_code = c.course_code AND cl.lecturer_id = $1
+       JOIN course_lecturers cl ON cl.course_id = c.id AND cl.lecturer_id = $1
        ORDER BY c.course_name`,
       [req.user.id]
     );

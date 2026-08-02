@@ -139,7 +139,7 @@ class SessionCache {
               s.lecture_hall_id, s.course_code, c.course_name, s.class_id, cl.class_name, s.week_number, s.is_active, s.expires_at
        FROM active_sessions s
        LEFT JOIN classes cl ON cl.class_id = s.class_id
-       LEFT JOIN courses c ON c.course_code = s.course_code
+       LEFT JOIN courses c ON c.id = s.course_id
        WHERE s.is_active = TRUE AND s.expires_at > NOW()`
     );
     this.sessions.clear();

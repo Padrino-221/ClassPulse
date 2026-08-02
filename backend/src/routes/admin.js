@@ -209,10 +209,10 @@ router.get('/courses', async (req, res) => {
               COALESCE(json_agg(json_build_object('id', l.id, 'name', l.name))
                 FILTER (WHERE l.id IS NOT NULL), '[]') AS lecturers
        FROM courses c
-       LEFT JOIN course_lecturers cl ON cl.course_code = c.course_code
+       LEFT JOIN course_lecturers cl ON cl.course_id = c.id
        LEFT JOIN lecturers l ON l.id = cl.lecturer_id
        ${whereClause}
-       GROUP BY c.course_code
+       GROUP BY c.id
        ORDER BY c.course_name
        LIMIT $${idx++} OFFSET $${idx++}`,
       qParams
@@ -248,10 +248,11 @@ router.post(
         'INSERT INTO courses (course_code, course_name, total_weeks, min_attendance_pct, department_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
         [course_code.toUpperCase(), course_name, total_weeks, min_attendance_pct ?? 70, departmentId]
       );
+      const courseId = result.rows[0].id;
       for (const lid of lecturer_ids) {
         await client.query(
-          'INSERT INTO course_lecturers (course_code, lecturer_id) VALUES ($1, $2)',
-          [course_code.toUpperCase(), lid]
+          'INSERT INTO course_lecturers (course_id, lecturer_id) VALUES ($1, $2)',
+          [courseId, lid]
         );
       }
       await client.query('COMMIT');
@@ -291,11 +292,12 @@ router.put(
         await client.query('ROLLBACK');
         return res.status(404).json({ error: 'Course not found.' });
       }
-      await client.query('DELETE FROM course_lecturers WHERE course_code = $1', [req.params.code]);
+      const courseId = result.rows[0].id;
+      await client.query('DELETE FROM course_lecturers WHERE course_id = $1', [courseId]);
       for (const lid of req.body.lecturer_ids) {
         await client.query(
-          'INSERT INTO course_lecturers (course_code, lecturer_id) VALUES ($1, $2)',
-          [req.params.code, lid]
+          'INSERT INTO course_lecturers (course_id, lecturer_id) VALUES ($1, $2)',
+          [courseId, lid]
         );
       }
       await client.query('COMMIT');
@@ -671,6 +673,8 @@ router.get('/export/semester', async (req, res) => {
   }
 
   try {
+    const { level, school_id, department_id } = req.scope;
+
     // Fetch university name for header
     let uniName = 'ClassPulse University';
     let schoolName = '';
@@ -702,8 +706,6 @@ router.get('/export/semester', async (req, res) => {
     const darkText = 'FF1E293B';
     const mutedText = 'FF64748B';
 
-    const { level, school_id, department_id } = req.scope;
-
     let scopeWhere = '';
     const scopeParams = [];
     if (level === 'department') {
@@ -718,7 +720,7 @@ router.get('/export/semester', async (req, res) => {
       `SELECT s.session_id, s.course_code, c.course_name, s.class_id, cl.class_name,
               l.name AS lecturer_name, s.week_number, s.created_at, s.expires_at, s.is_active
        FROM active_sessions s
-       JOIN courses c ON c.course_code = s.course_code
+       JOIN courses c ON c.id = s.course_id
        JOIN classes cl ON cl.class_id = s.class_id
        LEFT JOIN lecturers l ON l.id = s.lecturer_id
        WHERE s.created_at >= $1 AND s.created_at < ($2::date + INTERVAL '1 day')${scopeWhere}
@@ -773,9 +775,9 @@ router.get('/export/semester', async (req, res) => {
       `SELECT c.course_code, c.course_name, c.total_weeks, c.min_attendance_pct,
               COALESCE(json_agg(DISTINCT jsonb_build_object('name', l.name)) FILTER (WHERE l.name IS NOT NULL), '[]') AS lecturers
        FROM courses c
-       LEFT JOIN course_lecturers cl ON cl.course_code = c.course_code
+       LEFT JOIN course_lecturers cl ON cl.course_id = c.id
        LEFT JOIN lecturers l ON l.id = cl.lecturer_id${courseScopeWhere}
-       GROUP BY c.course_code
+       GROUP BY c.id
        ORDER BY c.course_name`,
       courseScopeParams
     );
@@ -1040,7 +1042,7 @@ router.post('/reset',
     return res.status(400).json({ error: 'Confirmation text did not match "DELETE ALL".' });
   }
 
-  const allowedScopes = ['attendance', 'sessions', 'all'];
+  const allowedScopes = ['students', 'all'];
   if (!scope || !allowedScopes.includes(scope)) {
     return res.status(400).json({ error: `scope must be one of: ${allowedScopes.join(', ')}` });
   }
@@ -1049,21 +1051,10 @@ router.post('/reset',
   try {
     await client.query('BEGIN');
 
-    if (scope === 'attendance') {
-      const r = await client.query('UPDATE attendance_records SET deleted_at = NOW() WHERE deleted_at IS NULL');
+    if (scope === 'students') {
+      const r = await client.query('UPDATE student_roster SET deleted_at = NOW() WHERE deleted_at IS NULL');
       await client.query('COMMIT');
-      return res.json({ message: 'All attendance records soft-deleted.', count: r.rowCount });
-    }
-
-    if (scope === 'sessions') {
-      const r1 = await client.query('UPDATE attendance_records SET deleted_at = NOW() WHERE deleted_at IS NULL');
-      const r2 = await client.query('UPDATE active_sessions SET deleted_at = NOW() WHERE deleted_at IS NULL');
-      await client.query('COMMIT');
-      return res.json({
-        message: 'All sessions and attendance records soft-deleted.',
-        attendance_deleted: r1.rowCount,
-        sessions_deleted: r2.rowCount,
-      });
+      return res.json({ message: 'All student records soft-deleted.', count: r.rowCount });
     }
 
     // scope === 'all'
@@ -1340,8 +1331,8 @@ router.get('/university-stats', async (req, res) => {
   try {
     const { university_id } = req.scope;
     const [schoolsRes, departmentsRes, coursesRes, lecturersRes, classesRes, studentsRes, hallsRes, adminsRes, sessionsRes] = await Promise.all([
-      pool.query('SELECT COUNT(*) FROM schools WHERE university_id = $1', [university_id]),
-      pool.query('SELECT COUNT(*) FROM departments d JOIN schools s ON s.id = d.school_id WHERE s.university_id = $1', [university_id]),
+      pool.query('SELECT COUNT(*) FROM schools WHERE university_id = $1 AND deleted_at IS NULL', [university_id]),
+      pool.query('SELECT COUNT(*) FROM departments d JOIN schools s ON s.id = d.school_id WHERE s.university_id = $1 AND d.deleted_at IS NULL', [university_id]),
       pool.query('SELECT COUNT(*) FROM courses co JOIN departments d ON d.id = co.department_id JOIN schools s ON s.id = d.school_id WHERE s.university_id = $1 AND co.deleted_at IS NULL', [university_id]),
       pool.query('SELECT COUNT(*) FROM lecturers l JOIN departments d ON d.id = l.department_id JOIN schools s ON s.id = d.school_id WHERE s.university_id = $1 AND l.deleted_at IS NULL', [university_id]),
       pool.query('SELECT COUNT(*) FROM classes cl JOIN departments d ON d.id = cl.department_id JOIN schools s ON s.id = d.school_id WHERE s.university_id = $1 AND cl.deleted_at IS NULL', [university_id]),
@@ -1349,7 +1340,7 @@ router.get('/university-stats', async (req, res) => {
       pool.query('SELECT COUNT(*) FROM lecture_halls WHERE university_id = $1', [university_id]),
       pool.query("SELECT COUNT(*) FROM admins WHERE university_id = $1 AND role != 'university' AND deleted_at IS NULL", [university_id]),
       pool.query(`SELECT COUNT(*) FROM active_sessions a
-                  JOIN courses co ON co.course_code = a.course_code
+                  JOIN courses co ON co.id = a.course_id
                   JOIN departments d ON d.id = co.department_id
                   JOIN schools s ON s.id = d.school_id
                   WHERE s.university_id = $1 AND a.is_active = true`, [university_id]),
@@ -1389,7 +1380,7 @@ router.get('/recent-sessions', async (req, res) => {
                        ELSE 0 END AS attendance_rate,
                      CASE WHEN ss.is_active = true THEN 'in_progress' ELSE 'completed' END AS status
               FROM active_sessions ss
-              JOIN courses co ON co.course_code = ss.course_code
+              JOIN courses co ON co.id = ss.course_id
               JOIN departments d ON d.id = co.department_id
               JOIN schools s ON s.id = d.school_id
               WHERE s.university_id = $1
@@ -1406,7 +1397,7 @@ router.get('/recent-sessions', async (req, res) => {
                        ELSE 0 END AS attendance_rate,
                      CASE WHEN ss.is_active = true THEN 'in_progress' ELSE 'completed' END AS status
               FROM active_sessions ss
-              JOIN courses co ON co.course_code = ss.course_code
+              JOIN courses co ON co.id = ss.course_id
               JOIN departments d ON d.id = co.department_id
               WHERE d.school_id = $1
               ORDER BY ss.created_at DESC LIMIT 7`;
@@ -1422,7 +1413,7 @@ router.get('/recent-sessions', async (req, res) => {
                        ELSE 0 END AS attendance_rate,
                      CASE WHEN ss.is_active = true THEN 'in_progress' ELSE 'completed' END AS status
               FROM active_sessions ss
-              JOIN courses co ON co.course_code = ss.course_code
+              JOIN courses co ON co.id = ss.course_id
               WHERE co.department_id = $1
               ORDER BY ss.created_at DESC LIMIT 7`;
       params = [department_id];
@@ -1453,7 +1444,7 @@ router.get('/school-stats', async (req, res) => {
                    JOIN departments d ON d.id = cl.department_id
                    WHERE d.school_id = $1 AND sr.deleted_at IS NULL`, [school_id]),
       pool.query(`SELECT COUNT(*) FROM active_sessions ss
-                   JOIN courses co ON co.course_code = ss.course_code
+                   JOIN courses co ON co.id = ss.course_id
                    JOIN departments d ON d.id = co.department_id
                    WHERE d.school_id = $1 AND ss.is_active = true`, [school_id]),
       pool.query(`SELECT COALESCE(ROUND(AVG(subq.rate)), 0) AS avg_attendance
@@ -1463,7 +1454,7 @@ router.get('/school-stats', async (req, res) => {
                               THEN (COUNT(ar.record_id)::numeric / COUNT(sr.id)) * 100
                               ELSE 0 END AS rate
                      FROM active_sessions ss
-                     JOIN courses co ON co.course_code = ss.course_code
+                     JOIN courses co ON co.id = ss.course_id
                      JOIN departments d ON d.id = co.department_id
                      LEFT JOIN attendance_records ar ON ar.session_id = ss.session_id
                      LEFT JOIN student_roster sr ON sr.class_id = ss.class_id
@@ -1502,7 +1493,7 @@ router.get('/recent-activity', async (req, res) => {
                         / NULLIF((SELECT COUNT(*) FROM student_roster WHERE class_id = ss.class_id), 0) * 100
                       ), 0) AS rate
                FROM active_sessions ss
-               JOIN courses co ON co.course_code = ss.course_code
+               JOIN courses co ON co.id = ss.course_id
                JOIN departments d ON d.id = co.department_id
                WHERE d.school_id = $1 AND ss.created_at >= NOW() - INTERVAL '7 days'
                ORDER BY ss.created_at DESC LIMIT 10`;
@@ -1515,7 +1506,7 @@ router.get('/recent-activity', async (req, res) => {
                         / NULLIF((SELECT COUNT(*) FROM student_roster WHERE class_id = ss.class_id), 0) * 100
                       ), 0) AS rate
                FROM active_sessions ss
-               JOIN courses co ON co.course_code = ss.course_code
+               JOIN courses co ON co.id = ss.course_id
                WHERE co.department_id = $1 AND ss.created_at >= NOW() - INTERVAL '7 days'
                ORDER BY ss.created_at DESC LIMIT 10`;
       params = [department_id];
@@ -1671,7 +1662,7 @@ router.get('/active-sessions', async (req, res) => {
     const result = await pool.query(
       `SELECT a.*, c.course_name
        FROM active_sessions a
-       JOIN courses c ON c.course_code = a.course_code
+       JOIN courses c ON c.id = a.course_id
        JOIN departments d ON d.id = c.department_id
        JOIN schools s ON s.id = d.school_id
        WHERE s.university_id = $1

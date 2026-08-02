@@ -1,7 +1,7 @@
 // Soft delete utility: sets deleted_at on a row instead of hard-deleting.
 
 const ALLOWED_TABLES = {
-  courses: ['course_code', 'course_id'],
+  courses: ['id', 'course_code'],
   classes: ['class_id'],
   student_roster: ['student_id', 'index_number'],
   active_sessions: ['session_id'],

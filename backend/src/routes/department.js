@@ -18,21 +18,21 @@ router.get('/', async (req, res) => {
     if (level === 'university') {
       query = `SELECT d.id, d.name, d.code, d.created_at,
                       s.name AS school_name, s.id AS school_id,
-                      (SELECT COUNT(*) FROM courses c WHERE c.department_id = d.id) AS course_count,
-                      (SELECT COUNT(*) FROM lecturers l WHERE l.department_id = d.id) AS lecturer_count
+                      (SELECT COUNT(*) FROM courses c WHERE c.department_id = d.id AND c.deleted_at IS NULL) AS course_count,
+                      (SELECT COUNT(*) FROM lecturers l WHERE l.department_id = d.id AND l.deleted_at IS NULL) AS lecturer_count
                FROM departments d
                JOIN schools s ON s.id = d.school_id
-               WHERE s.university_id = $1
+               WHERE s.university_id = $1 AND d.deleted_at IS NULL
                ORDER BY s.name, d.name`;
       params = [university_id];
     } else if (level === 'school') {
       query = `SELECT d.id, d.name, d.code, d.created_at,
                       s.name AS school_name, s.id AS school_id,
-                      (SELECT COUNT(*) FROM courses c WHERE c.department_id = d.id) AS course_count,
-                      (SELECT COUNT(*) FROM lecturers l WHERE l.department_id = d.id) AS lecturer_count
+                      (SELECT COUNT(*) FROM courses c WHERE c.department_id = d.id AND c.deleted_at IS NULL) AS course_count,
+                      (SELECT COUNT(*) FROM lecturers l WHERE l.department_id = d.id AND l.deleted_at IS NULL) AS lecturer_count
                FROM departments d
                JOIN schools s ON s.id = d.school_id
-               WHERE d.school_id = $1
+               WHERE d.school_id = $1 AND d.deleted_at IS NULL
                ORDER BY d.name`;
       params = [school_id];
     } else {
@@ -157,7 +157,7 @@ router.put('/:id', [
   }
 });
 
-// DELETE /:id — Delete department (sets department_id = NULL on entities)
+// DELETE /:id — Soft-delete department and cascade to courses, classes, lecturers
 router.delete('/:id', [
   param('id').isInt({ min: 1 }),
 ], async (req, res) => {
@@ -169,19 +169,26 @@ router.delete('/:id', [
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    // Unassign entities from this department
-    await client.query('UPDATE lecturers SET department_id = NULL WHERE department_id = $1', [id]);
-    await client.query('UPDATE courses SET department_id = NULL WHERE department_id = $1', [id]);
-    await client.query('UPDATE classes SET department_id = NULL WHERE department_id = $1', [id]);
 
-    let whereClause = 'id = $1';
+    // Cascade soft-delete to children
+    await client.query('UPDATE lecturers SET deleted_at = NOW() WHERE department_id = $1 AND deleted_at IS NULL', [id]);
+    await client.query('UPDATE courses SET deleted_at = NOW() WHERE department_id = $1 AND deleted_at IS NULL', [id]);
+    await client.query('UPDATE classes SET deleted_at = NOW() WHERE department_id = $1 AND deleted_at IS NULL', [id]);
+    await client.query(
+      `UPDATE active_sessions SET is_active = FALSE
+       WHERE course_id IN (SELECT c.id FROM courses c WHERE c.department_id = $1)
+         AND is_active = TRUE`,
+      [id]
+    );
+
+    let whereClause = 'id = $1 AND deleted_at IS NULL';
     const params = [id];
     if (level === 'school') {
       whereClause += ' AND school_id = $2';
       params.push(school_id);
     }
     const result = await client.query(
-      `DELETE FROM departments WHERE ${whereClause} RETURNING id`,
+      `UPDATE departments SET deleted_at = NOW() WHERE ${whereClause} RETURNING id`,
       params
     );
     if (result.rows.length === 0) {
