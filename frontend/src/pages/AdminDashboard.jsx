@@ -1581,9 +1581,10 @@ function StudentsPage() {
             {importResult && (
               <span style={{
                 fontSize: '0.75rem', fontWeight: 600,
-                color: importResult.error ? 'var(--brand)' : 'var(--success)',
-                background: 'rgba(255,255,255,0.15)',
+                color: '#fff',
+                background: importResult.error ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.2)',
                 padding: '0.3rem 0.75rem', borderRadius: '6px',
+                border: importResult.error ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(255,255,255,0.3)',
               }}>
                 {importResult.error ? importResult.error : `${importResult.added} students added`}
               </span>
