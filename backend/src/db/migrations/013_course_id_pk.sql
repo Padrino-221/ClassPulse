@@ -33,38 +33,53 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_courses_active_dept_name
   ON courses(department_id, course_name) WHERE deleted_at IS NULL;
 
 -- 4. course_lecturers: switch identity to course_id
-ALTER TABLE course_lecturers ADD COLUMN IF NOT EXISTS course_id INTEGER;
+-- (skip if course_id already exists — schema.sql may have created it directly)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_attribute WHERE attrelid = 'course_lecturers'::regclass AND attname = 'course_id'
+  ) THEN
+    ALTER TABLE course_lecturers ADD COLUMN course_id INTEGER;
 
-UPDATE course_lecturers cl
-SET course_id = c.id
-FROM courses c
-WHERE c.course_code = cl.course_code
-  AND cl.course_id IS NULL;
+    UPDATE course_lecturers cl
+    SET course_id = c.id
+    FROM courses c
+    WHERE c.course_code = cl.course_code;
 
-ALTER TABLE course_lecturers ALTER COLUMN course_id SET NOT NULL;
+    ALTER TABLE course_lecturers ALTER COLUMN course_id SET NOT NULL;
 
-ALTER TABLE course_lecturers DROP CONSTRAINT IF EXISTS course_lecturers_pkey;
-ALTER TABLE course_lecturers DROP COLUMN IF EXISTS course_code;
+    ALTER TABLE course_lecturers DROP CONSTRAINT IF EXISTS course_lecturers_pkey;
+    ALTER TABLE course_lecturers DROP COLUMN IF EXISTS course_code;
 
-ALTER TABLE course_lecturers ADD PRIMARY KEY (course_id, lecturer_id);
-ALTER TABLE course_lecturers
-  ADD CONSTRAINT course_lecturers_course_id_fkey
-  FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE;
+    ALTER TABLE course_lecturers ADD PRIMARY KEY (course_id, lecturer_id);
+    ALTER TABLE course_lecturers
+      ADD CONSTRAINT course_lecturers_course_id_fkey
+      FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE;
+  END IF;
+END
+$$;
 
 -- 5. active_sessions: switch FK to course_id (course_code column kept for display + PIN prefix)
-ALTER TABLE active_sessions ADD COLUMN IF NOT EXISTS course_id INTEGER;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_attribute WHERE attrelid = 'active_sessions'::regclass AND attname = 'course_id'
+  ) THEN
+    ALTER TABLE active_sessions ADD COLUMN course_id INTEGER;
 
-UPDATE active_sessions s
-SET course_id = c.id
-FROM courses c
-WHERE c.course_code = s.course_code
-  AND s.course_id IS NULL;
+    UPDATE active_sessions s
+    SET course_id = c.id
+    FROM courses c
+    WHERE c.course_code = s.course_code;
 
-ALTER TABLE active_sessions ALTER COLUMN course_id SET NOT NULL;
+    ALTER TABLE active_sessions ALTER COLUMN course_id SET NOT NULL;
 
-ALTER TABLE active_sessions
-  ADD CONSTRAINT active_sessions_course_id_fkey
-  FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE;
+    ALTER TABLE active_sessions
+      ADD CONSTRAINT active_sessions_course_id_fkey
+      FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE;
+  END IF;
+END
+$$;
 
 -- 6. Re-key the one-session-per-course+class+week uniqueness on course_id
 DROP INDEX IF EXISTS idx_active_sessions_course_class_week;
