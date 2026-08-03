@@ -188,7 +188,7 @@ if (require.main === module) {
              AND scheduled_at IS NOT NULL
              AND scheduled_at <= NOW()
            RETURNING session_id, course_id, course_code, class_id, week_number, pin_seed,
-                     pin_spinning, lecture_hall_id`
+                     pin_spinning, lecture_hall_id, expires_at`
         );
 
         // Fetch class names and course names for activated sessions
@@ -229,6 +229,7 @@ if (require.main === module) {
               week_number: row.week_number,
               is_active: true,
               lecture_hall_id: row.lecture_hall_id,
+              expires_at: row.expires_at,
             });
           }
         }

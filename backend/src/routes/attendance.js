@@ -211,6 +211,9 @@ router.post(
       if (err.code === '23505') {
         return res.status(409).json({ error: 'Already checked in for this session.' });
       }
+      if (err.code === '23503') {
+        return res.status(404).json({ error: 'Session not found or has expired.' });
+      }
       console.error('Check-in error:', err);
       res.status(500).json({ error: 'Something went wrong.' });
     }
@@ -373,6 +376,9 @@ router.post(
     } catch (err) {
       if (err.code === '23505') {
         return res.status(409).json({ error: 'Already marked for this session.' });
+      }
+      if (err.code === '23503') {
+        return res.status(404).json({ error: 'Session not found or has expired.' });
       }
       console.error('Attendance error:', err);
       res.status(500).json({ error: 'Something went wrong.' });

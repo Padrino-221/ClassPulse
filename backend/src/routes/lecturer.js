@@ -107,6 +107,7 @@ router.post(
             week_number,
             is_active: true,
             lecture_hall_id: lectureHall.id,
+            expires_at: session.expires_at,
           });
 
           created.push({
@@ -220,12 +221,12 @@ router.post(
                pin_spinning, lecture_hall_id,
                semester_id, scheduled_at, expires_at, is_active
              )
-             VALUES ($1, $2, $3, $4, $5, $6, FALSE, $7, $8, $9, $10, FALSE)
+             VALUES ($1, $2, $3, $4, $5, $6, FALSE, $7, $8, $9::timestamptz, $9::timestamptz + INTERVAL '1 minute' * $10, FALSE)
              RETURNING session_id, created_at, expires_at`,
             [
               courseId, course_code, classId, lecturerId, week_number, pinSeed,
               lecture_hall_id,
-              activeSemester.id, sessionDate, expiresAt,
+              activeSemester.id, scheduled_date, duration_minutes,
             ]
           );
 
@@ -234,8 +235,8 @@ router.post(
             course_code,
             class_id: classId,
             week_number: week_number,
-            scheduled_date: sessionDate.toISOString(),
-            expires_at: expiresAt.toISOString(),
+            scheduled_date: scheduled_date,
+            expires_at: result.rows[0].expires_at,
           });
         }
 
