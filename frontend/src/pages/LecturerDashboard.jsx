@@ -38,7 +38,7 @@ export default function LecturerDashboard() {
         // sessions/scheduled may fail on production; courses/classes still load
       }
 
-      const active = sessions.filter((s) => s.is_active);
+      const active = sessions.filter((s) => s.is_active && (!s.expires_at || new Date(s.expires_at) > new Date()));
       const todayTotal = sessions.reduce((sum, s) => sum + parseInt(s.attendance_count || 0), 0);
       const recent = [...sessions].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, RECENT_LIMIT);
       setData({

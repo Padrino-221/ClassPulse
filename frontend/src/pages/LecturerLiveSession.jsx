@@ -203,7 +203,7 @@ export default function LecturerLiveSession() {
       setLectureHalls(lectureHallsRes.data.lecture_halls);
       setScheduledSessions(scheduledRes.data);
 
-      const active = sessionsRes.data.sessions?.filter((s) => s.is_active) || [];
+      const active = sessionsRes.data.sessions?.filter((s) => s.is_active && (!s.expires_at || new Date(s.expires_at) > new Date())) || [];
       setActiveSessions(active);
     } catch {
       toast.error("Couldn't load sessions.");
