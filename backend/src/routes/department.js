@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('List departments error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -107,7 +107,7 @@ router.post('/', [
       return res.status(409).json({ error: `${detail === 'admin' ? 'An admin with this email already exists.' : 'Department code already exists in this school.'}` });
     }
     console.error('Create department error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   } finally {
     client.release();
   }
@@ -153,7 +153,7 @@ router.put('/:id', [
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'Department code already exists.' });
     console.error('Update department error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -221,7 +221,7 @@ router.delete('/', async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Delete all departments error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   } finally {
     client.release();
   }
@@ -270,7 +270,7 @@ router.delete('/:id', [
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Delete department error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   } finally {
     client.release();
   }

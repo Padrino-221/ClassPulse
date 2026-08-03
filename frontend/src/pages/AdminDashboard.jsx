@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import api, { getStoredUser } from '../utils/api';
 import DashboardLayout from '../components/DashboardLayout';
@@ -11,7 +11,9 @@ import {
   DownloadSimple, Warning, CalendarBlank, Buildings, TreeEvergreen, Clock, ShieldCheck,
   Eye, EyeSlash, ChartLineUp,
 } from '@phosphor-icons/react';
-import ReportsPage from './ReportsPage';
+// ReportsPage pulls in recharts (~300 KB), so lazy-load it to keep the admin
+// dashboard shell fast; it only loads when the /reports tab is opened.
+const ReportsPage = lazy(() => import('./ReportsPage'));
 import PageHeader from '../components/PageHeader';
 import CreateModal from '../components/CreateModal';
 import ConfirmModal from '../components/ConfirmModal';
@@ -1768,7 +1770,7 @@ function SchoolsPage() {
       toast.success('School deleted.');
       loadSchools();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed.');
+      toast.error(err.response?.data?.error || 'Failed to delete school.');
     }
   };
 
@@ -1967,7 +1969,7 @@ function DepartmentsPage() {
       toast.success('Department deleted.');
       loadDepartments();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed.');
+      toast.error(err.response?.data?.error || 'Failed to delete department.');
     }
   };
 
@@ -2730,6 +2732,11 @@ export default function AdminDashboard() {
   return (
     <DashboardLayout>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem' }}>
+        <Suspense fallback={
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 0' }}>
+            <Spinner size={28} />
+          </div>
+        }>
         <Routes>
           <Route index element={<AdminOverviewPage courses={courses} lecturers={lecturers} classes={classes} students={students} lectureHalls={lectureHalls} />} />
           <Route path="courses" element={<CoursesPage />} />
@@ -2743,6 +2750,7 @@ export default function AdminDashboard() {
           <Route path="reports" element={<ReportsPage />} />
           <Route path="tools" element={<ToolsPage />} />
         </Routes>
+        </Suspense>
       </div>
     </DashboardLayout>
   );

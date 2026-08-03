@@ -29,7 +29,7 @@ export default function ResetPassword() {
       const res = await api.post('/api/auth/reset-password', { token, password });
       setMessage(res.data.message);
     } catch (err) {
-      setError(err.response?.data?.error || 'Something went wrong.');
+      setError(err.response?.data?.error || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -5,11 +5,13 @@ require('dotenv').config();
 
 const TEST_COURSE = 'TMATRIX';
 const TEST_CLASS_ID = 1;
-const BUILDING_LAT = 5.65;
-const BUILDING_LON = -0.186;
+// Coordinates of lecture hall 1 in the test DB (must be inside its 100m geofence)
+const BUILDING_LAT = 7.363042;
+const BUILDING_LON = -2.351278;
 
 let lecturerToken;
 let lecturerId;
+let testCourseId;
 
 beforeAll(async () => {
   const loginRes = await request(app)
@@ -23,14 +25,22 @@ beforeAll(async () => {
   await pool.query("DELETE FROM student_roster WHERE index_number = 'MATRIX001'");
   await pool.query("DELETE FROM active_sessions WHERE course_code = $1", [TEST_COURSE]);
 
-  // Create isolated test course
+  // Create isolated test course (partial unique index → ON CONFLICT needs the index predicate)
   await pool.query(
-    'INSERT INTO courses (course_code, course_name, total_weeks) VALUES ($1, $2, $3) ON CONFLICT (course_code) DO UPDATE SET total_weeks = $3',
+    `INSERT INTO courses (course_code, course_name, total_weeks)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (course_code) WHERE deleted_at IS NULL
+     DO UPDATE SET total_weeks = EXCLUDED.total_weeks`,
     [TEST_COURSE, 'Test Matrix Course', 12]
   );
+  const courseRes = await pool.query(
+    'SELECT id FROM courses WHERE course_code = $1 AND deleted_at IS NULL',
+    [TEST_COURSE]
+  );
+  testCourseId = courseRes.rows[0].id;
   await pool.query(
-    'INSERT INTO course_lecturers (course_code, lecturer_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-    [TEST_COURSE, lecturerId]
+    'INSERT INTO course_lecturers (course_id, lecturer_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [testCourseId, lecturerId]
   );
   await pool.query(
     'INSERT INTO class_lecturers (class_id, lecturer_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
@@ -39,7 +49,10 @@ beforeAll(async () => {
 
   // Add test student to roster
   await pool.query(
-    "INSERT INTO student_roster (index_number, student_name, class_id) VALUES ($1, $2, $3) ON CONFLICT (index_number) DO NOTHING",
+    `INSERT INTO student_roster (index_number, student_name, class_id)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (index_number) WHERE deleted_at IS NULL
+     DO NOTHING`,
     ['MATRIX001', 'Matrix Student 1', TEST_CLASS_ID]
   );
 });
@@ -47,7 +60,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await pool.query("DELETE FROM active_sessions WHERE course_code = $1", [TEST_COURSE]);
   await pool.query("DELETE FROM student_roster WHERE index_number = 'MATRIX001'");
-  await pool.query('DELETE FROM course_lecturers WHERE course_code = $1', [TEST_COURSE]);
+  await pool.query('DELETE FROM course_lecturers WHERE course_id = $1', [testCourseId]);
   await pool.query('DELETE FROM class_lecturers WHERE class_id = $1 AND lecturer_id = $2', [TEST_CLASS_ID, lecturerId]);
   await pool.query("DELETE FROM courses WHERE course_code = $1", [TEST_COURSE]);
   await pool.end();
@@ -74,7 +87,7 @@ async function submitAttendance(pin, indexNumber, name, fp) {
       name,
       index_number: indexNumber,
       course_code: TEST_COURSE,
-      pin,
+      pin: `${TEST_COURSE}-${pin}`,
       latitude: BUILDING_LAT,
       longitude: BUILDING_LON,
       device_fingerprint: fp,

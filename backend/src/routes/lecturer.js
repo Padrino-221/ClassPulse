@@ -11,13 +11,13 @@ router.use(verifyToken('lecturer'));
 router.post(
   '/activate',
   [
-    body('course_code').isString().trim().notEmpty(),
-    body('class_ids').isArray({ min: 1 }),
+    body('course_code').isString().trim().notEmpty().withMessage('Enter a course code.'),
+    body('class_ids').isArray({ min: 1 }).withMessage('Select at least one class.'),
     body('class_ids.*').isInt({ min: 1 }),
-    body('week_number').isInt({ min: 1 }),
-    body('lecture_hall_id').isInt({ min: 1 }),
+    body('week_number').isInt({ min: 1 }).withMessage('Enter a valid week number.'),
+    body('lecture_hall_id').isInt({ min: 1 }).withMessage('Select a lecture hall.'),
     body('pin_spinning').optional().isBoolean(),
-    body('duration_minutes').isInt({ min: 1, max: 480 }),
+    body('duration_minutes').isInt({ min: 1, max: 480 }).withMessage('Enter a valid duration in minutes.'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -136,7 +136,7 @@ router.post(
       });
     } catch (err) {
       console.error('Activate session error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -146,13 +146,13 @@ router.post(
 router.post(
   '/schedule',
   [
-    body('course_code').isString().trim().notEmpty(),
-    body('class_ids').isArray({ min: 1 }),
+    body('course_code').isString().trim().notEmpty().withMessage('Enter a course code.'),
+    body('class_ids').isArray({ min: 1 }).withMessage('Select at least one class.'),
     body('class_ids.*').isInt({ min: 1 }),
-    body('scheduled_date').isString().notEmpty(),
-    body('duration_minutes').isInt({ min: 1, max: 480 }),
-    body('week_number').isInt({ min: 1, max: 52 }),
-    body('lecture_hall_id').isInt({ min: 1 }),
+    body('scheduled_date').isString().notEmpty().withMessage('Enter a date and time.'),
+    body('duration_minutes').isInt({ min: 1, max: 480 }).withMessage('Enter a valid duration in minutes.'),
+    body('week_number').isInt({ min: 1, max: 52 }).withMessage('Enter a valid week number.'),
+    body('lecture_hall_id').isInt({ min: 1 }).withMessage('Select a lecture hall.'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -254,7 +254,7 @@ router.post(
       });
     } catch (err) {
       console.error('Schedule session error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -286,7 +286,7 @@ router.get('/scheduled', async (req, res) => {
     res.json(rows);
   } catch (err) {
     console.error('List scheduled sessions error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -307,7 +307,7 @@ router.delete('/scheduled/:id', async (req, res) => {
     res.json({ message: 'Scheduled session cancelled.', session_id: id });
   } catch (err) {
     console.error('Cancel scheduled session error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -323,7 +323,7 @@ router.post('/deactivate/:id', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Session not found.' });
+      return res.status(404).json({ error: 'Session not found or has ended.' });
     }
 
     // Invalidate cache
@@ -334,7 +334,7 @@ router.post('/deactivate/:id', async (req, res) => {
     res.json({ message: 'Session ended.', session_id: id });
   } catch (err) {
     console.error('Deactivate session error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -356,7 +356,7 @@ router.get('/courses/:code/classes', async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('Get course classes error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -376,7 +376,7 @@ router.get('/session/:id/live', async (req, res) => {
     res.json({ records: result.rows, count: result.rows.length });
   } catch (err) {
     console.error('Live tracker error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -413,7 +413,7 @@ router.get('/sessions', async (req, res) => {
     res.json({ sessions: rows, total: parseInt(count.rows[0].count) });
   } catch (err) {
     console.error('List sessions error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -551,7 +551,7 @@ router.get('/history', (req, res, next) => {
     res.json(result);
   } catch (err) {
     console.error('History error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -803,7 +803,7 @@ router.get('/history/export', async (req, res) => {
     res.send(buf);
   } catch (err) {
     console.error('Export error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -818,7 +818,7 @@ router.get('/session/:id/pin', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Session not found.' });
+      return res.status(404).json({ error: 'Session not found or has ended.' });
     }
 
     const s = result.rows[0];
@@ -856,7 +856,7 @@ router.get('/session/:id/pin', async (req, res) => {
     });
   } catch (err) {
     console.error('PIN tick error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -866,7 +866,7 @@ router.get('/lecture-halls', async (req, res) => {
     res.json({ lecture_halls: result.rows });
   } catch (err) {
     console.error('List lecture halls error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -886,7 +886,7 @@ router.get('/courses', async (req, res) => {
     res.json({ courses: result.rows });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -903,7 +903,7 @@ router.get('/classes', async (req, res) => {
     res.json({ classes: result.rows });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

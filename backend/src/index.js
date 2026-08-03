@@ -35,6 +35,14 @@ const searchRoutes = require('./routes/search');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust the first proxy hop (Render load balancer / nginx reverse proxy) so
+// req.ip — and therefore per-IP rate limiting and audit logs — sees the real
+// client IP from X-Forwarded-For instead of the proxy's address.
+// Gated on NODE_ENV=production (all deployments set it) so that in local dev,
+// where the API is hit directly with no proxy, clients cannot spoof
+// X-Forwarded-For to reset their rate-limit bucket.
+app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : false);
+
 // ── Security headers ──
 app.use(helmet({
   contentSecurityPolicy: {
@@ -109,7 +117,7 @@ app.use('/api/search', searchRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ error: 'Internal server error' });
+  res.status(500).json({ error: 'Something went wrong. Please try again.' });
 });
 
 // ── Run migrations then load session cache ──

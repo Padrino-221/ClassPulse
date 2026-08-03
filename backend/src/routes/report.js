@@ -397,7 +397,7 @@ router.get('/filters', async (req, res) => {
     });
   } catch (err) {
     console.error('Report filters error:', err);
-    res.status(500).json({ error: 'Failed to load filters.' });
+    res.status(500).json({ error: "Couldn't load the report filters. Try again." });
   }
 });
 

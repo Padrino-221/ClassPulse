@@ -167,7 +167,7 @@ router.get('/', async (req, res) => {
     res.json({ results });
   } catch (err) {
     console.error('Search error:', err);
-    res.status(500).json({ error: 'Search failed.' });
+    res.status(500).json({ error: 'Search failed. Try again.' });
   }
 });
 

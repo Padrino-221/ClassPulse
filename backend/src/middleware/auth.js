@@ -14,7 +14,7 @@ function verifyToken(requiredRole = null) {
       req.user = decoded;
 
       if (requiredRole && req.user.role !== requiredRole) {
-        return res.status(403).json({ error: 'Insufficient permissions.' });
+        return res.status(403).json({ error: "You don't have permission to do this." });
       }
 
       next();

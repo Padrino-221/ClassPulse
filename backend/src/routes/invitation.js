@@ -65,9 +65,9 @@ router.post('/',
 
       res.status(201).json({ admin });
     } catch (err) {
-      if (err.code === '23505') return res.status(409).json({ error: 'Email already taken.' });
+      if (err.code === '23505') return res.status(409).json({ error: 'An account with this email already exists.' });
       console.error('Create admin error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -86,13 +86,13 @@ router.get('/', async (req, res) => {
                FROM admins WHERE school_id = $1 AND deleted_at IS NULL ORDER BY name`;
       params = [school_id];
     } else {
-      return res.status(403).json({ error: 'Access denied.' });
+      return res.status(403).json({ error: "You don't have permission to do this." });
     }
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
     console.error('List admins error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -116,7 +116,7 @@ router.delete('/:id',
       res.json({ message: 'Admin deleted.', id: result.rows[0].id });
     } catch (err) {
       console.error('Delete admin error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );

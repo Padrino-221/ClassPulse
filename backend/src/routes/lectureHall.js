@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
     res.json({ lecture_halls: result.rows });
   } catch (err) {
     console.error('List lecture halls error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -53,7 +53,7 @@ router.post(
       res.status(201).json({ lecture_hall: result.rows[0] });
     } catch (err) {
       console.error('Create lecture hall error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -109,7 +109,7 @@ router.put(
       res.json({ lecture_hall: result.rows[0] });
     } catch (err) {
       console.error('Update lecture hall error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -122,7 +122,7 @@ router.delete('/', async (req, res) => {
     res.json({ message: `${result.rowCount} lecture hall(s) deleted.`, count: result.rowCount });
   } catch (err) {
     console.error('Delete all lecture halls error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -139,7 +139,7 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'Lecture Hall deleted.' });
   } catch (err) {
     console.error('Delete lecture hall error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

@@ -19,7 +19,7 @@ export default function ForgotPassword() {
       const res = await api.post('/api/auth/forgot-password', { email });
       setMessage(res.data.message);
     } catch (err) {
-      setError(err.response?.data?.error || 'Something went wrong.');
+      setError(err.response?.data?.error || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('List universities error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -47,7 +47,7 @@ router.post('/', [
       return res.status(409).json({ error: 'University code already exists.' });
     }
     console.error('Create university error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -67,7 +67,7 @@ router.get('/:id', [
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Get university error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -102,7 +102,7 @@ router.put('/:id', [
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'University code already exists.' });
     console.error('Update university error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

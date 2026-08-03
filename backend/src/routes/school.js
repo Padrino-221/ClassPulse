@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('List schools error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -87,7 +87,7 @@ router.post('/', [
       return res.status(409).json({ error: `${detail === 'admin' ? 'An admin with this email already exists.' : 'School code already exists in this university.'}` });
     }
     console.error('Create school error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   } finally {
     client.release();
   }
@@ -124,7 +124,7 @@ router.put('/:id', [
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'School code already exists.' });
     console.error('Update school error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -191,7 +191,7 @@ router.delete('/', async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Delete all schools error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   } finally {
     client.release();
   }
@@ -254,7 +254,7 @@ router.delete('/:id', [
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Delete school error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   } finally {
     client.release();
   }

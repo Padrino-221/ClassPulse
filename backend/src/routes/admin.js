@@ -7,6 +7,7 @@ const { pool } = require('../config/db');
 const { verifyToken, verifyScope } = require('../middleware/auth');
 const { sendWelcomeEmail } = require('../services/mailer');
 const { auditLog } = require('../middleware/auditLog');
+const { namesMatch } = require('../services/nameMatch');
 
 const router = express.Router();
 router.use(verifyToken('admin'));
@@ -79,7 +80,7 @@ router.get('/lecturers', async (req, res) => {
     res.json({ lecturers: result.rows, total: count });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -117,9 +118,9 @@ router.post(
 
       res.status(201).json({ lecturer: result.rows[0] });
     } catch (err) {
-      if (err.code === '23505') return res.status(409).json({ error: 'Email taken.' });
+      if (err.code === '23505') return res.status(409).json({ error: 'An account with this email already exists.' });
       console.error(err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -149,9 +150,9 @@ router.put(
       if (result.rows.length === 0) return res.status(404).json({ error: 'Lecturer not found.' });
       res.json({ lecturer: result.rows[0] });
     } catch (err) {
-      if (err.code === '23505') return res.status(409).json({ error: 'Email taken.' });
+      if (err.code === '23505') return res.status(409).json({ error: 'An account with this email already exists.' });
       console.error(err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -163,7 +164,7 @@ router.delete('/lecturers/:id', auditLog('delete', 'lecturer'), async (req, res)
     res.json({ message: 'Lecturer deleted.' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -189,7 +190,7 @@ router.delete('/lecturers', auditLog('delete', 'lecturer'), async (req, res) => 
     res.json({ message: `${result.rowCount} lecturer(s) deleted.`, count: result.rowCount });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -246,7 +247,7 @@ router.get('/courses', async (req, res) => {
     res.json({ courses: result.rows, total: count });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -285,9 +286,9 @@ router.post(
       res.status(201).json({ course: result.rows[0] });
     } catch (err) {
       await client.query('ROLLBACK');
-      if (err.code === '23505') return res.status(409).json({ error: 'Code taken.' });
+      if (err.code === '23505') return res.status(409).json({ error: 'A course with this code already exists.' });
       console.error(err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     } finally {
       client.release();
     }
@@ -331,7 +332,7 @@ router.put(
     } catch (err) {
       await client.query('ROLLBACK');
       console.error(err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     } finally {
       client.release();
     }
@@ -345,7 +346,7 @@ router.delete('/courses/:code', auditLog('delete', 'course'), async (req, res) =
     res.json({ message: 'Course deleted.' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -374,7 +375,7 @@ router.delete('/courses', auditLog('delete', 'course'), async (req, res) => {
     res.json({ message: `${result.rowCount} course(s) deleted.`, count: result.rowCount });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -432,7 +433,7 @@ router.get('/classes', async (req, res) => {
     res.json({ classes: result.rows, total: count });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -467,7 +468,7 @@ router.post(
     } catch (err) {
       await client.query('ROLLBACK');
       console.error(err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     } finally {
       client.release();
     }
@@ -506,7 +507,7 @@ router.put(
     } catch (err) {
       await client.query('ROLLBACK');
       console.error(err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     } finally {
       client.release();
     }
@@ -519,7 +520,7 @@ router.delete('/classes/:id', auditLog('delete', 'class'), async (req, res) => {
     res.json({ message: 'Class deleted.' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -553,7 +554,7 @@ router.delete('/classes', auditLog('delete', 'class'), async (req, res) => {
     res.json({ message: `${result.rowCount} class(es) deleted.`, count: result.rowCount });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -611,7 +612,7 @@ router.get('/students', async (req, res) => {
     res.json({ students: result.rows, total: count });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -645,9 +646,9 @@ router.post(
       );
       res.status(201).json({ student: result.rows[0] });
     } catch (err) {
-      if (err.code === '23505') return res.status(409).json({ error: 'Index taken.' });
+      if (err.code === '23505') return res.status(409).json({ error: 'A student with this index number is already registered.' });
       console.error(err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -670,9 +671,9 @@ router.put(
       if (result.rows.length === 0) return res.status(404).json({ error: 'Student not found.' });
       res.json({ student: result.rows[0] });
     } catch (err) {
-      if (err.code === '23505') return res.status(409).json({ error: 'Index taken.' });
+      if (err.code === '23505') return res.status(409).json({ error: 'A student with this index number is already registered.' });
       console.error(err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -684,7 +685,7 @@ router.delete('/students/:id', auditLog('delete', 'student'), async (req, res) =
     res.json({ message: 'Student deleted.' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -722,7 +723,7 @@ router.delete('/students', auditLog('delete', 'student'), async (req, res) => {
     res.json({ message: `${result.rowCount} student(s) deleted.`, count: result.rowCount });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -750,43 +751,103 @@ router.post('/students/bulk', upload.single('file'), async (req, res) => {
     }
 
     const added = [];
+    const skipped = [];
     const errors = [];
+    // index_number → { studentName } for rows already seen in this file
+    const seenIndexes = new Map();
+    // Rows that passed intra-file dedupe, still to be persisted
+    const pending = [];
+
     for (let i = 1; i < lines.length; i++) {
       const cols = lines[i].split(',').map(c => c.trim());
       const indexNumber = cols[idxIdx];
       const studentName = cols[nameIdx];
       if (!indexNumber || !studentName) {
-        errors.push({ row: i + 1, error: 'Missing fields.' });
+        errors.push({ row: i + 1, index_number: indexNumber || null, error: 'Missing fields.' });
         continue;
       }
-      try {
-          // Check if a soft-deleted record exists — restore it
-          const existing = await pool.query(
-            'SELECT id FROM student_roster WHERE index_number = $1 AND deleted_at IS NOT NULL',
-            [indexNumber]
+
+      // Duplicate index within the same file — same student when the name
+      // matches suffix-tolerantly (e.g. "X (ms)" vs "X")
+      if (seenIndexes.has(indexNumber)) {
+        const prev = seenIndexes.get(indexNumber);
+        if (namesMatch(studentName, prev.studentName)) {
+          skipped.push({ row: i + 1, index_number: indexNumber, reason: 'Duplicate in file.' });
+        } else {
+          errors.push({ row: i + 1, index_number: indexNumber, error: `Index ${indexNumber} already used for "${prev.studentName}" in this file.` });
+        }
+        continue;
+      }
+
+      seenIndexes.set(indexNumber, { studentName });
+      pending.push({ row: i + 1, indexNumber, studentName });
+    }
+
+    // Batch-persist the remaining rows: restore soft-deleted records, bulk-insert
+    // the rest, then resolve active-roster conflicts — avoids N×(SELECT+INSERT)
+    // round-trips for large files.
+    if (pending.length > 0) {
+      // 1) Restore soft-deleted records (one lookup for the whole file)
+      const softDeleted = await pool.query(
+        'SELECT id, index_number FROM student_roster WHERE index_number = ANY($1) AND deleted_at IS NOT NULL',
+        [pending.map(p => p.indexNumber)]
+      );
+      const softDeletedIds = new Map(softDeleted.rows.map(r => [r.index_number, r.id]));
+      const toRestore = pending.filter(p => softDeletedIds.has(p.indexNumber));
+      const toInsert = pending.filter(p => !softDeletedIds.has(p.indexNumber));
+
+      for (const p of toRestore) {
+        const res = await pool.query(
+          'UPDATE student_roster SET student_name = $1, class_id = $2, deleted_at = NULL WHERE id = $3 RETURNING *',
+          [p.studentName, classId, softDeletedIds.get(p.indexNumber)]
+        );
+        if (res.rows[0]) added.push(res.rows[0]);
+      }
+
+      // 2) Single bulk insert for everything else — indexes already active are
+      //    skipped by the partial unique index instead of aborting the batch.
+      if (toInsert.length > 0) {
+        const placeholders = [];
+        const values = [];
+        for (let i = 0; i < toInsert.length; i++) {
+          const base = i * 3;
+          placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3})`);
+          values.push(toInsert[i].indexNumber, toInsert[i].studentName, classId);
+        }
+        const inserted = await pool.query(
+          `INSERT INTO student_roster (index_number, student_name, class_id)
+           VALUES ${placeholders.join(', ')}
+           ON CONFLICT (index_number) WHERE deleted_at IS NULL DO NOTHING
+           RETURNING index_number, student_name, class_id`,
+          values
+        );
+        const insertedIndexes = new Set(inserted.rows.map(r => r.index_number));
+        for (const r of inserted.rows) added.push(r);
+
+        // 3) Resolve active-roster conflicts in one batched lookup
+        const conflicts = toInsert.filter(p => !insertedIndexes.has(p.indexNumber));
+        if (conflicts.length > 0) {
+          const active = await pool.query(
+            'SELECT index_number, student_name FROM student_roster WHERE index_number = ANY($1) AND deleted_at IS NULL',
+            [conflicts.map(p => p.indexNumber)]
           );
-          let result;
-          if (existing.rows.length > 0) {
-            result = await pool.query(
-              'UPDATE student_roster SET student_name = $1, class_id = $2, deleted_at = NULL WHERE id = $3 RETURNING *',
-              [studentName, classId, existing.rows[0].id]
-            );
-          } else {
-            result = await pool.query(
-              'INSERT INTO student_roster (index_number, student_name, class_id) VALUES ($1, $2, $3) RETURNING *',
-              [indexNumber, studentName, classId]
-            );
+          const activeNames = new Map(active.rows.map(r => [r.index_number, r.student_name]));
+          for (const p of conflicts) {
+            const existingName = activeNames.get(p.indexNumber);
+            if (existingName && namesMatch(p.studentName, existingName)) {
+              skipped.push({ row: p.row, index_number: p.indexNumber, reason: 'Already registered.' });
+            } else {
+              errors.push({ row: p.row, index_number: p.indexNumber, error: `Index ${p.indexNumber} is already registered to a different student.` });
+            }
           }
-          added.push(result.rows[0]);
-      } catch (err) {
-        errors.push({ row: i + 1, error: err.message });
+        }
       }
     }
 
-    res.status(201).json({ added: added.length, errors, students: added });
+    res.status(201).json({ added: added.length, skipped, errors, students: added });
   } catch (err) {
     console.error('Bulk import error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1150,7 +1211,7 @@ router.get('/export/semester', async (req, res) => {
     res.send(buf);
   } catch (err) {
     console.error('Export error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1205,7 +1266,7 @@ router.post('/reset',
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Reset error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   } finally {
     client.release();
   }
@@ -1225,7 +1286,7 @@ router.get('/academic-years', async (req, res) => {
     res.json({ academic_years: result.rows });
   } catch (err) {
     console.error('List academic years error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1249,7 +1310,7 @@ router.post(
     } catch (err) {
       if (err.code === '23505') return res.status(409).json({ error: 'Academic year label already exists.' });
       console.error('Create academic year error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -1260,7 +1321,7 @@ router.delete('/academic-years/:id', async (req, res) => {
     res.json({ message: 'Academic year deleted.' });
   } catch (err) {
     console.error('Delete academic year error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1277,7 +1338,7 @@ router.delete('/academic-years', async (req, res) => {
     res.json({ message: `${result.rowCount} academic year(s) deleted.`, count: result.rowCount });
   } catch (err) {
     console.error('Delete all academic years error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1305,7 +1366,7 @@ router.get('/semesters', async (req, res) => {
     res.json({ semesters: result.rows });
   } catch (err) {
     console.error('List semesters error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1336,7 +1397,7 @@ router.post(
     } catch (err) {
       if (err.code === '23505') return res.status(409).json({ error: 'Semester already exists for this year.' });
       console.error('Create semester error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -1372,7 +1433,7 @@ router.put(
       res.json({ semester: result.rows[0] });
     } catch (err) {
       console.error('Update semester error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -1383,7 +1444,7 @@ router.delete('/semesters/:id', async (req, res) => {
     res.json({ message: 'Semester deleted.' });
   } catch (err) {
     console.error('Delete semester error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1401,7 +1462,7 @@ router.delete('/semesters', async (req, res) => {
     res.json({ message: `${result.rowCount} semester(s) deleted.`, count: result.rowCount });
   } catch (err) {
     console.error('Delete all semesters error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1425,7 +1486,7 @@ router.post('/semesters/:id/activate', async (req, res) => {
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Activate semester error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   } finally {
     client.release();
   }
@@ -1445,7 +1506,7 @@ router.get('/active-semester', async (req, res) => {
     res.json({ semester: result.rows[0] || null });
   } catch (err) {
     console.error('Active semester error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1480,7 +1541,7 @@ router.get('/audit-logs', async (req, res) => {
     res.json({ logs: result.rows, total: count });
   } catch (err) {
     console.error('List audit logs error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1520,7 +1581,7 @@ router.get('/university-stats', async (req, res) => {
     });
   } catch (err) {
     console.error('University stats error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1585,7 +1646,7 @@ router.get('/recent-sessions', async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('Recent sessions error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1634,14 +1695,14 @@ router.get('/school-stats', async (req, res) => {
     });
   } catch (err) {
     console.error('School stats error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
 // ── Recent Activity (school + department admin) ──
 router.get('/recent-activity', async (req, res) => {
   if (!['school', 'department'].includes(req.scope.level)) {
-    return res.status(403).json({ error: 'Access denied.' });
+    return res.status(403).json({ error: "You don't have permission to do this." });
   }
   try {
     const { level, school_id, department_id } = req.scope;
@@ -1678,7 +1739,7 @@ router.get('/recent-activity', async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error('Recent activity error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1703,7 +1764,7 @@ router.get('/admin-users', async (req, res) => {
     res.json({ admins: result.rows });
   } catch (err) {
     console.error('List admin users error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -1742,7 +1803,7 @@ router.post('/users/:id/reset-password',
       res.json({ message: 'Password reset successfully.', user: result.rows[0] });
     } catch (err) {
       console.error('Reset password error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -1762,14 +1823,14 @@ router.post('/sessions/:sessionId/force-close',
         [sessionId]
       );
       if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Session not found.' });
+        return res.status(404).json({ error: 'Session not found or has ended.' });
       }
       const sessionCache = require('../services/sessionCache');
       sessionCache.deactivate(sessionId);
       res.json({ message: 'Session force-closed.', session: result.rows[0] });
     } catch (err) {
       console.error('Force close error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -1809,7 +1870,7 @@ router.post('/attendance/override',
       res.json({ message: `Attendance overridden to ${status}.` });
     } catch (err) {
       console.error('Override attendance error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -1834,7 +1895,7 @@ router.get('/active-sessions', async (req, res) => {
     res.json({ sessions: result.rows });
   } catch (err) {
     console.error('List active sessions error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 

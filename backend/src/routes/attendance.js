@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const { pool } = require('../config/db');
 const { isWithinRange } = require('../services/haversine');
 const { hashDeviceFingerprint } = require('../services/fingerprint');
+const { namesMatch } = require('../services/nameMatch');
 const { validatePin } = require('../services/pin');
 const { verifyToken } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
@@ -10,27 +11,13 @@ const sessionCache = require('../services/sessionCache');
 
 const router = express.Router();
 
-function normalizeName(name) {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function namesMatch(submitted, roster) {
-  const a = normalizeName(submitted);
-  const b = normalizeName(roster);
-  if (a === b) return true;
-  const aWords = a.split(' ').filter(Boolean).sort();
-  const bWords = b.split(' ').filter(Boolean).sort();
-  return aWords.length === bWords.length && aWords.every((w, i) => w === bWords[i]);
-}
+// Name matching (exact after normalization + common-suffix stripping) is shared
+// with the admin CSV import via services/nameMatch.js.
 
 const attendanceLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: process.env.NODE_ENV === 'test' ? 100 : 5,
-  message: { error: 'Too many attempts. Wait.' },
+  message: { error: 'Too many attempts. Please wait a minute and try again.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -49,7 +36,7 @@ router.post(
   '/validate-pin',
   validatePinLimiter,
   [
-    body('pin').isString().trim().isLength({ min: 4, max: 30 }),
+    body('pin').isString().trim().isLength({ min: 4, max: 30 }).withMessage('PIN must be 4–30 characters (e.g. CS101-482916).'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -73,7 +60,7 @@ router.post(
       const session = sessionCache.findActiveByPinAndCourse(numericPin, course_code, validatePin);
 
       if (!session) {
-        return res.status(404).json({ error: 'Session not found or expired.' });
+        return res.status(404).json({ error: 'Session not found or has ended.' });
       }
 
       res.json({
@@ -86,7 +73,7 @@ router.post(
       });
     } catch (err) {
       console.error('Validate pin error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -97,13 +84,13 @@ router.post(
   '/check-in',
   attendanceLimiter,
   [
-    body('name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
-    body('index_number').isString().trim().isLength({ min: 1, max: 50 }).notEmpty(),
-    body('pin').isString().trim().isLength({ min: 4, max: 30 }),
-    body('latitude').isFloat({ min: -90, max: 90 }),
-    body('longitude').isFloat({ min: -180, max: 180 }),
-    body('accuracy').optional().isFloat({ min: 0 }),
-    body('device_fingerprint').isString().isLength({ min: 1, max: 512 }).notEmpty(),
+    body('name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty().withMessage('Enter your full name.'),
+    body('index_number').isString().trim().isLength({ min: 1, max: 50 }).notEmpty().withMessage('Enter your index number.'),
+    body('pin').isString().trim().isLength({ min: 4, max: 30 }).withMessage('PIN must be 4–30 characters (e.g. CS101-482916).'),
+    body('latitude').isFloat({ min: -90, max: 90 }).withMessage('Enter a valid latitude.'),
+    body('longitude').isFloat({ min: -180, max: 180 }).withMessage('Enter a valid longitude.'),
+    body('accuracy').optional().isFloat({ min: 0 }).withMessage('Accuracy must be a positive number.'),
+    body('device_fingerprint').isString().isLength({ min: 1, max: 512 }).notEmpty().withMessage('Device fingerprint is required.'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -131,24 +118,29 @@ router.post(
         return res.status(400).json({ error: `GPS accuracy is too low (${Math.round(parseFloat(accuracy))}m). Move outdoors or near a window.` });
       }
 
-      // 1. Name-to-index validation against roster
-      const studentCheck = await pool.query(
-        'SELECT student_name FROM student_roster WHERE index_number = $1 AND deleted_at IS NULL',
-        [index_number]
-      );
-
-      if (studentCheck.rows.length > 0) {
-        const rosterName = studentCheck.rows[0].student_name;
-        if (!namesMatch(name, rosterName)) {
-          return res.status(400).json({ error: 'Name does not match your index number.' });
-        }
-      }
-
-      // 2. Rolling PIN validation via cache-first lookup
+      // 1. Rolling PIN validation via cache-first lookup
+      //    (validated first so roster membership is never disclosed without a valid PIN)
       const session = sessionCache.findActiveByPinAndCourse(numericPin, course_code, validatePin);
 
       if (!session) {
-        return res.status(404).json({ error: 'Session not found or expired.' });
+        return res.status(404).json({ error: 'Session not found or has ended.' });
+      }
+
+      // 2. Roster membership + exact name validation against the session's class
+      const studentCheck = await pool.query(
+        `SELECT student_name FROM student_roster
+         WHERE index_number = $1 AND class_id = $2 AND deleted_at IS NULL
+         LIMIT 1`,
+        [index_number, session.class_id]
+      );
+
+      if (studentCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Your index number is not registered in this class. Contact your lecturer.' });
+      }
+
+      const rosterName = studentCheck.rows[0].student_name;
+      if (!namesMatch(name, rosterName)) {
+        return res.status(400).json({ error: 'Name does not match your index number.' });
       }
 
       // 3. Lecture hall geofence check
@@ -209,13 +201,13 @@ router.post(
       });
     } catch (err) {
       if (err.code === '23505') {
-        return res.status(409).json({ error: 'Already checked in for this session.' });
+        return res.status(409).json({ error: 'This student has already been marked for this session.' });
       }
       if (err.code === '23503') {
-        return res.status(404).json({ error: 'Session not found or has expired.' });
+        return res.status(404).json({ error: 'Session not found or has ended.' });
       }
       console.error('Check-in error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -252,7 +244,7 @@ router.get('/hall-info', hallInfoLimiter, async (req, res) => {
     const session = sessionCache.findActiveByPinAndCourse(numericPin, course_code, validatePin);
 
     if (!session || !session.lecture_hall_name) {
-      return res.status(404).json({ error: 'No active session found.' });
+      return res.status(404).json({ error: 'Session not found or has ended.' });
     }
 
     res.json({
@@ -262,7 +254,7 @@ router.get('/hall-info', hallInfoLimiter, async (req, res) => {
     });
   } catch (err) {
     console.error('Hall info error:', err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -272,13 +264,13 @@ router.post(
   '/',
   attendanceLimiter,
   [
-    body('name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
-    body('index_number').isString().trim().isLength({ min: 1, max: 50 }).notEmpty(),
-    body('pin').isString().trim().isLength({ min: 4, max: 30 }),
-    body('latitude').isFloat({ min: -90, max: 90 }),
-    body('longitude').isFloat({ min: -180, max: 180 }),
-    body('accuracy').optional().isFloat({ min: 0 }),
-    body('device_fingerprint').isString().isLength({ min: 1, max: 512 }).notEmpty(),
+    body('name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty().withMessage('Enter your full name.'),
+    body('index_number').isString().trim().isLength({ min: 1, max: 50 }).notEmpty().withMessage('Enter your index number.'),
+    body('pin').isString().trim().isLength({ min: 4, max: 30 }).withMessage('PIN must be 4–30 characters (e.g. CS101-482916).'),
+    body('latitude').isFloat({ min: -90, max: 90 }).withMessage('Enter a valid latitude.'),
+    body('longitude').isFloat({ min: -180, max: 180 }).withMessage('Enter a valid longitude.'),
+    body('accuracy').optional().isFloat({ min: 0 }).withMessage('Accuracy must be a positive number.'),
+    body('device_fingerprint').isString().isLength({ min: 1, max: 512 }).notEmpty().withMessage('Device fingerprint is required.'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -305,22 +297,27 @@ router.post(
         return res.status(400).json({ error: `GPS accuracy is too low (${Math.round(parseFloat(accuracy))}m). Move outdoors or near a window.` });
       }
 
-      const studentCheck = await pool.query(
-        'SELECT student_name FROM student_roster WHERE index_number = $1 AND deleted_at IS NULL',
-        [index_number]
-      );
-
-      if (studentCheck.rows.length > 0) {
-        const rosterName = studentCheck.rows[0].student_name;
-        if (!namesMatch(name, rosterName)) {
-          return res.status(400).json({ error: 'Name does not match your index number.' });
-        }
-      }
-
       const session = sessionCache.findActiveByPinAndCourse(numericPin, course_code, validatePin);
 
       if (!session) {
-        return res.status(404).json({ error: 'Session not found or expired.' });
+        return res.status(404).json({ error: 'Session not found or has ended.' });
+      }
+
+      // Roster membership + exact name validation against the session's class
+      const studentCheck = await pool.query(
+        `SELECT student_name FROM student_roster
+         WHERE index_number = $1 AND class_id = $2 AND deleted_at IS NULL
+         LIMIT 1`,
+        [index_number, session.class_id]
+      );
+
+      if (studentCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Your index number is not registered in this class. Contact your lecturer.' });
+      }
+
+      const rosterName = studentCheck.rows[0].student_name;
+      if (!namesMatch(name, rosterName)) {
+        return res.status(400).json({ error: 'Name does not match your index number.' });
       }
 
       // Use lecture hall geofence
@@ -375,13 +372,13 @@ router.post(
       });
     } catch (err) {
       if (err.code === '23505') {
-        return res.status(409).json({ error: 'Already marked for this session.' });
+        return res.status(409).json({ error: 'This student has already been marked for this session.' });
       }
       if (err.code === '23503') {
-        return res.status(404).json({ error: 'Session not found or has expired.' });
+        return res.status(404).json({ error: 'Session not found or has ended.' });
       }
       console.error('Attendance error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -407,7 +404,7 @@ router.post(
     try {
       const cachedSession = sessionCache.get(session_id);
       if (!cachedSession || !cachedSession.is_active) {
-        return res.status(404).json({ error: 'Session ended.' });
+        return res.status(404).json({ error: 'Session not found or has ended.' });
       }
 
       const existing = await pool.query(
@@ -436,10 +433,10 @@ router.post(
       });
     } catch (err) {
       if (err.code === '23505') {
-        return res.status(409).json({ error: 'Already marked.' });
+        return res.status(409).json({ error: 'This student has already been marked for this session.' });
       }
       console.error('Manual attendance error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );

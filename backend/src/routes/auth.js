@@ -60,8 +60,8 @@ router.post(
   '/login',
   loginLimiter,
   [
-    body('email').isEmail().normalizeEmail().isLength({ max: 255 }),
-    body('password').isString().isLength({ min: 1, max: 128 }),
+    body('email').isEmail().withMessage('Enter a valid email address.').normalizeEmail().isLength({ max: 255 }),
+    body('password').isString().isLength({ min: 1, max: 128 }).withMessage('Enter your password.'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -133,7 +133,7 @@ router.post(
       res.json({ token, user: userResponse });
     } catch (err) {
       console.error('Login error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -141,7 +141,7 @@ router.post(
 router.post(
   '/forgot-password',
   forgotLimiter,
-  [body('email').isEmail().normalizeEmail()],
+  [body('email').isEmail().withMessage('Enter a valid email address.').normalizeEmail()],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -177,7 +177,7 @@ router.post(
       res.json({ message: 'If the email exists, a reset link has been sent.' });
     } catch (err) {
       console.error('Forgot password error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -186,8 +186,8 @@ router.post(
   '/reset-password',
   resetLimiter,
   [
-    body('token').isString().notEmpty(),
-    body('password').isString().isLength({ min: 8, max: 128 }),
+    body('token').isString().notEmpty().withMessage('Reset token is required.'),
+    body('password').isString().isLength({ min: 8, max: 128 }).withMessage('Password must be at least 8 characters.'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -217,7 +217,7 @@ router.post(
       res.json({ message: 'Password reset. Sign in with your new password.' });
     } catch (err) {
       console.error('Reset password error:', err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -235,7 +235,7 @@ router.get('/profile', verifyToken(), async (req, res) => {
     res.json({ user: { ...result.rows[0], role: req.user.role } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Something went wrong.' });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
 
@@ -266,9 +266,9 @@ router.put(
       );
       res.json({ user: { ...user, role: req.user.role }, token });
     } catch (err) {
-      if (err.code === '23505') return res.status(409).json({ error: 'Email already in use.' });
+      if (err.code === '23505') return res.status(409).json({ error: 'An account with this email already exists.' });
       console.error(err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
@@ -278,8 +278,8 @@ router.put(
   changePasswordLimiter,
   verifyToken(),
   [
-    body('current_password').isString().notEmpty(),
-    body('new_password').isString().isLength({ min: 8, max: 128 }),
+    body('current_password').isString().notEmpty().withMessage('Enter your current password.'),
+    body('new_password').isString().isLength({ min: 8, max: 128 }).withMessage('Password must be at least 8 characters.'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -302,7 +302,7 @@ router.put(
       res.json({ message: 'Password changed successfully.' });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: 'Something went wrong.' });
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
 );
