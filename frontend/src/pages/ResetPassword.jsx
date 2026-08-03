@@ -4,6 +4,7 @@ import { Lock, Eye, EyeSlash } from '@phosphor-icons/react';
 import api from '../utils/api';
 import Spinner from '../components/Spinner';
 import ClassPulseLogo from '../components/ClassPulseLogo';
+import PasswordStrength from '../components/PasswordStrength';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -42,11 +43,11 @@ export default function ResetPassword() {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '1.5rem',
-      background: '#F5F5F5',
+      background: 'var(--bg-global)',
     },
     card: {
-      background: '#FFFFFF',
-      border: '1px solid #E5E7EB',
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
       borderRadius: '8px',
       padding: '2.5rem',
       width: '100%',
@@ -60,8 +61,8 @@ export default function ResetPassword() {
       width: '56px',
       height: '56px',
       borderRadius: '50%',
-      background: '#DC2626',
-      color: '#fff',
+      background: 'var(--brand)',
+      color: 'var(--text-inverse)',
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -70,17 +71,17 @@ export default function ResetPassword() {
     title: {
       fontSize: '1.5rem',
       fontWeight: '700',
-      color: '#1A1A1A',
+      color: 'var(--text-primary)',
       marginBottom: '0.375rem',
     },
     subtitle: {
-      color: '#6B7280',
+      color: 'var(--text-secondary)',
       fontSize: '0.875rem',
     },
     success: {
       padding: '0.875rem 1rem',
-      background: '#f0fdf4',
-      color: '#16a34a',
+      background: 'var(--success-bg)',
+      color: 'var(--success)',
       borderRadius: '6px',
       fontSize: '0.8125rem',
       fontWeight: '500',
@@ -89,13 +90,13 @@ export default function ResetPassword() {
     },
     error: {
       padding: '0.875rem 1rem',
-      background: '#fef2f2',
-      color: '#DC2626',
+      background: 'var(--error-bg)',
+      color: 'var(--brand)',
       borderRadius: '6px',
       fontSize: '0.8125rem',
       fontWeight: '500',
       marginBottom: '1.25rem',
-      border: '1px solid rgba(220, 38, 38, 0.12)',
+      border: '1px solid rgba(var(--brand-rgb), 0.12)',
     },
     formGroup: {
       marginBottom: '1.25rem',
@@ -105,7 +106,7 @@ export default function ResetPassword() {
       fontSize: '0.8125rem',
       fontWeight: '600',
       marginBottom: '0.5rem',
-      color: '#1A1A1A',
+      color: 'var(--text-primary)',
     },
     inputWrapper: {
       position: 'relative',
@@ -115,7 +116,7 @@ export default function ResetPassword() {
     inputIcon: {
       position: 'absolute',
       left: '12px',
-      color: '#9CA3AF',
+      color: 'var(--text-muted)',
       display: 'flex',
       alignItems: 'center',
       pointerEvents: 'none',
@@ -124,11 +125,11 @@ export default function ResetPassword() {
       width: '100%',
       height: '46px',
       padding: '0 2.75rem 0 2.5rem',
-      border: '1px solid #E5E7EB',
+      border: '1px solid var(--border)',
       borderRadius: '8px',
       fontSize: '0.9375rem',
-      background: '#F5F5F5',
-      color: '#1A1A1A',
+      background: 'var(--bg-input)',
+      color: 'var(--text-primary)',
       transition: 'all 0.2s ease',
       outline: 'none',
       boxSizing: 'border-box',
@@ -140,7 +141,7 @@ export default function ResetPassword() {
       border: 'none',
       padding: '4px',
       cursor: 'pointer',
-      color: '#9CA3AF',
+      color: 'var(--text-muted)',
       display: 'flex',
       alignItems: 'center',
     },
@@ -148,8 +149,8 @@ export default function ResetPassword() {
       width: '100%',
       height: '48px',
       padding: '0 1.5rem',
-      background: loading ? '#F87171' : '#DC2626',
-      color: '#fff',
+      background: loading ? 'var(--brand-dark)' : 'var(--brand)',
+      color: 'var(--text-inverse)',
       border: 'none',
       borderRadius: '6px',
       fontSize: '0.9375rem',
@@ -167,7 +168,7 @@ export default function ResetPassword() {
       fontSize: '0.875rem',
     },
     backLinkA: {
-      color: '#6B7280',
+      color: 'var(--text-secondary)',
       textDecoration: 'none',
       fontWeight: '500',
       transition: 'color 0.15s ease',
@@ -178,11 +179,11 @@ export default function ResetPassword() {
     invalidTitle: {
       fontSize: '1.5rem',
       fontWeight: '700',
-      color: '#1A1A1A',
+      color: 'var(--text-primary)',
       marginBottom: '0.5rem',
     },
     invalidSubtitle: {
-      color: '#6B7280',
+      color: 'var(--text-secondary)',
       fontSize: '0.9375rem',
       marginBottom: '1.5rem',
     },
@@ -193,7 +194,7 @@ export default function ResetPassword() {
       <>
         <style>{`
           .rp-back:hover {
-            color: #DC2626 !important;
+            color: var(--brand) !important;
           }
         `}</style>
         <div style={styles.page}>
@@ -216,33 +217,16 @@ export default function ResetPassword() {
 
   return (
     <>
-      <style>{`
-        .rp-input:focus {
-          border-color: #DC2626 !important;
-        }
-        .rp-input::placeholder {
-          color: #9CA3AF;
-        }
-        .rp-submit:hover:not(:disabled) {
-          background: #B91C1C !important;
-        }
-        .rp-back:hover {
-          color: #DC2626 !important;
-        }
-        .rp-eye:hover {
-          color: #6B7280 !important;
-        }
-      `}</style>
       <div style={styles.page}>
-        <div style={styles.card}>
+        <div className="auth-card" style={styles.card}>
           <div style={styles.header}>
             <div style={styles.logo}><ClassPulseLogo size={28} /></div>
             <h1 style={styles.title}>Set New Password</h1>
             <p style={styles.subtitle}>Enter your new password below</p>
           </div>
 
-          {message && <div style={styles.success}>{message}</div>}
-          {error && <div style={styles.error}>{error}</div>}
+          {message && <div style={styles.success} role="status">{message}</div>}
+          {error && <div style={styles.error} role="alert" aria-live="assertive">{error}</div>}
 
           <form onSubmit={handleSubmit}>
             <div style={styles.formGroup}>
@@ -252,7 +236,7 @@ export default function ResetPassword() {
                   <Lock size={18} />
                 </span>
                 <input
-                  className="rp-input"
+                  className="auth-input rp-input"
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
@@ -269,10 +253,12 @@ export default function ResetPassword() {
                   style={styles.eyeToggle}
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              <PasswordStrength password={password} />
             </div>
             <div style={styles.formGroup}>
               <label style={styles.label} htmlFor="confirm">Confirm Password</label>
@@ -281,7 +267,7 @@ export default function ResetPassword() {
                   <Lock size={18} />
                 </span>
                 <input
-                  className="rp-input"
+                  className="auth-input rp-input"
                   id="confirm"
                   name="confirm"
                   type={showConfirm ? 'text' : 'password'}
@@ -297,6 +283,7 @@ export default function ResetPassword() {
                   style={styles.eyeToggle}
                   onClick={() => setShowConfirm(!showConfirm)}
                   tabIndex={-1}
+                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
                 >
                   {showConfirm ? <EyeSlash size={18} /> : <Eye size={18} />}
                 </button>
@@ -304,7 +291,7 @@ export default function ResetPassword() {
             </div>
             <button
               type="submit"
-              className="rp-submit"
+              className="auth-submit rp-submit"
               style={styles.submitBtn}
               disabled={loading}
             >
@@ -313,7 +300,7 @@ export default function ResetPassword() {
           </form>
 
           <p style={styles.backLink}>
-            <Link to="/lecturer/login" className="rp-back" style={styles.backLinkA}>Back to Sign In</Link>
+            <Link to="/lecturer/login" className="auth-back-link rp-back" style={styles.backLinkA}>Back to Sign In</Link>
           </p>
         </div>
       </div>

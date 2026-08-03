@@ -1,8 +1,11 @@
 -- ClassPulse: Seed Data
 
+-- University (required for admin hierarchy)
+INSERT INTO universities (name, code) VALUES ('ClassPulse University', 'CPU');
+
 -- Admin (password: admin123)
-INSERT INTO admins (name, email, password_hash) VALUES
-('System Admin', 'admin@classpulse.com', '$2a$10$dummy-hash-replace-with-bcrypt-hash');
+INSERT INTO admins (name, email, password_hash, role, university_id) VALUES
+('System Admin', 'admin@classpulse.com', '$2a$10$dummy-hash-replace-with-bcrypt-hash', 'university', 1);
 
 -- Lecturers (password: lecturer123)
 INSERT INTO lecturers (name, email, password_hash) VALUES
@@ -10,15 +13,15 @@ INSERT INTO lecturers (name, email, password_hash) VALUES
 ('Prof. Ama Serwaa', 'aserwaa@university.edu', '$2a$10$dummy-hash-replace-with-bcrypt-hash');
 
 -- Courses
-INSERT INTO courses (course_code, course_name, total_weeks) VALUES
-('CS101', 'Introduction to Computer Science', 12),
-('CS201', 'Data Structures & Algorithms', 12),
-('MATH101', 'Calculus I', 12);
+INSERT INTO courses (course_code, course_name, total_weeks, department_id) VALUES
+('CS101', 'Introduction to Computer Science', 12, NULL),
+('CS201', 'Data Structures & Algorithms', 12, NULL),
+('MATH101', 'Calculus I', 12, NULL);
 
 -- Classes
-INSERT INTO classes (class_name) VALUES
-('BSc Computer Science - Year 1'),
-('BSc Computer Science - Year 2');
+INSERT INTO classes (class_name, department_id) VALUES
+('BSc Computer Science - Year 1', NULL),
+('BSc Computer Science - Year 2', NULL);
 
 -- Student Roster - Year 1
 INSERT INTO student_roster (index_number, student_name, class_id) VALUES

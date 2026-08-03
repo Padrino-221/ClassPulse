@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 
-export default function Select({ children, className = '', style, name, value, onChange, ...props }) {
+export default function Select({ children, className = '', style, name, value, onChange, 'aria-label': ariaLabel, ...props }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
   const [dropdownStyle, setDropdownStyle] = useState({});
+  const [activeIndex, setActiveIndex] = useState(-1);
 
   const options = React.Children.toArray(children).filter(
     (child) => child.type === 'option'
@@ -35,6 +36,7 @@ export default function Select({ children, className = '', style, name, value, o
         const event = { target: { name, value: optValue } };
         onChange?.(event);
       }
+      setActiveIndex(-1);
     },
     [name, value, onChange]
   );
@@ -45,6 +47,7 @@ export default function Select({ children, className = '', style, name, value, o
     const handleClick = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setOpen(false);
+        setActiveIndex(-1);
       }
     };
     const handleScroll = () => positionDropdown();
@@ -61,11 +64,38 @@ export default function Select({ children, className = '', style, name, value, o
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setOpen(false);
+        setActiveIndex(-1);
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveIndex((prev) => {
+          const next = prev < options.length - 1 ? prev + 1 : 0;
+          const el = document.getElementById(`select-option-${next}`);
+          el?.scrollIntoView({ block: 'nearest' });
+          return next;
+        });
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveIndex((prev) => {
+          const next = prev > 0 ? prev - 1 : options.length - 1;
+          const el = document.getElementById(`select-option-${next}`);
+          el?.scrollIntoView({ block: 'nearest' });
+          return next;
+        });
+      }
+      if (e.key === 'Enter' && activeIndex >= 0) {
+        e.preventDefault();
+        const opt = options[activeIndex];
+        if (opt) handleSelect(opt.props.value);
+      }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open]);
+  }, [open, options, activeIndex, handleSelect]);
 
   return (
     <div
@@ -80,6 +110,8 @@ export default function Select({ children, className = '', style, name, value, o
         onClick={() => setOpen((prev) => !prev)}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-label={ariaLabel}
+        id="custom-select-trigger"
       >
         <span className="custom-select-label">{selectedLabel}</span>
       </button>
@@ -91,20 +123,23 @@ export default function Select({ children, className = '', style, name, value, o
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+        aria-hidden="true"
       >
         <polyline points="6 9 12 15 18 9" />
       </svg>
       {open && createPortal(
-        <ul className="custom-select-dropdown" role="listbox" style={dropdownStyle}>
-          {options.map((opt) => {
+        <ul className="custom-select-dropdown" role="listbox" style={dropdownStyle} aria-labelledby="custom-select-trigger">
+          {options.map((opt, idx) => {
             const optValue = opt.props.value;
             return (
               <li
                 key={optValue}
+                id={`select-option-${idx}`}
                 role="option"
                 aria-selected={optValue === value}
-                className={`custom-select-option${optValue === value ? ' selected' : ''}`}
+                className={`custom-select-option${optValue === value ? ' selected' : ''}${idx === activeIndex ? ' focused' : ''}`}
                 onMouseDown={() => handleSelect(optValue)}
+                onMouseEnter={() => setActiveIndex(idx)}
               >
                 {opt.props.children}
               </li>

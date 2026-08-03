@@ -25,10 +25,11 @@ export default class ErrorBoundary extends React.Component {
           minHeight: '100vh',
           padding: '2rem',
           textAlign: 'center',
+          background: 'var(--bg-global)',
           fontFamily: "'Plus Jakarta Sans', sans-serif",
         }}>
           <div style={{
-            background: '#DC2626',
+            background: 'var(--brand)',
             width: 56,
             height: 56,
             borderRadius: 16,
@@ -37,19 +38,19 @@ export default class ErrorBoundary extends React.Component {
             justifyContent: 'center',
             marginBottom: '1.5rem',
           }}>
-            <span style={{ color: '#FFF', fontSize: 24, fontWeight: 800 }}>!</span>
+            <span style={{ color: 'var(--text-inverse)', fontSize: 24, fontWeight: 800 }}>!</span>
           </div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1A202C', marginBottom: '0.5rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
             Something went wrong
           </h2>
-          <p style={{ fontSize: '0.875rem', color: '#718096', marginBottom: '1.5rem', maxWidth: 400 }}>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', maxWidth: 400 }}>
             An unexpected error occurred. Please try refreshing the page.
           </p>
           <button
             onClick={() => window.location.reload()}
             style={{
-              background: '#DC2626',
-              color: '#FFF',
+              background: 'var(--brand)',
+              color: 'var(--text-inverse)',
               border: 'none',
               borderRadius: 10,
               padding: '10px 24px',

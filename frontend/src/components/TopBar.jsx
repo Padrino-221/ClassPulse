@@ -324,10 +324,10 @@ export default React.memo(function TopBar() {
           />
           {searchQuery && (
             <button
+              aria-label="Clear search"
               style={styles.clearBtn}
               onClick={() => { setSearchQuery(''); setSearchResults([]); setSearchOpen(false); }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--text-muted, #999)'; e.currentTarget.style.color = '#fff'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--border-light, #e0e0e0)'; e.currentTarget.style.color = 'var(--text-muted, #999)'; }}
+              className="topbar-clear-btn"
             >
               &times;
             </button>
@@ -345,21 +345,20 @@ export default React.memo(function TopBar() {
 
       <div style={styles.right}>
         <button
+          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
           style={styles.themeBtn}
           onClick={toggleTheme}
-          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, #f0f0f0)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          className="topbar-theme-btn"
         >
           {theme === 'light' ? <Moon weight="duotone" size={20} /> : <Sun weight="duotone" size={20} />}
         </button>
 
         <div ref={menuRef} style={{ position: 'relative' }}>
           <button
+            aria-label="User menu"
             style={styles.profileBtn}
             onClick={() => setMenuOpen(!menuOpen)}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, #f0f0f0)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            className="topbar-profile-btn"
           >
             <div style={styles.avatar}>{initials}</div>
             <div style={styles.profileInfo}>
@@ -382,22 +381,20 @@ export default React.memo(function TopBar() {
               <div style={styles.dropdown}>
                 <div style={styles.dropdownEmail}>{user?.email || ''}</div>
                 <button
+                  className="dropdown-item"
                   style={styles.dropdownItem}
                   onClick={() => {
                     setMenuOpen(false);
                     navigate(user?.role === 'admin' ? '/admin/profile' : '/lecturer/profile');
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, #f0f0f0)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
                 >
                   <User weight="duotone" size={16} />
                   Profile
                 </button>
                 <button
+                  className="dropdown-item dropdown-item-danger"
                   style={{ ...styles.dropdownItem, ...styles.dangerItem }}
                   onClick={handleLogout}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, #f0f0f0)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
                 >
                   <SignOut weight="duotone" size={16} />
                   Sign Out

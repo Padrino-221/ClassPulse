@@ -186,9 +186,6 @@ if (require.main === module) {
     // Auto-activate scheduled sessions every minute
     cron.schedule('* * * * *', async () => {
       try {
-        const { pool } = require('./config/db');
-        const sessionCache = require('./services/sessionCache');
-
         const result = await pool.query(
           `UPDATE active_sessions
            SET is_active = TRUE
@@ -250,9 +247,6 @@ if (require.main === module) {
     // Auto-deactivate expired sessions every minute
     cron.schedule('* * * * *', async () => {
       try {
-        const { pool } = require('./config/db');
-        const sessionCache = require('./services/sessionCache');
-
         const result = await pool.query(
           `UPDATE active_sessions
            SET is_active = FALSE

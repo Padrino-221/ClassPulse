@@ -193,17 +193,21 @@ export default function LecturerDashboard() {
           </div>
           <div style={cardBodyStyle}>
             {data?.recent.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                No sessions yet.
+              <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)' }}>
+                <Clock weight="duotone" size={40} style={{ marginBottom: '0.75rem', opacity: 0.5, display: 'block', margin: '0 auto 0.75rem' }} />
+                <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>No sessions yet.</div>
+                <div style={{ fontSize: '0.85rem' }}>Your past sessions will appear here.</div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {data?.recent.map((s) => (
                   <div
                     key={s.session_id}
+                    className="list-hover-item"
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '0.625rem 0', borderBottom: '1px solid var(--border-light, #F5F5F5)',
+                      padding: '0.625rem 0.5rem', borderBottom: '1px solid var(--border-light, #F5F5F5)',
+                      borderRadius: 'var(--radius-sm)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
@@ -248,8 +252,10 @@ export default function LecturerDashboard() {
           </div>
           <div style={cardBodyStyle}>
             {data?.scheduled.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                No upcoming scheduled sessions.
+              <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)' }}>
+                <CalendarBlank weight="duotone" size={40} style={{ marginBottom: '0.75rem', opacity: 0.5, display: 'block', margin: '0 auto 0.75rem' }} />
+                <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>No upcoming scheduled sessions.</div>
+                <div style={{ fontSize: '0.85rem' }}>Create a new session to get started.</div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column' }}>

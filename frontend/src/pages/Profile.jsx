@@ -3,6 +3,7 @@ import api from '../utils/api';
 import { useToast } from '../components/Toast';
 import DashboardLayout from '../components/DashboardLayout';
 import Spinner from '../components/Spinner';
+import PasswordStrength from '../components/PasswordStrength';
 import { User, ShieldCheck, Eye, EyeSlash } from '@phosphor-icons/react';
 
 export default function Profile() {
@@ -80,8 +81,8 @@ export default function Profile() {
     <DashboardLayout>
       <div style={{ maxWidth: '1000px' }}>
         <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1A1A1A', marginBottom: '0.25rem' }}>My Profile</div>
-          <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Manage your account settings.</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>My Profile</div>
+          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Manage your account settings.</div>
         </div>
 
         <div className="profile-grid" style={{
@@ -91,26 +92,26 @@ export default function Profile() {
         }}>
           {/* Personal Information */}
           <div style={{
-            background: '#fff',
+            background: 'var(--bg-card)',
             borderRadius: '8px',
             boxShadow: 'none',
-            border: '1px solid #E5E7EB',
+            border: '1px solid var(--border)',
             overflow: 'hidden',
           }}>
             <div style={{
               padding: '1rem 1.5rem',
-              borderBottom: '1px solid #E5E7EB',
+              borderBottom: '1px solid var(--border)',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
             }}>
               <User weight="duotone" size={18} style={{ color: BRAND }} />
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#1A1A1A' }}>Personal Information</h3>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>Personal Information</h3>
             </div>
             <div style={{ padding: '1.5rem' }}>
               <form onSubmit={handleSaveProfile}>
                 <div className="form-group" style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#6B7280' }}>Full Name</label>
+                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Full Name</label>
                   <input
                     type="text"
                     value={name}
@@ -120,7 +121,9 @@ export default function Profile() {
                       width: '100%',
                       padding: '0.5rem 0.75rem',
                       borderRadius: '8px',
-                      border: '1px solid #E5E7EB',
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg-input)',
+                      color: 'var(--text-primary)',
                       fontSize: '0.875rem',
                       outline: 'none',
                       transition: 'border-color 0.15s ease',
@@ -129,7 +132,7 @@ export default function Profile() {
                   />
                 </div>
                 <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#6B7280' }}>Email</label>
+                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Email</label>
                   <input
                     type="email"
                     value={email}
@@ -139,7 +142,9 @@ export default function Profile() {
                       width: '100%',
                       padding: '0.5rem 0.75rem',
                       borderRadius: '8px',
-                      border: '1px solid #E5E7EB',
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg-input)',
+                      color: 'var(--text-primary)',
                       fontSize: '0.875rem',
                       outline: 'none',
                       transition: 'border-color 0.15s ease',
@@ -156,7 +161,7 @@ export default function Profile() {
                     gap: '0.5rem',
                     padding: '0.5rem 1.25rem',
                     background: BRAND,
-                    color: '#fff',
+                    color: 'var(--text-inverse)',
                     border: 'none',
                     borderRadius: '8px',
                     fontWeight: 600,
@@ -174,26 +179,26 @@ export default function Profile() {
 
           {/* Change Password */}
           <div style={{
-            background: '#fff',
+            background: 'var(--bg-card)',
             borderRadius: '8px',
             boxShadow: 'none',
-            border: '1px solid #E5E7EB',
+            border: '1px solid var(--border)',
             overflow: 'hidden',
           }}>
             <div style={{
               padding: '1rem 1.5rem',
-              borderBottom: '1px solid #E5E7EB',
+              borderBottom: '1px solid var(--border)',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
             }}>
               <ShieldCheck weight="duotone" size={18} style={{ color: BRAND }} />
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#1A1A1A' }}>Change Password</h3>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>Change Password</h3>
             </div>
             <div style={{ padding: '1.5rem' }}>
               <form onSubmit={handleChangePassword}>
                 <div className="form-group" style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#6B7280' }}>Current Password</label>
+                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Current Password</label>
                   <div className="password-field" style={{ position: 'relative' }}>
                     <input
                       type={showCurrent ? 'text' : 'password'}
@@ -204,21 +209,23 @@ export default function Profile() {
                         width: '100%',
                         padding: '0.5rem 0.75rem',
                         borderRadius: '8px',
-                        border: '1px solid #E5E7EB',
+                        border: '1px solid var(--border)',
+                        background: 'var(--bg-input)',
+                        color: 'var(--text-primary)',
                         fontSize: '0.875rem',
                         outline: 'none',
                         transition: 'border-color 0.15s ease',
                         boxSizing: 'border-box',
                       }}
                     />
-                    <button type="button" onClick={() => setShowCurrent((p) => !p)} style={{
+                    <button type="button" onClick={() => setShowCurrent((p) => !p)} aria-label={showCurrent ? 'Hide password' : 'Show password'} style={{
                       position: 'absolute',
                       right: '0.5rem',
                       top: '50%',
                       transform: 'translateY(-50%)',
                       background: 'none',
                       border: 'none',
-                      color: '#9CA3AF',
+                      color: 'var(--text-muted)',
                       cursor: 'pointer',
                       padding: '2px',
                       display: 'flex',
@@ -229,7 +236,7 @@ export default function Profile() {
                   </div>
                 </div>
                 <div className="form-group" style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#6B7280' }}>New Password</label>
+                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>New Password</label>
                   <div className="password-field" style={{ position: 'relative' }}>
                     <input
                       type={showNew ? 'text' : 'password'}
@@ -241,21 +248,23 @@ export default function Profile() {
                         width: '100%',
                         padding: '0.5rem 0.75rem',
                         borderRadius: '8px',
-                        border: '1px solid #E5E7EB',
+                        border: '1px solid var(--border)',
+                        background: 'var(--bg-input)',
+                        color: 'var(--text-primary)',
                         fontSize: '0.875rem',
                         outline: 'none',
                         transition: 'border-color 0.15s ease',
                         boxSizing: 'border-box',
                       }}
                     />
-                    <button type="button" onClick={() => setShowNew((p) => !p)} style={{
+                    <button type="button" onClick={() => setShowNew((p) => !p)} aria-label={showNew ? 'Hide password' : 'Show password'} style={{
                       position: 'absolute',
                       right: '0.5rem',
                       top: '50%',
                       transform: 'translateY(-50%)',
                       background: 'none',
                       border: 'none',
-                      color: '#9CA3AF',
+                      color: 'var(--text-muted)',
                       cursor: 'pointer',
                       padding: '2px',
                       display: 'flex',
@@ -264,9 +273,10 @@ export default function Profile() {
                       {showNew ? <EyeSlash size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+                  <PasswordStrength password={newPassword} />
                 </div>
                 <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#6B7280' }}>Confirm New Password</label>
+                  <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Confirm New Password</label>
                   <div className="password-field" style={{ position: 'relative' }}>
                     <input
                       type={showConfirm ? 'text' : 'password'}
@@ -279,21 +289,23 @@ export default function Profile() {
                         padding: '0.5rem 0.75rem',
                         paddingRight: '2.5rem',
                         borderRadius: '8px',
-                        border: '1px solid #E5E7EB',
+                        border: '1px solid var(--border)',
+                        background: 'var(--bg-input)',
+                        color: 'var(--text-primary)',
                         fontSize: '0.875rem',
                         outline: 'none',
                         transition: 'border-color 0.15s ease',
                         boxSizing: 'border-box',
                       }}
                     />
-                    <button type="button" onClick={() => setShowConfirm((p) => !p)} style={{
+                    <button type="button" onClick={() => setShowConfirm((p) => !p)} aria-label={showConfirm ? 'Hide password' : 'Show password'} style={{
                       position: 'absolute',
                       right: '0.5rem',
                       top: '50%',
                       transform: 'translateY(-50%)',
                       background: 'none',
                       border: 'none',
-                      color: '#9CA3AF',
+                      color: 'var(--text-muted)',
                       cursor: 'pointer',
                       padding: '2px',
                       display: 'flex',
@@ -312,7 +324,7 @@ export default function Profile() {
                     gap: '0.5rem',
                     padding: '0.5rem 1.25rem',
                     background: BRAND,
-                    color: '#fff',
+                    color: 'var(--text-inverse)',
                     border: 'none',
                     borderRadius: '8px',
                     fontWeight: 600,
@@ -333,4 +345,4 @@ export default function Profile() {
   );
 }
 
-const BRAND = '#DC2626';
+const BRAND = 'var(--brand)';

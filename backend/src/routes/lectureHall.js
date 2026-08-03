@@ -14,9 +14,9 @@ router.get('/', async (req, res) => {
     const { university_id } = req.scope;
     let result;
     if (university_id) {
-      result = await pool.query('SELECT * FROM lecture_halls WHERE university_id = $1 ORDER BY name', [university_id]);
+      result = await pool.query('SELECT * FROM lecture_halls WHERE university_id = $1 AND deleted_at IS NULL ORDER BY name', [university_id]);
     } else {
-      result = await pool.query('SELECT * FROM lecture_halls ORDER BY name');
+      result = await pool.query('SELECT * FROM lecture_halls WHERE deleted_at IS NULL ORDER BY name');
     }
     res.json({ lecture_halls: result.rows });
   } catch (err) {
@@ -114,10 +114,10 @@ router.put(
   }
 );
 
-// Delete all lecture halls
+// Delete all lecture halls (soft delete)
 router.delete('/', async (req, res) => {
   try {
-    const result = await pool.query('DELETE FROM lecture_halls RETURNING id');
+    const result = await pool.query('UPDATE lecture_halls SET deleted_at = NOW() WHERE deleted_at IS NULL RETURNING id');
     sessionCache.lectureHalls.clear();
     res.json({ message: `${result.rowCount} lecture hall(s) deleted.`, count: result.rowCount });
   } catch (err) {
@@ -126,10 +126,10 @@ router.delete('/', async (req, res) => {
   }
 });
 
-// Delete lecture hall
+// Delete lecture hall (soft delete)
 router.delete('/:id', async (req, res) => {
   try {
-    const result = await pool.query('DELETE FROM lecture_halls WHERE id = $1 RETURNING id', [req.params.id]);
+    const result = await pool.query('UPDATE lecture_halls SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id', [req.params.id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Lecture Hall not found.' });

@@ -22,6 +22,8 @@ import Spinner from '../components/Spinner';
 
 const PAGE_SIZE = 20;
 
+const notifyDataChanged = () => window.dispatchEvent(new Event('attendance-data-changed'));
+
 const tileIcons = {
   courses: <BookOpen weight="duotone" size={22} />,
   lecturers: <UserCheck weight="duotone" size={22} />,
@@ -141,6 +143,7 @@ function EditModal({ entityLabel, fields, data, onSave, onClose }) {
                         />
                         <button
                           type="button"
+                          aria-label={showPasswords[f.name] ? `Hide ${f.label} password` : `Show ${f.label} password`}
                           onClick={() => setShowPasswords((p) => ({ ...p, [f.name]: !p[f.name] }))}
                           style={{
                             position: 'absolute', right: '0.625rem', top: '50%',
@@ -224,23 +227,88 @@ function DeleteAllButton({ onClick, label = 'Delete All', variant = 'header' }) 
     <button
       type="button"
       onClick={onClick}
+      className="admin-action-btn"
       style={{
         display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
         padding: isHeader ? '0.65rem 1.25rem' : '0.5rem 1rem',
         background: isHeader ? 'rgba(255,255,255,0.15)' : 'var(--brand-light, #FEF2F2)',
         color: isHeader ? 'var(--text-inverse)' : 'var(--brand, #DC2626)',
-        border: isHeader ? '1px solid rgba(255,255,255,0.3)' : '1px solid #FCA5A5',
+        border: isHeader ? '1px solid rgba(255,255,255,0.3)' : '1px solid var(--error-border, #FCA5A5)',
         borderRadius: '6px',
-        fontSize: isHeader ? '0.8125rem' : '0.8125rem',
+        fontSize: '0.8125rem',
         fontWeight: 600,
         cursor: 'pointer',
         transition: 'all 0.15s',
         whiteSpace: 'nowrap',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = isHeader ? 'rgba(255,255,255,0.25)' : 'var(--brand-light)'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = isHeader ? 'rgba(255,255,255,0.15)' : 'var(--brand-light, #FEF2F2)'; }}
     >
       <Trash weight="bold" size={16} /> {label}
+    </button>
+  );
+}
+
+function IconButton({ icon, label, onClick, danger, disabled, title }) {
+  const Icon = icon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={title || label}
+      style={{
+        width: '32px', height: '32px', borderRadius: '8px', border: '1px solid',
+        borderColor: danger ? 'var(--error-border, #FCA5A5)' : 'var(--border-light, #e5e7eb)',
+        background: danger ? 'var(--brand-light)' : 'var(--bg-card, #fff)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        color: danger ? 'var(--brand, #DC2626)' : 'var(--text-muted, #6b7280)',
+        opacity: disabled ? 0.5 : 1,
+        transition: 'all 0.15s',
+      }}
+      onMouseEnter={(e) => {
+        if (disabled) return;
+        e.currentTarget.style.background = danger ? 'var(--brand, #DC2626)' : 'var(--bg-hover, #F3F4F6)';
+        e.currentTarget.style.color = danger ? '#fff' : 'var(--text-primary, #1A1A1A)';
+        e.currentTarget.style.borderColor = danger ? 'var(--brand, #DC2626)' : 'var(--text-muted, #9CA3AF)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = danger ? 'var(--brand-light)' : 'var(--bg-card, #fff)';
+        e.currentTarget.style.color = danger ? 'var(--brand, #DC2626)' : 'var(--text-muted, #6b7280)';
+        e.currentTarget.style.borderColor = danger ? 'var(--error-border, #FCA5A5)' : 'var(--border-light, #e5e7eb)';
+      }}
+    >
+      <Icon size={14} />
+    </button>
+  );
+}
+
+function ToolbarButton({ icon, label, onClick, disabled, title, variant = 'header' }) {
+  const Icon = icon;
+  const isHeader = variant === 'header';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="admin-action-btn"
+      title={title || label}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+        padding: isHeader ? '0.65rem 1.25rem' : '0.5rem 1rem',
+        background: isHeader ? 'rgba(255,255,255,0.15)' : 'var(--brand-light, #FEF2F2)',
+        color: isHeader ? 'var(--text-inverse)' : 'var(--brand, #DC2626)',
+        border: isHeader ? '1px solid rgba(255,255,255,0.3)' : '1px solid var(--error-border, #FCA5A5)',
+        borderRadius: '6px',
+        fontSize: '0.8125rem',
+        fontWeight: 600,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.6 : 1,
+        transition: 'all 0.15s',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {Icon && <Icon size={15} />} {label}
     </button>
   );
 }
@@ -254,11 +322,17 @@ function LectureHallsPage() {
   const [editing, setEditing] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
 
   const load = useCallback(async () => {
-    const res = await api.get('/api/lecture-halls');
-    setLectureHalls(res.data.lecture_halls);
+    setLoading(true);
+    try {
+      const res = await api.get('/api/lecture-halls');
+      setLectureHalls(res.data.lecture_halls);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -272,6 +346,7 @@ function LectureHallsPage() {
     });
     toast.success('Lecture Hall created');
     await load();
+    notifyDataChanged();
   };
 
   const saveEdit = async (form) => {
@@ -282,12 +357,14 @@ function LectureHallsPage() {
       radius: form.radius,
     });
     await load();
+    notifyDataChanged();
   };
 
   const remove = async (id) => {
     await api.delete(`/api/lecture-halls/${id}`);
     toast.success('Lecture Hall deleted');
     await load();
+    notifyDataChanged();
   };
 
   const [deletingAll, setDeletingAll] = useState(false);
@@ -297,6 +374,7 @@ function LectureHallsPage() {
       const res = await api.delete('/api/lecture-halls');
       toast.success(res.data.message);
       await load();
+      notifyDataChanged();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to delete lecture halls.');
     }
@@ -313,7 +391,12 @@ function LectureHallsPage() {
         right={<DeleteAllButton onClick={() => setDeletingAll(true)} />}
       />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
-        {lectureHalls.map((h) => (
+        {loading ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted, #9ca3af)', gridColumn: '1 / -1' }}>
+            <Spinner size={24} />
+          </div>
+        ) : (
+          lectureHalls.map((h) => (
           <div key={h.id} style={{
             background: 'var(--bg-card, #fff)', borderRadius: '8px',
             border: '1px solid var(--border-light, #e5e7eb)', padding: '1.25rem',
@@ -331,31 +414,20 @@ function LectureHallsPage() {
                   <span style={{ display: 'inline-block', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 600, background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}>
                     {Number(h.latitude).toFixed(4)}, {Number(h.longitude).toFixed(4)}
                   </span>
-                  <span style={{ display: 'inline-block', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 700, background: 'var(--brand-light)', color: '#DC2626' }}>
+                  <span style={{ display: 'inline-block', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 700, background: 'var(--brand-light)', color: 'var(--brand, #DC2626)' }}>
                     {h.radius}m radius
                   </span>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
-                <button onClick={() => setEditing(h)} style={{
-                  width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border-light, #e5e7eb)',
-                  background: 'var(--bg-card, #fff)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--text-muted, #6b7280)', transition: 'all 0.15s',
-                }}>
-                  <PencilSimple size={14} />
-                </button>
-                <button onClick={() => setDeleting(h)} style={{
-                  width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #FCA5A5',
-                  background: 'var(--brand-light)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--brand)', transition: 'all 0.15s',
-                }}>
-                  <Trash size={14} />
-                </button>
+                <IconButton icon={PencilSimple} label={`Edit ${h.name}`} onClick={() => setEditing(h)} />
+                <IconButton icon={Trash} label={`Delete ${h.name}`} onClick={() => setDeleting(h)} danger />
               </div>
             </div>
           </div>
-        ))}
-        {lectureHalls.length === 0 && (
+        ))
+        )}
+        {lectureHalls.length === 0 && !loading && (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted, #9ca3af)', fontSize: '0.875rem', gridColumn: '1 / -1' }}>
             No lecture halls yet.
           </div>
@@ -411,10 +483,17 @@ function LectureHallsPage() {
   );
 }
 
-function ScopeFilter({ user, schools, departments, filterSchool, setFilterSchool, filterDepartment, setFilterDepartment, setPage, extraReset }) {
+function ScopeFilter({ user, schools, departments, filterSchool, setFilterSchool, filterDepartment, setFilterDepartment, setPage, extraReset, extra }) {
   const isUniversity = user?.admin_level === 'university';
   const isSchoolAdmin = user?.admin_level === 'school';
-  if (!isUniversity && !isSchoolAdmin) return null;
+  if (!isUniversity && !isSchoolAdmin) {
+    if (!extra) return null;
+    return (
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', alignItems: 'flex-end' }}>
+        {extra}
+      </div>
+    );
+  }
 
   const filteredDepts = filterSchool
     ? departments.filter(d => String(d.school_id) === String(filterSchool))
@@ -451,11 +530,12 @@ function ScopeFilter({ user, schools, departments, filterSchool, setFilterSchool
           {filteredDepts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
         </Select>
       </div>
+      {extra}
     </div>
   );
 }
 
-function AdminOverviewPage({ courses, lecturers, classes, students, lectureHalls }) {
+function AdminOverviewPage({ courses, lecturers, classes, students, lectureHalls, counts, refreshTrigger }) {
   const user = useMemo(() => {
     try { return getStoredUser(); } catch { return null; }
   }, []);
@@ -477,11 +557,11 @@ function AdminOverviewPage({ courses, lecturers, classes, students, lectureHalls
       api.get('/api/admin/recent-activity').then((r) => setRecentActivity(r.data)).catch(() => {});
       if (user?.institution_name) setSchoolName(user.institution_name);
     }
-  }, [isUniversity, isSchoolAdmin, user]);
+  }, [isUniversity, isSchoolAdmin, user, refreshTrigger]);
 
   useEffect(() => {
     api.get('/api/admin/recent-sessions').then((r) => setRecentSessions(r.data)).catch(() => {});
-  }, []);
+  }, [refreshTrigger]);
 
   const firstName = user?.name?.split(' ')[0] || 'Admin';
 
@@ -497,10 +577,10 @@ function AdminOverviewPage({ courses, lecturers, classes, students, lectureHalls
   const allTiles = [
     { to: '/admin/schools', icon: <Buildings weight="duotone" size={20} />, title: 'Schools', count: uniStats?.schools ?? 0, desc: 'Academic divisions.', color: '#DC2626', bg: 'var(--brand-light)', uniOnly: true },
     { to: '/admin/departments', icon: <TreeEvergreen weight="duotone" size={20} />, title: 'Departments', count: uniStats?.departments ?? 0, desc: 'Across all schools.', color: '#DC2626', bg: 'var(--brand-light)', uniOnly: true },
-    { to: '/admin/courses', icon: <BookOpen weight="duotone" size={20} />, title: 'Courses', count: uniStats?.courses ?? courses.length, desc: 'Active offerings.', color: '#DC2626', bg: 'var(--brand-light)', uniOnly: false },
-    { to: '/admin/classes', icon: <Users weight="duotone" size={20} />, title: 'Classes', count: uniStats?.classes ?? classes.length, desc: 'Active groups.', color: '#DC2626', bg: 'var(--brand-light)', uniOnly: false },
-    { to: '/admin/lecturers', icon: <UserCheck weight="duotone" size={20} />, title: 'Lecturers', count: uniStats?.lecturers ?? lecturers.length, desc: 'Assigned faculty.', color: '#DC2626', bg: 'var(--brand-light)', uniOnly: false },
-    { to: '/admin/students', icon: <GraduationCap weight="duotone" size={20} />, title: 'Students', count: uniStats?.students ?? students.length, desc: 'Currently enrolled.', color: '#DC2626', bg: 'var(--brand-light)', uniOnly: false },
+    { to: '/admin/courses', icon: <BookOpen weight="duotone" size={20} />, title: 'Courses', count: uniStats?.courses ?? counts.courses, desc: 'Active offerings.', color: '#DC2626', bg: 'var(--brand-light)', uniOnly: false },
+    { to: '/admin/classes', icon: <Users weight="duotone" size={20} />, title: 'Classes', count: uniStats?.classes ?? counts.classes, desc: 'Active groups.', color: '#DC2626', bg: 'var(--brand-light)', uniOnly: false },
+    { to: '/admin/lecturers', icon: <UserCheck weight="duotone" size={20} />, title: 'Lecturers', count: uniStats?.lecturers ?? counts.lecturers, desc: 'Assigned faculty.', color: '#DC2626', bg: 'var(--brand-light)', uniOnly: false },
+    { to: '/admin/students', icon: <GraduationCap weight="duotone" size={20} />, title: 'Students', count: uniStats?.students ?? counts.students, desc: 'Currently enrolled.', color: '#DC2626', bg: 'var(--brand-light)', uniOnly: false },
     { to: '/admin/lecture-halls', icon: <MapPin weight="duotone" size={20} />, title: 'Lecture Halls', count: uniStats?.lecture_halls ?? lectureHalls.length, desc: 'With geofence setup.', color: '#DC2626', bg: 'var(--brand-light)', uniOnly: true },
   ];
   const tiles = isUniversity ? allTiles : allTiles.filter((t) => !t.uniOnly);
@@ -527,10 +607,10 @@ function AdminOverviewPage({ courses, lecturers, classes, students, lectureHalls
         { icon: <ChartLineUp weight="duotone" size={18} />, value: `${Math.round(schoolStats.avg_attendance)}%`, label: 'Avg Attendance', color: '#DC2626', bg: 'var(--brand-light)' },
       ]
     : [
-        { icon: <BookOpen weight="duotone" size={18} />, value: courses.length, label: 'Courses', color: '#DC2626', bg: 'var(--brand-light)' },
-        { icon: <Users weight="duotone" size={18} />, value: classes.length, label: 'Classes', color: '#DC2626', bg: 'var(--brand-light)' },
-        { icon: <UserCheck weight="duotone" size={18} />, value: lecturers.length, label: 'Lecturers', color: '#DC2626', bg: 'var(--brand-light)' },
-        { icon: <GraduationCap weight="duotone" size={18} />, value: students.length, label: 'Students', color: '#DC2626', bg: 'var(--brand-light)' },
+        { icon: <BookOpen weight="duotone" size={18} />, value: counts.courses, label: 'Courses', color: '#DC2626', bg: 'var(--brand-light)' },
+        { icon: <Users weight="duotone" size={18} />, value: counts.classes, label: 'Classes', color: '#DC2626', bg: 'var(--brand-light)' },
+        { icon: <UserCheck weight="duotone" size={18} />, value: counts.lecturers, label: 'Lecturers', color: '#DC2626', bg: 'var(--brand-light)' },
+        { icon: <GraduationCap weight="duotone" size={18} />, value: counts.students, label: 'Students', color: '#DC2626', bg: 'var(--brand-light)' },
       ];
 
   const heroSubtitle = isUniversity
@@ -676,7 +756,7 @@ function AdminOverviewPage({ courses, lecturers, classes, students, lectureHalls
                     </tr>
                   </thead>
                   <tbody>
-                    {recentSessions.slice(0, 7).map((s, i) => (
+                    {recentSessions.map((s, i) => (
                       <tr key={s.id || i} style={{ transition: 'background 0.1s' }}>
                         <td style={{ padding: '0.75rem 1rem', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-light)' }}>{s.course_name || s.course || '—'}</td>
                         <td style={{ padding: '0.75rem 1rem', fontSize: '0.8125rem', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-light)' }}>{s.date || s.session_date || '—'}</td>
@@ -746,11 +826,11 @@ function AdminOverviewPage({ courses, lecturers, classes, students, lectureHalls
               </div>
               <div style={{ padding: '0.5rem 1.25rem' }}>
                 {recentActivity.length > 0 ? (
-                  recentActivity.slice(0, 5).map((a, i) => (
+                  recentActivity.map((a, i) => (
                     <div key={i} style={{
                       display: 'flex', alignItems: 'flex-start', gap: '0.625rem',
                       padding: '0.625rem 0',
-                      borderBottom: i < Math.min(recentActivity.length, 5) - 1 ? '1px solid var(--border-light)' : 'none',
+                      borderBottom: i < recentActivity.length - 1 ? '1px solid var(--border-light)' : 'none',
                     }}>
                       <div style={{
                         width: 34, height: 34, borderRadius: '50%',
@@ -788,12 +868,13 @@ function CoursesPage() {
   const [editing, setEditing] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
 
   const user = useMemo(() => {
     try { return getStoredUser(); } catch { return null; }
   }, []);
-  const isReadOnly = user?.admin_level !== 'department';
+  const isReadOnly = false;
   const isUniversity = user?.admin_level === 'university';
   const isSchoolAdmin = user?.admin_level === 'school';
 
@@ -813,16 +894,21 @@ function CoursesPage() {
   }, [departments, filterSchool]);
 
   const load = useCallback(async (p, schoolId, deptId) => {
-    const params = { limit: PAGE_SIZE, offset: (p - 1) * PAGE_SIZE };
-    if (schoolId) params.school_id = schoolId;
-    if (deptId) params.department_id = deptId;
-    const [cRes, lRes] = await Promise.all([
-      api.get('/api/admin/courses', { params }),
-      api.get('/api/admin/lecturers'),
-    ]);
-    setCourses(cRes.data.courses);
-    setTotal(cRes.data.total);
-    setLecturers(lRes.data.lecturers);
+    setLoading(true);
+    try {
+      const params = { limit: PAGE_SIZE, offset: (p - 1) * PAGE_SIZE };
+      if (schoolId) params.school_id = schoolId;
+      if (deptId) params.department_id = deptId;
+      const [cRes, lRes] = await Promise.all([
+        api.get('/api/admin/courses', { params }),
+        api.get('/api/admin/lecturers'),
+      ]);
+      setCourses(cRes.data.courses);
+      setTotal(cRes.data.total);
+      setLecturers(lRes.data.lecturers);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(page, filterSchool, filterDepartment); }, [load, page, filterSchool, filterDepartment]);
@@ -837,6 +923,7 @@ function CoursesPage() {
     });
     setPage(1);
     await load(1, filterSchool, filterDepartment);
+    notifyDataChanged();
   };
 
   const saveEdit = async (form) => {
@@ -847,12 +934,14 @@ function CoursesPage() {
       min_attendance_pct: parseInt(form.min_attendance_pct) || 70,
     });
     await load(page, filterSchool, filterDepartment);
+    notifyDataChanged();
   };
 
   const remove = async (code) => {
     await api.delete(`/api/admin/courses/${code}`);
     toast.success('Course deleted');
     await load(page, filterSchool, filterDepartment);
+    notifyDataChanged();
   };
 
   const [deletingAll, setDeletingAll] = useState(false);
@@ -866,6 +955,7 @@ function CoursesPage() {
       toast.success(res.data.message);
       setPage(1);
       await load(1, filterSchool, filterDepartment);
+      notifyDataChanged();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to delete courses.');
     }
@@ -894,7 +984,7 @@ function CoursesPage() {
       />
       <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
         <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
-          <table className="matrix-table" style={{ border: 'none', borderRadius: 0 }}>
+          <table className="matrix-table table-hover" style={{ border: 'none', borderRadius: 0 }}>
             <thead>
               <tr>
                 <th>Course Name</th>
@@ -906,6 +996,14 @@ function CoursesPage() {
               </tr>
             </thead>
             <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={isReadOnly ? 5 : 6} style={{ textAlign: 'center', padding: '2.5rem' }}>
+                    <Spinner />
+                  </td>
+                </tr>
+              ) : (
+                <>
               {courses.length === 0 && (
                 <tr>
                   <td colSpan={isReadOnly ? 5 : 6}>
@@ -929,25 +1027,15 @@ function CoursesPage() {
                   {!isReadOnly && (
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
-                        <button onClick={() => setEditing(c)} style={{
-                          width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border-light, #e5e7eb)',
-                          background: 'var(--bg-card, #fff)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          color: 'var(--text-muted, #6b7280)', transition: 'all 0.15s',
-                        }}>
-                          <PencilSimple size={14} />
-                        </button>
-                        <button onClick={() => setDeleting(c)} style={{
-                          width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #FCA5A5',
-                          background: 'var(--brand-light)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          color: 'var(--brand)', transition: 'all 0.15s',
-                        }}>
-                          <Trash size={14} />
-                        </button>
+                        <IconButton icon={PencilSimple} label={`Edit ${c.course_name}`} onClick={() => setEditing(c)} />
+                        <IconButton icon={Trash} label={`Delete ${c.course_name}`} onClick={() => setDeleting(c)} danger />
                       </div>
                     </td>
                   )}
                 </tr>
               ))}
+              </>
+              )}
             </tbody>
           </table>
         </div>
@@ -1014,12 +1102,13 @@ function ClassesPage() {
   const [editing, setEditing] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
 
   const user = useMemo(() => {
     try { return getStoredUser(); } catch { return null; }
   }, []);
-  const isReadOnly = user?.admin_level !== 'department';
+  const isReadOnly = false;
   const isUniversity = user?.admin_level === 'university';
   const isSchoolAdmin = user?.admin_level === 'school';
 
@@ -1039,16 +1128,21 @@ function ClassesPage() {
   }, [departments, filterSchool]);
 
   const load = useCallback(async (p, schoolId, deptId) => {
-    const params = { limit: PAGE_SIZE, offset: (p - 1) * PAGE_SIZE };
-    if (schoolId) params.school_id = schoolId;
-    if (deptId) params.department_id = deptId;
-    const [cRes, lRes] = await Promise.all([
-      api.get('/api/admin/classes', { params }),
-      api.get('/api/admin/lecturers'),
-    ]);
-    setClasses(cRes.data.classes);
-    setTotal(cRes.data.total);
-    setLecturers(lRes.data.lecturers);
+    setLoading(true);
+    try {
+      const params = { limit: PAGE_SIZE, offset: (p - 1) * PAGE_SIZE };
+      if (schoolId) params.school_id = schoolId;
+      if (deptId) params.department_id = deptId;
+      const [cRes, lRes] = await Promise.all([
+        api.get('/api/admin/classes', { params }),
+        api.get('/api/admin/lecturers'),
+      ]);
+      setClasses(cRes.data.classes);
+      setTotal(cRes.data.total);
+      setLecturers(lRes.data.lecturers);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(page, filterSchool, filterDepartment); }, [load, page, filterSchool, filterDepartment]);
@@ -1060,6 +1154,7 @@ function ClassesPage() {
     });
     setPage(1);
     await load(1, filterSchool, filterDepartment);
+    notifyDataChanged();
   };
 
   const saveEdit = async (form) => {
@@ -1068,12 +1163,14 @@ function ClassesPage() {
       lecturer_ids: Array.isArray(form.lecturer_ids) ? form.lecturer_ids.map(Number) : [],
     });
     await load(page, filterSchool, filterDepartment);
+    notifyDataChanged();
   };
 
   const remove = async (id) => {
     await api.delete(`/api/admin/classes/${id}`);
     toast.success('Class deleted');
     await load(page, filterSchool, filterDepartment);
+    notifyDataChanged();
   };
 
   const [deletingAll, setDeletingAll] = useState(false);
@@ -1087,6 +1184,7 @@ function ClassesPage() {
       toast.success(res.data.message);
       setPage(1);
       await load(1, filterSchool, filterDepartment);
+      notifyDataChanged();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to delete classes.');
     }
@@ -1114,7 +1212,12 @@ function ClassesPage() {
         setPage={setPage}
       />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem' }}>
-        {classes.map((cls) => {
+        {loading ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted, #9ca3af)', gridColumn: '1 / -1' }}>
+            <Spinner size={24} />
+          </div>
+        ) : (
+        classes.map((cls) => {
           const lecs = Array.isArray(cls.lecturers) ? cls.lecturers : [];
           return (
             <div key={cls.class_id} style={{
@@ -1140,26 +1243,14 @@ function ClassesPage() {
                 </div>
                 {!isReadOnly && (
                   <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
-                    <button onClick={() => setEditing(cls)} style={{
-                      width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border-light, #e5e7eb)',
-                      background: 'var(--bg-card, #fff)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: 'var(--text-muted, #6b7280)', transition: 'all 0.15s',
-                    }}>
-                      <PencilSimple size={14} />
-                    </button>
-                    <button onClick={() => setDeleting(cls)} style={{
-                      width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #FCA5A5',
-                      background: 'var(--brand-light)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: 'var(--brand)', transition: 'all 0.15s',
-                    }}>
-                      <Trash size={14} />
-                    </button>
+                    <IconButton icon={PencilSimple} label={`Edit ${cls.class_name}`} onClick={() => setEditing(cls)} />
+                    <IconButton icon={Trash} label={`Delete ${cls.class_name}`} onClick={() => setDeleting(cls)} danger />
                   </div>
                 )}
               </div>
               <div style={{
                 marginTop: '0.875rem', padding: '0.6rem 0.875rem',
-                background: 'var(--bg-global, #F5F5F5)', borderRadius: '6px', border: '1px solid var(--border-light, #F5F5F5)',
+                background: 'var(--bg-global, #F5F5F5)', borderRadius: '6px', border: '1px solid var(--border, #E5E7EB)',
                 fontSize: '0.8rem', color: 'var(--text-secondary, #6B7280)',
                 display: 'flex', alignItems: 'center', gap: '0.4rem',
               }}>
@@ -1181,7 +1272,8 @@ function ClassesPage() {
               )}
             </div>
           );
-        })}
+        })
+        )}
       </div>
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       {!isReadOnly && showCreate && (
@@ -1237,12 +1329,13 @@ function LecturersPage() {
   const [editing, setEditing] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
 
   const user = useMemo(() => {
     try { return getStoredUser(); } catch { return null; }
   }, []);
-  const isReadOnly = user?.admin_level !== 'department';
+  const isReadOnly = false;
   const isUniversity = user?.admin_level === 'university';
   const isSchoolAdmin = user?.admin_level === 'school';
 
@@ -1262,12 +1355,17 @@ function LecturersPage() {
   }, [departments, filterSchool]);
 
   const load = useCallback(async (p, schoolId, deptId) => {
-    const params = { limit: PAGE_SIZE, offset: (p - 1) * PAGE_SIZE };
-    if (schoolId) params.school_id = schoolId;
-    if (deptId) params.department_id = deptId;
-    const res = await api.get('/api/admin/lecturers', { params });
-    setLecturers(res.data.lecturers);
-    setTotal(res.data.total);
+    setLoading(true);
+    try {
+      const params = { limit: PAGE_SIZE, offset: (p - 1) * PAGE_SIZE };
+      if (schoolId) params.school_id = schoolId;
+      if (deptId) params.department_id = deptId;
+      const res = await api.get('/api/admin/lecturers', { params });
+      setLecturers(res.data.lecturers);
+      setTotal(res.data.total);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(page, filterSchool, filterDepartment); }, [load, page, filterSchool, filterDepartment]);
@@ -1276,6 +1374,7 @@ function LecturersPage() {
     await api.post('/api/admin/lecturers', form);
     setPage(1);
     await load(1, filterSchool, filterDepartment);
+    notifyDataChanged();
   };
 
   const saveEdit = async (form) => {
@@ -1283,12 +1382,14 @@ function LecturersPage() {
     if (form.password) payload.password = form.password;
     await api.put(`/api/admin/lecturers/${editing.id}`, payload);
     await load(page, filterSchool, filterDepartment);
+    notifyDataChanged();
   };
 
   const remove = async (id) => {
     await api.delete(`/api/admin/lecturers/${id}`);
     toast.success('Lecturer deleted');
     await load(page, filterSchool, filterDepartment);
+    notifyDataChanged();
   };
 
   const [deletingAll, setDeletingAll] = useState(false);
@@ -1302,9 +1403,49 @@ function LecturersPage() {
       toast.success(res.data.message);
       setPage(1);
       await load(1, filterSchool, filterDepartment);
+      notifyDataChanged();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to delete lecturers.');
     }
+  };
+
+  const [importingLecturers, setImportingLecturers] = useState(false);
+  const [lecturerImportResult, setLecturerImportResult] = useState(null);
+  const lecturerFileRef = useRef(null);
+
+  const handleLecturerImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportingLecturers(true);
+    setLecturerImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post('/api/admin/lecturers/bulk', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setLecturerImportResult(res.data);
+      setPage(1);
+      await load(1, filterSchool, filterDepartment);
+      notifyDataChanged();
+    } catch (err) {
+      setLecturerImportResult({ error: err.response?.data?.error || 'Import failed.' });
+    } finally {
+      setImportingLecturers(false);
+      lecturerFileRef.current.value = '';
+      setTimeout(() => setLecturerImportResult(null), 6000);
+    }
+  };
+
+  const downloadLecturerTemplate = () => {
+    const csv = 'name,email,password\nDr. Jane Doe,jane.doe@university.edu,TemporaryPass1\n';
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'lecturer_import_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -1318,7 +1459,34 @@ function LecturersPage() {
         actionLabel="New Lecturer"
         actionIcon={Plus}
         right={!isReadOnly ? (
-          <DeleteAllButton onClick={() => setDeletingAll(true)} />
+          <>
+            <input type="file" accept=".csv" ref={lecturerFileRef} onChange={handleLecturerImport} style={{ display: 'none' }} />
+            <ToolbarButton
+              icon={DownloadSimple}
+              label="Download Template"
+              title="Download a CSV template with the name, email and password columns"
+              onClick={downloadLecturerTemplate}
+            />
+            <ToolbarButton
+              label={importingLecturers ? 'Importing...' : 'Import CSV'}
+              disabled={importingLecturers}
+              onClick={() => lecturerFileRef.current?.click()}
+            />
+            <DeleteAllButton onClick={() => setDeletingAll(true)} />
+            {lecturerImportResult && (
+              <span style={{
+                fontSize: '0.75rem', fontWeight: 600,
+                color: '#fff',
+                background: lecturerImportResult.error ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.2)',
+                padding: '0.3rem 0.75rem', borderRadius: '6px',
+                border: '1px solid rgba(255,255,255,0.3)',
+              }}>
+                {lecturerImportResult.error
+                  ? lecturerImportResult.error
+                  : `${lecturerImportResult.added} lecturer(s) added${lecturerImportResult.skipped?.length ? `, ${lecturerImportResult.skipped.length} skipped` : ''}${lecturerImportResult.errors?.length ? `, ${lecturerImportResult.errors.length} error(s)` : ''}`}
+              </span>
+            )}
+          </>
         ) : undefined}
       />
       <ScopeFilter
@@ -1329,7 +1497,7 @@ function LecturersPage() {
       />
       <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
         <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
-          <table className="matrix-table" style={{ border: 'none', borderRadius: 0 }}>
+          <table className="matrix-table table-hover" style={{ border: 'none', borderRadius: 0 }}>
             <thead>
               <tr>
                 <th>Name</th>
@@ -1339,6 +1507,14 @@ function LecturersPage() {
               </tr>
             </thead>
             <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={isReadOnly ? 3 : 4} style={{ textAlign: 'center', padding: '2.5rem' }}>
+                    <Spinner />
+                  </td>
+                </tr>
+              ) : (
+                <>
               {lecturers.length === 0 && (
                 <tr>
                   <td colSpan={isReadOnly ? 3 : 4}>
@@ -1360,25 +1536,15 @@ function LecturersPage() {
                   {!isReadOnly && (
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
-                        <button onClick={() => setEditing(l)} style={{
-                          width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border-light, #e5e7eb)',
-                          background: 'var(--bg-card, #fff)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          color: 'var(--text-muted, #6b7280)', transition: 'all 0.15s',
-                        }}>
-                          <PencilSimple size={14} />
-                        </button>
-                        <button onClick={() => setDeleting(l)} style={{
-                          width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #FCA5A5',
-                          background: 'var(--brand-light)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          color: 'var(--brand)', transition: 'all 0.15s',
-                        }}>
-                          <Trash size={14} />
-                        </button>
+                        <IconButton icon={PencilSimple} label={`Edit ${l.name}`} onClick={() => setEditing(l)} />
+                        <IconButton icon={Trash} label={`Delete ${l.name}`} onClick={() => setDeleting(l)} danger />
                       </div>
                     </td>
                   )}
                 </tr>
               ))}
+              </>
+              )}
             </tbody>
           </table>
         </div>
@@ -1411,6 +1577,16 @@ function LecturersPage() {
           onClose={() => setEditing(null)}
         />
       )}
+      {deleting && (
+        <ConfirmModal
+          title="Delete Lecturer"
+          message={`Are you sure you want to delete "${deleting.name}"? They will immediately lose access to the system.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={async () => { await remove(deleting.id); setDeleting(null); }}
+          onCancel={() => setDeleting(null)}
+        />
+      )}
       {deletingAll && (
         <BulkDeleteModal
           title="Delete All Lecturers"
@@ -1433,12 +1609,13 @@ function StudentsPage() {
   const [editing, setEditing] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
 
   const user = useMemo(() => {
     try { return getStoredUser(); } catch { return null; }
   }, []);
-  const isReadOnly = user?.admin_level !== 'department';
+  const isReadOnly = false;
   const isUniversity = user?.admin_level === 'university';
   const isSchoolAdmin = user?.admin_level === 'school';
 
@@ -1456,11 +1633,6 @@ function StudentsPage() {
     if (isUniversity || isSchoolAdmin) api.get('/api/departments').then(r => setDepartments(r.data)).catch(() => {});
   }, [isUniversity, isSchoolAdmin]);
 
-  const filteredDepartments = useMemo(() => {
-    if (!filterSchool) return departments;
-    return departments.filter(d => String(d.school_id) === String(filterSchool));
-  }, [departments, filterSchool]);
-
   const loadClasses = useCallback(async (schoolId, deptId) => {
     const params = {};
     if (schoolId) params.school_id = schoolId;
@@ -1470,15 +1642,20 @@ function StudentsPage() {
   }, []);
 
   const loadStudents = useCallback(async (classId, p, schoolId, deptId) => {
-    const params = { limit: PAGE_SIZE, offset: (p - 1) * PAGE_SIZE };
-    if (classId) params.class_id = classId;
-    else {
-      if (schoolId) params.school_id = schoolId;
-      if (deptId) params.department_id = deptId;
+    setLoading(true);
+    try {
+      const params = { limit: PAGE_SIZE, offset: (p - 1) * PAGE_SIZE };
+      if (classId) params.class_id = classId;
+      else {
+        if (schoolId) params.school_id = schoolId;
+        if (deptId) params.department_id = deptId;
+      }
+      const res = await api.get('/api/admin/students', { params });
+      setStudents(res.data.students);
+      setTotal(res.data.total);
+    } finally {
+      setLoading(false);
     }
-    const res = await api.get('/api/admin/students', { params });
-    setStudents(res.data.students);
-    setTotal(res.data.total);
   }, []);
 
   useEffect(() => { loadClasses(filterSchool, filterDepartment); }, [loadClasses, filterSchool, filterDepartment]);
@@ -1488,6 +1665,7 @@ function StudentsPage() {
     await api.post('/api/admin/students', { ...form, class_id: parseInt(selectedClass) });
     setPage(1);
     await loadStudents(selectedClass, 1, filterSchool, filterDepartment);
+    notifyDataChanged();
   };
 
   const saveEdit = async (form) => {
@@ -1500,6 +1678,7 @@ function StudentsPage() {
     await api.delete(`/api/admin/students/${id}`);
     toast.success('Student deleted');
     await loadStudents(selectedClass, page, filterSchool, filterDepartment);
+    notifyDataChanged();
   };
 
   const [deletingAll, setDeletingAll] = useState(false);
@@ -1514,6 +1693,7 @@ function StudentsPage() {
       toast.success(res.data.message);
       setPage(1);
       await loadStudents(selectedClass, 1, filterSchool, filterDepartment);
+      notifyDataChanged();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to delete students.');
     }
@@ -1531,6 +1711,7 @@ function StudentsPage() {
       const res = await api.post('/api/admin/students/bulk', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       setImportResult(res.data);
       await loadStudents(selectedClass, page, filterSchool, filterDepartment);
+      notifyDataChanged();
     } catch (err) {
       setImportResult({ error: err.response?.data?.error || 'Import failed.' });
     } finally {
@@ -1538,6 +1719,19 @@ function StudentsPage() {
       fileRef.current.value = '';
       setTimeout(() => setImportResult(null), 5000);
     }
+  };
+
+  const downloadTemplate = () => {
+    const csv = 'index_number,student_name\nUEB000000000,Example Student\n';
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'student_roster_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -1556,28 +1750,19 @@ function StudentsPage() {
               <input type="file" accept=".csv" ref={fileRef} onChange={handleBulkImport} style={{ display: 'none' }} />
             )}
             {selectedClass && (
-              <button
-                type="button"
+              <ToolbarButton
+                icon={DownloadSimple}
+                label="Download Template"
+                title="Download a CSV template with the index_number and student_name columns"
+                onClick={downloadTemplate}
+              />
+            )}
+            {selectedClass && (
+              <ToolbarButton
+                label={importing ? 'Importing...' : 'Import CSV'}
                 disabled={importing}
                 onClick={() => fileRef.current?.click()}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                  padding: '0.65rem 1.25rem',
-                  background: 'rgba(255,255,255,0.15)',
-                  color: 'var(--text-inverse)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  borderRadius: '6px',
-                  fontSize: '0.8125rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
-              >
-                {importing ? 'Importing...' : 'Import CSV'}
-              </button>
+              />
             )}
             <DeleteAllButton onClick={() => setDeletingAll(true)} />
             {importResult && (
@@ -1594,40 +1779,27 @@ function StudentsPage() {
           </>
         ) : undefined}
       />
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', alignItems: 'flex-end' }}>
-        {(isUniversity || isSchoolAdmin) && (
-          <>
-            {isUniversity && (
-              <div style={{ flex: '1 1 0', minWidth: 0 }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.375rem' }}>School</label>
-                <Select value={filterSchool} onChange={(e) => { setFilterSchool(e.target.value); setFilterDepartment(''); setSelectedClass(''); setPage(1); }}>
-                  <option value="">All Schools</option>
-                  {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </Select>
-              </div>
-            )}
-            <div style={{ flex: '1 1 0', minWidth: 0 }}>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.375rem' }}>Department</label>
-              <Select value={filterDepartment} onChange={(e) => { setFilterDepartment(e.target.value); setSelectedClass(''); setPage(1); }}>
-                <option value="">All Departments</option>
-                {filteredDepartments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </Select>
-            </div>
-          </>
+      <ScopeFilter
+        user={user} schools={schools} departments={departments}
+        filterSchool={filterSchool} setFilterSchool={setFilterSchool}
+        filterDepartment={filterDepartment} setFilterDepartment={setFilterDepartment}
+        setPage={setPage}
+        extraReset={() => setSelectedClass('')}
+        extra={(
+          <div style={{ flex: '1 1 0', minWidth: 0 }}>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.375rem' }}>Class</label>
+            <Select value={selectedClass} onChange={(e) => { setSelectedClass(e.target.value); setPage(1); }}>
+              <option value="">All Classes</option>
+              {classes.map((c) => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
+            </Select>
+          </div>
         )}
-        <div style={{ flex: '1 1 0', minWidth: 0 }}>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.375rem' }}>Class</label>
-          <Select value={selectedClass} onChange={(e) => { setSelectedClass(e.target.value); setPage(1); }}>
-            <option value="">All Classes</option>
-            {classes.map((c) => <option key={c.class_id} value={c.class_id}>{c.class_name}</option>)}
-          </Select>
-        </div>
-      </div>
+      />
       {(selectedClass || filterSchool || filterDepartment) && (
         <>
           <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
             <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
-              <table className="matrix-table" style={{ border: 'none', borderRadius: 0 }}>
+              <table className="matrix-table table-hover" style={{ border: 'none', borderRadius: 0 }}>
                 <thead>
                   <tr>
                     <th>Student Name</th>
@@ -1637,6 +1809,14 @@ function StudentsPage() {
                   </tr>
                 </thead>
                 <tbody>
+        {loading ? (
+                    <tr>
+                      <td colSpan={isReadOnly ? 3 : 4} style={{ textAlign: 'center', padding: '2.5rem' }}>
+                        <Spinner />
+                      </td>
+                    </tr>
+                  ) : (
+                    <>
         {students.length === 0 && (
                     <tr>
                       <td colSpan={isReadOnly ? 3 : 4}>
@@ -1658,25 +1838,15 @@ function StudentsPage() {
                       {!isReadOnly && (
                         <td style={{ textAlign: 'center' }}>
                           <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
-                            <button onClick={() => setEditing(s)} style={{
-                              width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border-light, #e5e7eb)',
-                              background: 'var(--bg-card, #fff)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                              color: 'var(--text-muted, #6b7280)', transition: 'all 0.15s',
-                            }}>
-                              <PencilSimple size={14} />
-                            </button>
-                            <button onClick={() => setDeleting(s)} style={{
-                              width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #FCA5A5',
-                              background: 'var(--brand-light)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                              color: 'var(--brand)', transition: 'all 0.15s',
-                            }}>
-                              <Trash size={14} />
-                            </button>
+                            <IconButton icon={PencilSimple} label={`Edit ${s.student_name}`} onClick={() => setEditing(s)} />
+                            <IconButton icon={Trash} label={`Delete ${s.student_name}`} onClick={() => setDeleting(s)} danger />
                           </div>
                         </td>
                       )}
                     </tr>
                   ))}
+                  </>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1706,6 +1876,15 @@ function StudentsPage() {
           )}
         </>
       )}
+      {!selectedClass && !filterSchool && !filterDepartment && (
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          <div className="entity-empty-icon" style={{ margin: '0 auto 0.75rem' }}>
+            <GraduationCap weight="duotone" size={40} color="var(--brand)" />
+          </div>
+          <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Select a filter to view students</div>
+          <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Choose a school, department, or class above to load the student roster.</div>
+        </div>
+      )}
       {deleting && (
         <ConfirmModal
           title="Delete Student"
@@ -1734,13 +1913,17 @@ function SchoolsPage() {
   const [editing, setEditing] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
 
   const loadSchools = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await api.get('/api/schools');
       setSchools(res.data);
-    } catch { /* empty */ }
+    } catch { /* empty */ } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { loadSchools(); }, [loadSchools]);
@@ -1751,6 +1934,7 @@ function SchoolsPage() {
       await api.post('/api/schools', payload);
       toast.success('School created.');
       loadSchools();
+      notifyDataChanged();
     } catch (err) {
       const msg = err.response?.data?.error || 'Failed to create school.';
       toast.error(msg);
@@ -1762,6 +1946,7 @@ function SchoolsPage() {
     await api.put(`/api/schools/${editing.id}`, form);
     toast.success('School updated.');
     loadSchools();
+    notifyDataChanged();
   };
 
   const handleDelete = async (id) => {
@@ -1769,6 +1954,7 @@ function SchoolsPage() {
       await api.delete(`/api/schools/${id}`);
       toast.success('School deleted.');
       loadSchools();
+      notifyDataChanged();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to delete school.');
     }
@@ -1781,6 +1967,7 @@ function SchoolsPage() {
       const res = await api.delete('/api/schools');
       toast.success(res.data.message);
       loadSchools();
+      notifyDataChanged();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to delete schools.');
     }
@@ -1803,7 +1990,12 @@ function SchoolsPage() {
         ) : undefined}
       />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-        {schools.map((s) => (
+        {loading ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted, #9ca3af)', gridColumn: '1 / -1' }}>
+            <Spinner size={24} />
+          </div>
+        ) : (
+        schools.map((s) => (
           <div key={s.id} style={{
             background: 'var(--bg-card, #fff)', borderRadius: '8px',
             border: '1px solid var(--border-light, #e5e7eb)', padding: '1.25rem',
@@ -1821,30 +2013,18 @@ function SchoolsPage() {
                   <span style={{
                     display: 'inline-block', padding: '0.15rem 0.5rem', borderRadius: '6px',
                     fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
-                    background: 'var(--brand-light)', color: '#DC2626',
+                    background: 'var(--brand-light)', color: 'var(--brand, #DC2626)',
                   }}>{s.code}</span>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
-                <button onClick={() => setEditing(s)} style={{
-                  width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border-light, #e5e7eb)',
-                  background: 'var(--bg-card, #fff)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--text-muted, #6b7280)', transition: 'all 0.15s',
-                }}>
-                  <PencilSimple size={14} />
-                </button>
-                <button onClick={() => setDeleting(s)} style={{
-                  width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #FCA5A5',
-                  background: 'var(--brand-light)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--brand)', transition: 'all 0.15s',
-                }}>
-                  <Trash size={14} />
-                </button>
+                <IconButton icon={PencilSimple} label={`Edit ${s.name}`} onClick={() => setEditing(s)} />
+                <IconButton icon={Trash} label={`Delete ${s.name}`} onClick={() => setDeleting(s)} danger />
               </div>
             </div>
             <div style={{
               marginTop: '0.875rem', padding: '0.6rem 0.875rem',
-              background: 'var(--bg-global, #F5F5F5)', borderRadius: '6px', border: '1px solid var(--border-light, #F5F5F5)',
+              background: 'var(--bg-global, #F5F5F5)', borderRadius: '6px', border: '1px solid var(--border, #E5E7EB)',
               fontSize: '0.8rem', color: 'var(--text-secondary, #6B7280)',
               display: 'flex', alignItems: 'center', gap: '0.4rem',
             }}>
@@ -1852,8 +2032,9 @@ function SchoolsPage() {
               <span><strong>{s.department_count || 0}</strong> departments</span>
             </div>
           </div>
-        ))}
-        {schools.length === 0 && (
+        ))
+        )}
+        {schools.length === 0 && !loading && (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted, #9ca3af)', fontSize: '0.875rem', gridColumn: '1 / -1' }}>
             No schools yet.
           </div>
@@ -1915,20 +2096,24 @@ function DepartmentsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [deleting, setDeleting] = useState(null);
   const [filterSchool, setFilterSchool] = useState('');
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
 
   const user = useMemo(() => {
     try { return getStoredUser(); } catch { return null; }
   }, []);
 
-  const isReadOnly = user?.admin_level === 'university';
+  const isReadOnly = user?.admin_level === 'department';
   const isSchoolAdmin = user?.admin_level === 'school';
 
   const loadDepartments = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await api.get('/api/departments');
       setDepartments(res.data);
-    } catch { /* empty */ }
+    } catch { /* empty */ } finally {
+      setLoading(false);
+    }
   }, []);
 
   const loadSchools = useCallback(async () => {
@@ -1949,6 +2134,7 @@ function DepartmentsPage() {
       await api.post('/api/departments', payload);
       toast.success('Department created.');
       loadDepartments();
+      notifyDataChanged();
     } catch (err) {
       const msg = err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || 'Failed to create department.';
       toast.error(msg);
@@ -1961,6 +2147,7 @@ function DepartmentsPage() {
     await api.put(`/api/departments/${editing.id}`, payload);
     toast.success('Department updated.');
     loadDepartments();
+    notifyDataChanged();
   };
 
   const handleDelete = async (id) => {
@@ -1968,6 +2155,7 @@ function DepartmentsPage() {
       await api.delete(`/api/departments/${id}`);
       toast.success('Department deleted.');
       loadDepartments();
+      notifyDataChanged();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to delete department.');
     }
@@ -1982,6 +2170,7 @@ function DepartmentsPage() {
       const res = await api.delete('/api/departments', { params });
       toast.success(res.data.message);
       loadDepartments();
+      notifyDataChanged();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to delete departments.');
     }
@@ -2033,7 +2222,12 @@ function DepartmentsPage() {
         </div>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
-        {filtered.map((d) => (
+        {loading ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted, #9ca3af)', gridColumn: '1 / -1' }}>
+            <Spinner size={24} />
+          </div>
+        ) : (
+        filtered.map((d) => (
           <div key={d.id} style={{
             background: 'var(--bg-card, #fff)', borderRadius: '8px',
             border: '1px solid var(--border-light, #e5e7eb)', padding: '1.25rem',
@@ -2064,26 +2258,14 @@ function DepartmentsPage() {
               </div>
               {!isReadOnly && (
                 <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
-                  <button onClick={() => setEditing(d)} style={{
-                    width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border-light, #e5e7eb)',
-                    background: 'var(--bg-card, #fff)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'var(--text-muted, #6b7280)', transition: 'all 0.15s',
-                  }}>
-                    <PencilSimple size={14} />
-                  </button>
-                  <button onClick={() => setDeleting(d)} style={{
-                    width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #FCA5A5',
-                    background: 'var(--brand-light)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'var(--brand)', transition: 'all 0.15s',
-                  }}>
-                    <Trash size={14} />
-                  </button>
+                  <IconButton icon={PencilSimple} label={`Edit ${d.name}`} onClick={() => setEditing(d)} />
+                  <IconButton icon={Trash} label={`Delete ${d.name}`} onClick={() => setDeleting(d)} danger />
                 </div>
               )}
             </div>
             <div style={{
               marginTop: '0.875rem', padding: '0.6rem 0.875rem',
-              background: 'var(--bg-global, #F5F5F5)', borderRadius: '6px', border: '1px solid var(--border-light, #F5F5F5)',
+              background: 'var(--bg-global, #F5F5F5)', borderRadius: '6px', border: '1px solid var(--border, #E5E7EB)',
               fontSize: '0.8rem', color: 'var(--text-secondary, #6B7280)',
               display: 'flex', alignItems: 'center', gap: '0.75rem',
             }}>
@@ -2097,8 +2279,9 @@ function DepartmentsPage() {
               </span>
             </div>
           </div>
-        ))}
-        {filtered.length === 0 && (
+        ))
+        )}
+        {filtered.length === 0 && !loading && (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted, #9ca3af)', fontSize: '0.875rem', gridColumn: '1 / -1' }}>
             No departments{filterSchool ? ' in this school' : ''} yet.
           </div>
@@ -2244,14 +2427,7 @@ function AcademicTermsPage() {
         <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>Academic Years</h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <DeleteAllButton label="Delete All Years" onClick={() => setDeletingAllYears(true)} />
-          <button onClick={() => setShowCreateYear(true)} style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-            padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 600,
-            color: '#DC2626', backgroundColor: 'var(--brand-light)', border: 'none', borderRadius: '6px',
-            cursor: 'pointer',
-          }}>
-            <Plus size={14} /> New Year
-          </button>
+          <ToolbarButton icon={Plus} label="New Year" variant="content" onClick={() => setShowCreateYear(true)} />
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
@@ -2275,13 +2451,7 @@ function AcademicTermsPage() {
                   </span>
                 </div>
               </div>
-              <button onClick={() => setDeletingYear(y)} style={{
-                width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #FCA5A5',
-                background: 'var(--brand-light)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--brand)', transition: 'all 0.15s',
-              }}>
-                <Trash size={14} />
-              </button>
+              <IconButton icon={Trash} label={`Delete ${y.label}`} onClick={() => setDeletingYear(y)} danger />
             </div>
           </div>
         ))}
@@ -2297,14 +2467,7 @@ function AcademicTermsPage() {
         <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>Semesters</h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <DeleteAllButton label="Delete All Semesters" onClick={() => setDeletingAllSemesters(true)} />
-          <button onClick={() => setShowCreateSemester(true)} style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-            padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 600,
-            color: '#DC2626', backgroundColor: 'var(--brand-light)', border: 'none', borderRadius: '6px',
-            cursor: 'pointer',
-          }}>
-            <Plus size={14} /> New Semester
-          </button>
+          <ToolbarButton icon={Plus} label="New Semester" variant="content" onClick={() => setShowCreateSemester(true)} />
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
@@ -2347,7 +2510,7 @@ function AcademicTermsPage() {
                   </button>
                 )}
                 <button onClick={() => setDeletingSemester(s)} style={{
-                  width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #FCA5A5',
+                  width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--error-border, #FCA5A5)',
                   background: 'var(--brand-light)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: 'var(--brand)', transition: 'all 0.15s',
                 }}>
@@ -2656,8 +2819,7 @@ function ToolsPage() {
               }}>Scope</label>
               <Select value={resetScope} onChange={(e) => setResetScope(e.target.value)}>
                 <option value="">Select what to clear</option>
-                <option value="attendance">Attendance Records Only</option>
-                <option value="sessions">Sessions + Attendance</option>
+                <option value="students">Students Only</option>
                 <option value="all">Full Reset (Everything)</option>
               </Select>
             </div>
@@ -2709,14 +2871,22 @@ export default function AdminDashboard() {
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
   const [lectureHalls, setLectureHalls] = useState([]);
+  const [counts, setCounts] = useState({ courses: 0, lecturers: 0, classes: 0, students: 0 });
+  const [dataVersion, setDataVersion] = useState(0);
+
+  useEffect(() => {
+    const handler = () => setDataVersion((v) => v + 1);
+    window.addEventListener('attendance-data-changed', handler);
+    return () => window.removeEventListener('attendance-data-changed', handler);
+  }, []);
 
   const load = useCallback(async () => {
     try {
       const [cRes, lRes, clRes, sRes, lhRes] = await Promise.all([
-        api.get('/api/admin/courses'),
-        api.get('/api/admin/lecturers'),
-        api.get('/api/admin/classes'),
-        api.get('/api/admin/students'),
+        api.get('/api/admin/courses', { params: { limit: 100 } }),
+        api.get('/api/admin/lecturers', { params: { limit: 100 } }),
+        api.get('/api/admin/classes', { params: { limit: 100 } }),
+        api.get('/api/admin/students', { params: { limit: 100 } }),
         api.get('/api/lecture-halls'),
       ]);
       setCourses(cRes.data.courses || []);
@@ -2724,10 +2894,16 @@ export default function AdminDashboard() {
       setClasses(clRes.data.classes || []);
       setStudents(sRes.data.students || []);
       setLectureHalls(lhRes.data.lecture_halls || []);
+      setCounts({
+        courses: cRes.data.total ?? cRes.data.courses?.length ?? 0,
+        lecturers: lRes.data.total ?? lRes.data.lecturers?.length ?? 0,
+        classes: clRes.data.total ?? clRes.data.classes?.length ?? 0,
+        students: sRes.data.total ?? sRes.data.students?.length ?? 0,
+      });
     } catch {}
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, dataVersion]);
 
   return (
     <DashboardLayout>
@@ -2738,7 +2914,7 @@ export default function AdminDashboard() {
           </div>
         }>
         <Routes>
-          <Route index element={<AdminOverviewPage courses={courses} lecturers={lecturers} classes={classes} students={students} lectureHalls={lectureHalls} />} />
+          <Route index element={<AdminOverviewPage courses={courses} lecturers={lecturers} classes={classes} students={students} lectureHalls={lectureHalls} counts={counts} refreshTrigger={dataVersion} />} />
           <Route path="courses" element={<CoursesPage />} />
           <Route path="classes" element={<ClassesPage />} />
           <Route path="lecturers" element={<LecturersPage />} />

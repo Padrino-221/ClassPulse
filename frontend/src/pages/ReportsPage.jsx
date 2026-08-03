@@ -352,7 +352,7 @@ export default function ReportsPage() {
               gap: '0.5rem',
               height: '42px',
               padding: '0 1.25rem',
-              background: '#fff',
+              background: 'var(--bg-card)',
               color: BRAND,
               border: `1px solid ${BRAND}`,
               borderRadius: 'var(--radius-full, 6px)',
@@ -458,9 +458,9 @@ export default function ReportsPage() {
                 <tbody>
                   {(summary?.classes || []).length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ padding: '2rem 1.5rem', textAlign: 'center', color: '#6b7280' }}>
+                      <td colSpan={5} style={{ padding: '2rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                         <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>No data available</div>
-                        <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.25rem' }}>Create sessions and record attendance to see reports.</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Create sessions and record attendance to see reports.</div>
                       </td>
                     </tr>
                   )}

@@ -9,15 +9,15 @@ export default function NotFound() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#F5F5F5',
+        background: 'var(--bg-global)',
         padding: '2rem',
       }}
     >
       <div
         style={{
-          background: '#FFFFFF',
-          border: '1px solid #E5E7EB',
-          borderRadius: 8,
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-lg)',
           maxWidth: 420,
           width: '100%',
           padding: '2.5rem',
@@ -28,7 +28,7 @@ export default function NotFound() {
           style={{
             fontSize: '4rem',
             fontWeight: 800,
-            color: '#DC2626',
+            color: 'var(--brand)',
             lineHeight: 1,
             margin: 0,
           }}
@@ -39,7 +39,7 @@ export default function NotFound() {
           style={{
             fontSize: '1.5rem',
             fontWeight: 700,
-            color: '#1A1A1A',
+            color: 'var(--text-primary)',
             margin: '0.75rem 0',
           }}
         >
@@ -48,7 +48,7 @@ export default function NotFound() {
         <p
           style={{
             fontSize: '0.9375rem',
-            color: '#6B7280',
+            color: 'var(--text-secondary)',
             marginBottom: '2rem',
             lineHeight: 1.6,
           }}
@@ -59,7 +59,7 @@ export default function NotFound() {
           to="/"
           style={{
             display: 'inline-block',
-            background: '#DC2626',
+            background: 'var(--brand)',
             color: 'var(--text-inverse)',
             border: 'none',
             borderRadius: 6,

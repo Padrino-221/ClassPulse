@@ -67,6 +67,7 @@ export default function CreateModal({ entityLabel, fields, onSave, onClose }) {
           </h3>
           <button
             onClick={onClose}
+            aria-label="Close modal"
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               color: 'var(--text-muted, #9CA3AF)', padding: '4px', borderRadius: '6px',
@@ -134,6 +135,7 @@ export default function CreateModal({ entityLabel, fields, onSave, onClose }) {
                       <button
                         type="button"
                         onClick={() => setShowPasswords((p) => ({ ...p, [f.name]: !p[f.name] }))}
+                        aria-label={showPasswords[f.name] ? 'Hide password' : 'Show password'}
                         style={{
                           position: 'absolute', right: '0.625rem', top: '50%',
                           transform: 'translateY(-50%)', background: 'none', border: 'none',

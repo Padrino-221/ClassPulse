@@ -47,12 +47,12 @@ export default function LecturerLogin() {
     container: {
       minHeight: '100vh',
       display: 'flex',
-      background: '#F5F5F5',
+      background: 'var(--bg-global)',
       fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     },
     leftPanel: {
       flex: '0 0 60%',
-      background: '#F5F5F5',
+      background: 'var(--bg-global)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -72,22 +72,22 @@ export default function LecturerLogin() {
       width: '38px',
       height: '38px',
       borderRadius: '50%',
-      background: '#DC2626',
+      background: 'var(--brand)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      color: '#fff',
+      color: 'var(--text-inverse)',
       fontWeight: '700',
       fontSize: '0.95rem',
     },
     logoText: {
       fontWeight: '700',
       fontSize: '1.1rem',
-      color: '#1A1A1A',
+      color: 'var(--text-primary)',
     },
     card: {
-      background: '#FFFFFF',
-      border: '1px solid #E5E7EB',
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
       borderRadius: '8px',
       width: '100%',
       maxWidth: '420px',
@@ -96,23 +96,23 @@ export default function LecturerLogin() {
     heading: {
       fontSize: '1.5rem',
       fontWeight: '700',
-      color: '#1A1A1A',
+      color: 'var(--text-primary)',
       marginBottom: '0.25rem',
     },
     subtitle: {
-      color: '#6B7280',
+      color: 'var(--text-secondary)',
       fontSize: '0.875rem',
       marginBottom: '1.5rem',
     },
     error: {
       padding: '0.875rem 1rem',
-      background: '#FEE2E2',
-      color: '#DC2626',
+      background: 'var(--error-bg)',
+      color: 'var(--brand)',
       borderRadius: '6px',
       fontSize: '0.8125rem',
       fontWeight: '500',
       marginBottom: '1.25rem',
-      border: '1px solid rgba(220, 38, 38, 0.12)',
+      border: '1px solid rgba(var(--brand-rgb), 0.12)',
     },
     formGroup: {
       marginBottom: '1.25rem',
@@ -121,7 +121,7 @@ export default function LecturerLogin() {
       display: 'block',
       fontSize: '0.8125rem',
       fontWeight: '600',
-      color: '#1A1A1A',
+      color: 'var(--text-primary)',
       marginBottom: '0.4rem',
     },
     inputWrapper: {
@@ -132,7 +132,7 @@ export default function LecturerLogin() {
     inputIcon: {
       position: 'absolute',
       left: '0.85rem',
-      color: '#9CA3AF',
+      color: 'var(--text-muted)',
       fontSize: '1.05rem',
       pointerEvents: 'none',
       display: 'flex',
@@ -141,10 +141,10 @@ export default function LecturerLogin() {
     input: {
       width: '100%',
       padding: '0.7rem 0.85rem 0.7rem 2.6rem',
-      border: '1px solid #E5E7EB',
+      border: '1px solid var(--border)',
       borderRadius: '8px',
-      background: '#F5F5F5',
-      color: '#1A1A1A',
+      background: 'var(--bg-input)',
+      color: 'var(--text-primary)',
       fontSize: '0.875rem',
       fontFamily: 'inherit',
       outline: 'none',
@@ -155,7 +155,7 @@ export default function LecturerLogin() {
       right: '0.75rem',
       background: 'none',
       border: 'none',
-      color: '#9CA3AF',
+      color: 'var(--text-muted)',
       fontSize: '1.1rem',
       padding: '0.25rem',
       display: 'flex',
@@ -178,17 +178,17 @@ export default function LecturerLogin() {
     checkbox: {
       width: '16px',
       height: '16px',
-      accentColor: '#DC2626',
+      accentColor: 'var(--brand)',
       cursor: 'pointer',
     },
     rememberLabel: {
       fontSize: '0.8125rem',
-      color: '#6B7280',
+      color: 'var(--text-secondary)',
       cursor: 'pointer',
     },
     forgotLink: {
       fontSize: '0.8125rem',
-      color: '#DC2626',
+      color: 'var(--brand)',
       fontWeight: '600',
       cursor: 'pointer',
       background: 'none',
@@ -200,8 +200,8 @@ export default function LecturerLogin() {
     submitBtn: {
       width: '100%',
       height: '44px',
-      background: loading ? '#F87171' : '#DC2626',
-      color: '#fff',
+      background: loading ? 'var(--brand-dark)' : 'var(--brand)',
+      color: 'var(--text-inverse)',
       border: 'none',
       borderRadius: '6px',
       fontSize: '0.9375rem',
@@ -224,17 +224,17 @@ export default function LecturerLogin() {
     },
     divider: {
       border: 'none',
-      borderTop: '1px solid #E5E7EB',
+      borderTop: '1px solid var(--border)',
       margin: '1.5rem 0',
     },
     footer: {
       textAlign: 'center',
       fontSize: '0.8125rem',
-      color: '#6B7280',
+      color: 'var(--text-secondary)',
     },
     rightPanel: {
       flex: '0 0 40%',
-      background: '#DC2626',
+      background: 'var(--brand)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -248,7 +248,7 @@ export default function LecturerLogin() {
       width: '500px',
       height: '500px',
       borderRadius: '50%',
-      background: '#B91C1C',
+      background: 'var(--brand-dark)',
       opacity: '0.35',
       top: '-120px',
       right: '-160px',
@@ -259,7 +259,7 @@ export default function LecturerLogin() {
       width: '300px',
       height: '300px',
       borderRadius: '50%',
-      background: '#B91C1C',
+      background: 'var(--brand-dark)',
       opacity: '0.2',
       bottom: '-80px',
       left: '-80px',
@@ -319,20 +319,20 @@ export default function LecturerLogin() {
           to { transform: rotate(360deg); }
         }
         .lp-input:focus {
-          border-color: #DC2626 !important;
-          background: #FFFFFF !important;
+          border-color: var(--brand) !important;
+          background: var(--bg-card) !important;
         }
         .lp-input::placeholder {
-          color: #9CA3AF;
+          color: var(--text-muted);
         }
         .lp-submit:hover:not(:disabled) {
-          background: #B91C1C !important;
+          background: var(--brand-dark) !important;
         }
         .lp-forgot-link:hover {
           opacity: 0.8;
         }
         .lp-pw-toggle:hover {
-          color: #6B7280 !important;
+          color: var(--text-secondary) !important;
         }
         @media (max-width: 900px) {
           .lp-right-panel { display: none !important; }
@@ -350,7 +350,7 @@ export default function LecturerLogin() {
             <h1 style={styles.heading}>Welcome back</h1>
             <p style={styles.subtitle}>Sign in to your account</p>
 
-            {error && <div style={styles.error}>{error}</div>}
+            {error && <div style={styles.error} role="alert" aria-live="assertive">{error}</div>}
 
             <form onSubmit={handleSubmit}>
               {/* EMAIL */}

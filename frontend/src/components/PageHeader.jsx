@@ -3,14 +3,14 @@ import React from 'react';
 export default function PageHeader({ title, description, action, actionLabel, actionIcon: ActionIcon, right }) {
   return (
     <div style={{
-      background: '#DC2626',
-      borderRadius: '8px',
+      background: 'var(--brand)',
+      borderRadius: 'var(--radius-lg)',
       padding: '1.5rem 2rem',
       marginBottom: '1.5rem',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      color: '#fff',
+      color: 'var(--text-inverse)',
     }}>
       <div>
         <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{title}</h1>
@@ -28,10 +28,10 @@ export default function PageHeader({ title, description, action, actionLabel, ac
               alignItems: 'center',
               gap: '0.5rem',
               padding: '0.65rem 1.25rem',
-              background: '#fff',
-              color: '#DC2626',
+              background: 'var(--text-inverse)',
+              color: 'var(--brand)',
               border: 'none',
-              borderRadius: '6px',
+              borderRadius: 'var(--radius-sm)',
               fontSize: '0.875rem',
               fontWeight: 600,
               cursor: 'pointer',

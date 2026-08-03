@@ -106,7 +106,7 @@ router.get('/summary', async (req, res) => {
         const rosterRes = await pool.query(
           `SELECT COUNT(*)::int AS roster_size
            FROM student_roster sr
-           WHERE sr.class_id IN (
+           WHERE sr.deleted_at IS NULL AND sr.class_id IN (
              SELECT DISTINCT s.class_id FROM active_sessions s WHERE s.course_id = $1
            )`,
           [row.course_id]
@@ -129,7 +129,7 @@ router.get('/summary', async (req, res) => {
         COUNT(DISTINCT ar.index_number)::int AS students_attended,
         COUNT(ar.record_id)::int AS total_checkins
       FROM classes cl
-      LEFT JOIN student_roster sr ON cl.class_id = sr.class_id
+      LEFT JOIN student_roster sr ON cl.class_id = sr.class_id AND sr.deleted_at IS NULL
       LEFT JOIN active_sessions s ON cl.class_id = s.class_id
         AND (s.is_active = FALSE OR s.expires_at < NOW())
       LEFT JOIN attendance_records ar ON s.session_id = ar.session_id
@@ -212,7 +212,7 @@ router.get('/weekly', async (req, res) => {
         cl.class_name,
         cl.class_id,
         COUNT(DISTINCT ar.index_number)::int AS attended,
-        (SELECT COUNT(*) FROM student_roster WHERE class_id = s.class_id)::int AS total_students
+        (SELECT COUNT(*) FROM student_roster WHERE class_id = s.class_id AND deleted_at IS NULL)::int AS total_students
       FROM active_sessions s
       JOIN courses co ON co.id = s.course_id
       JOIN classes cl ON s.class_id = cl.class_id

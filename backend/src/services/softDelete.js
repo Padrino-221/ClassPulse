@@ -3,10 +3,10 @@
 const ALLOWED_TABLES = {
   courses: ['id', 'course_code'],
   classes: ['class_id'],
-  student_roster: ['student_id', 'index_number'],
+  student_roster: ['id', 'index_number'],
   active_sessions: ['session_id'],
   attendance_records: ['record_id'],
-  semesters: ['semester_id'],
+  semesters: ['id'],
 };
 
 async function softDelete(pool, table, idColumn, idValue) {

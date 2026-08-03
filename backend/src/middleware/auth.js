@@ -38,6 +38,17 @@ function verifyScope() {
       return res.status(403).json({ error: 'Invalid admin scope.' });
     }
 
+    // Validate scope completeness per admin level
+    if (admin_level === 'university' && !university_id) {
+      return res.status(403).json({ error: 'Admin not assigned to a university.' });
+    }
+    if (admin_level === 'school' && !school_id) {
+      return res.status(403).json({ error: 'School admin not assigned to a school.' });
+    }
+    if (admin_level === 'department' && !department_id) {
+      return res.status(403).json({ error: 'Department admin not assigned to a department.' });
+    }
+
     // Attach scope info to request for downstream use
     req.scope = {
       level: admin_level,

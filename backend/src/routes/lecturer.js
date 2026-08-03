@@ -457,7 +457,7 @@ router.get('/history', (req, res, next) => {
     const courseId = course.rows[0].id;
 
     const students = await pool.query(
-      'SELECT id, index_number, student_name FROM student_roster WHERE class_id = $1 ORDER BY student_name',
+'SELECT id, index_number, student_name FROM student_roster WHERE class_id = $1 AND deleted_at IS NULL ORDER BY student_name',
       [class_id]
     );
 
@@ -483,7 +483,7 @@ router.get('/history', (req, res, next) => {
          ON as2.course_id = $2 AND as2.class_id = $3 AND as2.week_number = weeks.week_number
        LEFT JOIN attendance_records ar
          ON ar.session_id = as2.session_id AND ar.index_number = sr.index_number
-       WHERE sr.class_id = $3
+       WHERE sr.class_id = $3 AND sr.deleted_at IS NULL
        GROUP BY sr.id, sr.index_number, weeks.week_number
        ORDER BY sr.student_name, weeks.week_number`,
       [totalWeeks, courseId, class_id]
@@ -564,7 +564,7 @@ router.get('/history/export', async (req, res) => {
 
   try {
     const [studentsRes, courseRes, classRes, sessionsRes, lecturerRes, semesterRes, hierarchyRes] = await Promise.all([
-      pool.query('SELECT id, index_number, student_name FROM student_roster WHERE class_id = $1 ORDER BY student_name', [class_id]),
+      pool.query('SELECT id, index_number, student_name FROM student_roster WHERE class_id = $1 AND deleted_at IS NULL ORDER BY student_name', [class_id]),
       pool.query(`SELECT c.course_code, c.course_name, c.total_weeks, c.department_id FROM courses c
         JOIN course_lecturers cl ON cl.course_id = c.id AND cl.lecturer_id = $2
         WHERE c.course_code = $1`, [course_code, req.user.id]),
@@ -893,7 +893,7 @@ router.get('/courses', async (req, res) => {
 router.get('/classes', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT c.*, (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = c.class_id) AS student_count
+      `SELECT c.*, (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = c.class_id AND sr.deleted_at IS NULL) AS student_count
        FROM classes c
        JOIN class_lecturers cl ON cl.class_id = c.class_id AND cl.lecturer_id = $1
        WHERE c.deleted_at IS NULL

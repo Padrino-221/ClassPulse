@@ -1,1 +1,7 @@
+/sw.js 200
+/workbox-*.js 200
+/manifest.webmanifest 200
+/pwa-*.png 200
+/maskable-*.png 200
+/apple-touch-icon.png 200
 /* /index.html 200

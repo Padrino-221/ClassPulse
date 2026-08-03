@@ -32,11 +32,11 @@ export default function ForgotPassword() {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '1.5rem',
-      background: '#F5F5F5',
+      background: 'var(--bg-global)',
     },
     card: {
-      background: '#FFFFFF',
-      border: '1px solid #E5E7EB',
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
       borderRadius: '8px',
       padding: '2.5rem',
       width: '100%',
@@ -46,8 +46,8 @@ export default function ForgotPassword() {
       width: '56px',
       height: '56px',
       borderRadius: '50%',
-      background: '#DC2626',
-      color: '#fff',
+      background: 'var(--brand)',
+      color: 'var(--text-inverse)',
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -56,18 +56,18 @@ export default function ForgotPassword() {
     title: {
       fontSize: '1.5rem',
       fontWeight: '700',
-      color: '#1A1A1A',
+      color: 'var(--text-primary)',
       marginBottom: '0.375rem',
     },
     subtitle: {
-      color: '#6B7280',
+      color: 'var(--text-secondary)',
       fontSize: '0.875rem',
       marginBottom: '2rem',
     },
     successBox: {
       padding: '0.875rem 1rem',
-      background: '#F0FDF4',
-      color: '#16A34A',
+      background: 'var(--success-bg)',
+      color: 'var(--success)',
       borderRadius: '8px',
       fontSize: '0.8125rem',
       fontWeight: '500',
@@ -79,13 +79,13 @@ export default function ForgotPassword() {
     },
     errorBox: {
       padding: '0.875rem 1rem',
-      background: '#FEF2F2',
-      color: '#DC2626',
+      background: 'var(--error-bg)',
+      color: 'var(--brand)',
       borderRadius: '8px',
       fontSize: '0.8125rem',
       fontWeight: '500',
       marginBottom: '1.25rem',
-      border: '1px solid rgba(220, 38, 38, 0.12)',
+      border: '1px solid rgba(var(--brand-rgb), 0.12)',
       display: 'flex',
       alignItems: 'flex-start',
       gap: '0.5rem',
@@ -98,7 +98,7 @@ export default function ForgotPassword() {
       fontSize: '0.8125rem',
       fontWeight: '600',
       marginBottom: '0.5rem',
-      color: '#1A1A1A',
+      color: 'var(--text-primary)',
     },
     inputWrapper: {
       position: 'relative',
@@ -108,18 +108,18 @@ export default function ForgotPassword() {
     inputIcon: {
       position: 'absolute',
       left: '0.875rem',
-      color: '#9CA3AF',
+      color: 'var(--text-muted)',
       pointerEvents: 'none',
     },
     input: {
       width: '100%',
       height: '46px',
       padding: '0 1rem 0 2.75rem',
-      border: '1px solid #E5E7EB',
+      border: '1px solid var(--border)',
       borderRadius: '8px',
       fontSize: '0.9375rem',
-      background: '#F5F5F5',
-      color: '#1A1A1A',
+      background: 'var(--bg-input)',
+      color: 'var(--text-primary)',
       transition: 'all 0.2s ease',
       outline: 'none',
       boxSizing: 'border-box',
@@ -128,8 +128,8 @@ export default function ForgotPassword() {
       width: '100%',
       height: '48px',
       padding: '0 1.5rem',
-      background: loading ? '#F87171' : '#DC2626',
-      color: '#fff',
+      background: loading ? 'var(--brand-dark)' : 'var(--brand)',
+      color: 'var(--text-inverse)',
       border: 'none',
       borderRadius: '6px',
       fontSize: '0.9375rem',
@@ -147,7 +147,7 @@ export default function ForgotPassword() {
       fontSize: '0.875rem',
     },
     backLinkA: {
-      color: '#6B7280',
+      color: 'var(--text-secondary)',
       textDecoration: 'none',
       fontWeight: '500',
       transition: 'color 0.15s ease',
@@ -159,22 +159,8 @@ export default function ForgotPassword() {
 
   return (
     <>
-      <style>{`
-        .fp-input:focus {
-          border-color: #DC2626 !important;
-        }
-        .fp-input::placeholder {
-          color: #9CA3AF;
-        }
-        .fp-submit:hover:not(:disabled) {
-          background: #B91C1C !important;
-        }
-        .fp-back:hover {
-          color: #DC2626 !important;
-        }
-      `}</style>
       <div style={styles.page}>
-        <div style={styles.card}>
+        <div className="auth-card" style={styles.card}>
           <div style={{ textAlign: 'center' }}>
             <div style={styles.iconCircle}>
               <EnvelopeSimple weight="fill" size={28} />
@@ -184,13 +170,13 @@ export default function ForgotPassword() {
           </div>
 
           {message && (
-            <div style={styles.successBox}>
+            <div style={styles.successBox} className="auth-banner auth-banner-success" role="status">
               <CheckCircle weight="fill" size={16} style={{ flexShrink: 0, marginTop: '1px' }} />
               <span>{message}</span>
             </div>
           )}
           {error && (
-            <div style={styles.errorBox}>
+            <div style={styles.errorBox} className="auth-banner auth-banner-error" role="alert" aria-live="assertive">
               <Warning weight="fill" size={16} style={{ flexShrink: 0, marginTop: '1px' }} />
               <span>{error}</span>
             </div>
@@ -202,7 +188,7 @@ export default function ForgotPassword() {
               <div style={styles.inputWrapper}>
                 <EnvelopeSimple size={18} style={styles.inputIcon} />
                 <input
-                  className="fp-input"
+                  className="auth-input fp-input"
                   id="email"
                   name="email"
                   type="email"
@@ -216,7 +202,7 @@ export default function ForgotPassword() {
             </div>
             <button
               type="submit"
-              className="fp-submit"
+              className="auth-submit fp-submit"
               style={styles.submitBtn}
               disabled={loading}
             >
@@ -225,7 +211,7 @@ export default function ForgotPassword() {
           </form>
 
           <p style={styles.backLink}>
-            <Link to="/lecturer/login" className="fp-back" style={styles.backLinkA}>
+            <Link to="/lecturer/login" className="auth-back-link fp-back" style={styles.backLinkA}>
               <ArrowLeft size={14} />
               Back to Sign In
             </Link>

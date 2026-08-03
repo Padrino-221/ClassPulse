@@ -274,6 +274,7 @@ export default function LecturerLiveSession() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const deactivateSession = async (sessionId) => {
+    if (!window.confirm('End this live session? Attendance will stop recording. This cannot be undone.')) return;
     try {
       await api.post(`/api/lecturer/deactivate/${sessionId}`);
       setActiveSessions((prev) => prev.filter((s) => s.session_id !== sessionId));
@@ -284,6 +285,7 @@ export default function LecturerLiveSession() {
   };
 
   const cancelScheduled = async (sessionId) => {
+    if (!window.confirm('Cancel this scheduled session? Students will no longer be able to check in.')) return;
     try {
       await api.delete(`/api/lecturer/scheduled/${sessionId}`);
       setScheduledSessions((prev) => prev.filter((s) => s.session_id !== sessionId));
@@ -622,7 +624,7 @@ export default function LecturerLiveSession() {
                   <div style={{ padding: '1.5rem' }}>
                     <RollingPinDisplay sessionId={s.session_id} pinSpinning={s.pin_spinning !== false} />
                   </div>
-                  <div style={{ borderTop: '1px solid #F5F5F5', paddingTop: '1rem' }}>
+                  <div style={{ borderTop: '1px solid var(--border-light, #F5F5F5)', paddingTop: '1rem' }}>
                     <LiveTracker sessionId={s.session_id} />
                   </div>
                 </div>
@@ -638,7 +640,7 @@ export default function LecturerLiveSession() {
         </div>
         <div style={cardBodyStyle}>
           <div style={{ overflowX: 'auto' }}>
-            <table className="table-bordered" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+            <table className="table-bordered table-hover table-sticky-first" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
               <thead>
                 <tr>
                   {['Course', 'Class', 'Week', 'Status', 'Marked', 'Date'].map((h) => (
@@ -679,12 +681,9 @@ export default function LecturerLiveSession() {
                     key={s.session_id}
                     style={{
                       background: idx % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-hover)',
-                      transition: 'background 0.1s',
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--brand-light)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = idx % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-hover)'}
                   >
-                    <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', color: 'var(--text-primary)', fontWeight: 500 }}>{s.course_code}</td>
+                    <td className="sticky-col" style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', color: 'var(--text-primary)', fontWeight: 500 }}>{s.course_code}</td>
                     <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', color: 'var(--text-secondary)' }}>{s.class_name}</td>
                     <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', color: 'var(--text-secondary)' }}>Week {s.week_number}</td>
                     <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>

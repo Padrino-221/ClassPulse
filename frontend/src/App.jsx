@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import ClassPulseLogo from './components/ClassPulseLogo';
+import SkipToContent from './components/SkipToContent';
 
 const Attend = React.lazy(() => import('./pages/Attend'));
 const LecturerLogin = React.lazy(() => import('./pages/LecturerLogin'));
@@ -25,62 +26,65 @@ function PageLoader() {
 export default function App() {
   return (
     <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route path="/attend" element={<Attend />} />
-        <Route path="/lecturer/login" element={<LecturerLogin />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route
-          path="/lecturer/dashboard"
-          element={
-            <ProtectedRoute role="lecturer">
-              <LecturerDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/lecturer/live-session"
-          element={
-            <ProtectedRoute role="lecturer">
-              <LecturerLiveSession />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/lecturer/history"
-          element={
-            <ProtectedRoute role="lecturer">
-              <LecturerHistory />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/lecturer/profile"
-          element={
-            <ProtectedRoute role="lecturer">
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/profile"
-          element={
-            <ProtectedRoute role="admin">
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedRoute role="admin">
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/" element={<Navigate to="/attend" replace />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <SkipToContent />
+      <div id="main-content" style={{ outline: 'none' }}>
+        <Routes>
+          <Route path="/attend" element={<Attend />} />
+          <Route path="/lecturer/login" element={<LecturerLogin />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route
+            path="/lecturer/dashboard"
+            element={
+              <ProtectedRoute role="lecturer">
+                <LecturerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/lecturer/live-session"
+            element={
+              <ProtectedRoute role="lecturer">
+                <LecturerLiveSession />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/lecturer/history"
+            element={
+              <ProtectedRoute role="lecturer">
+                <LecturerHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/lecturer/profile"
+            element={
+              <ProtectedRoute role="lecturer">
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/profile"
+            element={
+              <ProtectedRoute role="admin">
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/*"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/" element={<Navigate to="/attend" replace />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </div>
     </Suspense>
   );
 }

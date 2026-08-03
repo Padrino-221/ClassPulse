@@ -137,7 +137,7 @@ export default function LecturerHistory() {
           fontSize: '0.8125rem',
           fontWeight: 500,
           marginBottom: '1rem',
-          border: '1px solid #FCA5A5',
+          border: '1px solid var(--error)',
         }}>
           {error}
         </div>
@@ -171,8 +171,8 @@ export default function LecturerHistory() {
                 alignItems: 'center',
                 gap: '0.375rem',
                 padding: '0.5rem 1rem',
-                background: (!filters.course_code || !filters.class_id) ? '#e5e7eb' : BRAND,
-                color: '#fff',
+                background: (!filters.course_code || !filters.class_id) ? 'var(--border)' : BRAND,
+                color: (!filters.course_code || !filters.class_id) ? 'var(--text-muted)' : 'var(--text-inverse)',
                 border: 'none',
                 borderRadius: 'var(--radius-full, 6px)',
                 fontWeight: 600,
@@ -189,7 +189,7 @@ export default function LecturerHistory() {
           <div style={{ padding: '1.25rem 1.5rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#6B7280' }}>Course</label>
+                <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Course</label>
                 <Select name="course_code" value={filters.course_code} onChange={handleFilterChange}>
                   <option value="">All Courses</option>
                   {courses.map((c) => (
@@ -200,7 +200,7 @@ export default function LecturerHistory() {
                 </Select>
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: '#6B7280' }}>Class / Cohort</label>
+                <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Class / Cohort</label>
                 <Select name="class_id" value={filters.class_id} onChange={handleFilterChange}>
                   <option value="">All Classes</option>
                   {classes.map((c) => (
@@ -260,4 +260,4 @@ export default function LecturerHistory() {
   );
 }
 
-const BRAND = '#DC2626';
+const BRAND = 'var(--brand)';

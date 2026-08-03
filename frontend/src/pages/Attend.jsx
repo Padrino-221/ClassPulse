@@ -4,6 +4,7 @@ import { generateFingerprint } from '../utils/fingerprint';
 import api from '../utils/api';
 import { CheckCircle, XCircle, Check, MapPin, ArrowLeft } from '@phosphor-icons/react';
 import ClassPulseLogo from '../components/ClassPulseLogo';
+import InstallPrompt from '../components/InstallPrompt';
 
 export default function Attend() {
   const { coords, error: geoError, accuracy, startWatching } = useGeolocation();
@@ -242,6 +243,7 @@ export default function Attend() {
                       className="att-input" name="pin" type="text"
                       placeholder="e.g. CS101-482916" value={form.pin}
                       onChange={handleChange} style={s.input} required maxLength={30}
+                      autoFocus
                     />
                   </div>
                 </div>
@@ -249,7 +251,7 @@ export default function Attend() {
                 {errorMessage && (
                   <div style={{
                     ...s.gpsStatus, background: 'var(--error-bg)', color: 'var(--brand)',
-                  }}>
+                  }} role="alert" aria-live="assertive">
                     <XCircle weight="duotone" size={16} />
                     {errorMessage}
                   </div>
@@ -293,8 +295,8 @@ export default function Attend() {
 
                 <div style={{
                   ...s.gpsStatus,
-                  background: geoError ? 'var(--error-bg)' : coords ? 'var(--success-bg)' : '#FFF7ED',
-                  color: geoError ? 'var(--brand)' : coords ? 'var(--success)' : '#D97706',
+                  background: geoError ? 'var(--error-bg)' : coords ? 'var(--success-bg)' : 'var(--at-risk-row)',
+                  color: geoError ? 'var(--brand)' : coords ? 'var(--success)' : 'var(--warning)',
                 }}>
                   <MapPin weight="duotone" size={16} />
                   {coords
@@ -308,7 +310,7 @@ export default function Attend() {
                 {errorMessage && (
                   <div style={{
                     ...s.gpsStatus, background: 'var(--error-bg)', color: 'var(--brand)',
-                  }}>
+                  }} role="alert" aria-live="assertive">
                     <XCircle weight="duotone" size={16} />
                     {errorMessage}
                   </div>
@@ -343,7 +345,7 @@ export default function Attend() {
           {step === 'success' && (
             <div style={s.card}>
               <div style={s.successCard}>
-                <div style={s.successIcon}>
+                <div style={s.successIcon} className="icon-pulse">
                   <CheckCircle weight="fill" size={32} />
                 </div>
                 <div style={s.successTitle}>Attendance Marked!</div>
@@ -357,7 +359,7 @@ export default function Attend() {
           {step === 'error' && (
             <div style={s.card}>
               <div style={s.errorCard}>
-                <div style={s.errorIcon}>
+                <div style={s.errorIcon} className="icon-pulse">
                   <XCircle weight="fill" size={32} />
                 </div>
                 <div style={s.errorTitle}>Check-in Failed</div>
@@ -370,6 +372,7 @@ export default function Attend() {
           <div style={s.footer}>Powered by ClassPulse</div>
         </div>
       </div>
+      <InstallPrompt />
     </>
   );
 }

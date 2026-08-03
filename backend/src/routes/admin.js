@@ -7,7 +7,7 @@ const { pool } = require('../config/db');
 const { verifyToken, verifyScope } = require('../middleware/auth');
 const { sendWelcomeEmail } = require('../services/mailer');
 const { auditLog } = require('../middleware/auditLog');
-const { namesMatch } = require('../services/nameMatch');
+const { importStudentRoster, importLecturers } = require('../services/bulkImport');
 
 const router = express.Router();
 router.use(verifyToken('admin'));
@@ -120,6 +120,28 @@ router.post(
     } catch (err) {
       if (err.code === '23505') return res.status(409).json({ error: 'An account with this email already exists.' });
       console.error(err);
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
+    }
+  }
+);
+
+// ── CSV Bulk Import Lecturers (department admins) ──
+router.post(
+  '/lecturers/bulk',
+  auditLog('create', 'lecturer'),
+  upload.single('file'),
+  async (req, res) => {
+    if (denyUniversityAdmin(req, res)) return;
+    try {
+      if (!req.file) return res.status(400).json({ error: 'CSV file needed.' });
+      if (req.scope.level !== 'department') {
+        return res.status(403).json({ error: 'Only department admins can bulk-import lecturers.' });
+      }
+      const result = await importLecturers(pool, req.file.buffer.toString('utf-8'), req.scope.department_id);
+      if (result.error) return res.status(400).json({ error: result.error });
+      res.status(201).json({ added: result.added.length, skipped: result.skipped, errors: result.errors, lecturers: result.added });
+    } catch (err) {
+      console.error('Bulk lecturer import error:', err);
       res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }
@@ -418,7 +440,7 @@ router.get('/classes', async (req, res) => {
     const qParams = [...params, limit, offset];
     const result = await pool.query(
       `SELECT c.*,
-              (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = c.class_id) AS student_count,
+              (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = c.class_id AND sr.deleted_at IS NULL) AS student_count,
               COALESCE(json_agg(json_build_object('id', l.id, 'name', l.name))
                 FILTER (WHERE l.id IS NOT NULL), '[]') AS lecturers
        FROM classes c
@@ -734,117 +756,9 @@ router.post('/students/bulk', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'CSV file needed.' });
     if (!req.body.class_id) return res.status(400).json({ error: 'Class required.' });
 
-    const classId = parseInt(req.body.class_id);
-    const content = req.file.buffer.toString('utf-8');
-    const lines = content.split(/\r?\n/).filter(l => l.trim());
-    if (lines.length < 2) return res.status(400).json({ error: 'CSV needs a header row.' });
-
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    function findCol(...candidates) {
-      for (const c of candidates) { const i = headers.indexOf(c); if (i !== -1) return i; }
-      return -1;
-    }
-    const idxIdx = findCol('index_number', 'index number', 'index');
-    const nameIdx = findCol('student_name', 'student name', 'name');
-    if (idxIdx === -1 || nameIdx === -1) {
-      return res.status(400).json({ error: 'CSV needs index_number and student_name columns.' });
-    }
-
-    const added = [];
-    const skipped = [];
-    const errors = [];
-    // index_number → { studentName } for rows already seen in this file
-    const seenIndexes = new Map();
-    // Rows that passed intra-file dedupe, still to be persisted
-    const pending = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(c => c.trim());
-      const indexNumber = cols[idxIdx];
-      const studentName = cols[nameIdx];
-      if (!indexNumber || !studentName) {
-        errors.push({ row: i + 1, index_number: indexNumber || null, error: 'Missing fields.' });
-        continue;
-      }
-
-      // Duplicate index within the same file — same student when the name
-      // matches suffix-tolerantly (e.g. "X (ms)" vs "X")
-      if (seenIndexes.has(indexNumber)) {
-        const prev = seenIndexes.get(indexNumber);
-        if (namesMatch(studentName, prev.studentName)) {
-          skipped.push({ row: i + 1, index_number: indexNumber, reason: 'Duplicate in file.' });
-        } else {
-          errors.push({ row: i + 1, index_number: indexNumber, error: `Index ${indexNumber} already used for "${prev.studentName}" in this file.` });
-        }
-        continue;
-      }
-
-      seenIndexes.set(indexNumber, { studentName });
-      pending.push({ row: i + 1, indexNumber, studentName });
-    }
-
-    // Batch-persist the remaining rows: restore soft-deleted records, bulk-insert
-    // the rest, then resolve active-roster conflicts — avoids N×(SELECT+INSERT)
-    // round-trips for large files.
-    if (pending.length > 0) {
-      // 1) Restore soft-deleted records (one lookup for the whole file)
-      const softDeleted = await pool.query(
-        'SELECT id, index_number FROM student_roster WHERE index_number = ANY($1) AND deleted_at IS NOT NULL',
-        [pending.map(p => p.indexNumber)]
-      );
-      const softDeletedIds = new Map(softDeleted.rows.map(r => [r.index_number, r.id]));
-      const toRestore = pending.filter(p => softDeletedIds.has(p.indexNumber));
-      const toInsert = pending.filter(p => !softDeletedIds.has(p.indexNumber));
-
-      for (const p of toRestore) {
-        const res = await pool.query(
-          'UPDATE student_roster SET student_name = $1, class_id = $2, deleted_at = NULL WHERE id = $3 RETURNING *',
-          [p.studentName, classId, softDeletedIds.get(p.indexNumber)]
-        );
-        if (res.rows[0]) added.push(res.rows[0]);
-      }
-
-      // 2) Single bulk insert for everything else — indexes already active are
-      //    skipped by the partial unique index instead of aborting the batch.
-      if (toInsert.length > 0) {
-        const placeholders = [];
-        const values = [];
-        for (let i = 0; i < toInsert.length; i++) {
-          const base = i * 3;
-          placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3})`);
-          values.push(toInsert[i].indexNumber, toInsert[i].studentName, classId);
-        }
-        const inserted = await pool.query(
-          `INSERT INTO student_roster (index_number, student_name, class_id)
-           VALUES ${placeholders.join(', ')}
-           ON CONFLICT (index_number) WHERE deleted_at IS NULL DO NOTHING
-           RETURNING index_number, student_name, class_id`,
-          values
-        );
-        const insertedIndexes = new Set(inserted.rows.map(r => r.index_number));
-        for (const r of inserted.rows) added.push(r);
-
-        // 3) Resolve active-roster conflicts in one batched lookup
-        const conflicts = toInsert.filter(p => !insertedIndexes.has(p.indexNumber));
-        if (conflicts.length > 0) {
-          const active = await pool.query(
-            'SELECT index_number, student_name FROM student_roster WHERE index_number = ANY($1) AND deleted_at IS NULL',
-            [conflicts.map(p => p.indexNumber)]
-          );
-          const activeNames = new Map(active.rows.map(r => [r.index_number, r.student_name]));
-          for (const p of conflicts) {
-            const existingName = activeNames.get(p.indexNumber);
-            if (existingName && namesMatch(p.studentName, existingName)) {
-              skipped.push({ row: p.row, index_number: p.indexNumber, reason: 'Already registered.' });
-            } else {
-              errors.push({ row: p.row, index_number: p.indexNumber, error: `Index ${p.indexNumber} is already registered to a different student.` });
-            }
-          }
-        }
-      }
-    }
-
-    res.status(201).json({ added: added.length, skipped, errors, students: added });
+    const result = await importStudentRoster(pool, parseInt(req.body.class_id), req.file.buffer.toString('utf-8'));
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.status(201).json({ added: result.added.length, skipped: result.skipped, errors: result.errors, students: result.added });
   } catch (err) {
     console.error('Bulk import error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
@@ -933,11 +847,13 @@ router.get('/export/semester', async (req, res) => {
     let studentScopeWhere = '';
     const studentScopeParams = [];
     if (level === 'department') {
-      studentScopeWhere = ' WHERE c.department_id = $1';
+      studentScopeWhere = ' WHERE sr.deleted_at IS NULL AND c.department_id = $1';
       studentScopeParams.push(department_id);
     } else if (level === 'school') {
-      studentScopeWhere = ' WHERE c.department_id IN (SELECT id FROM departments WHERE school_id = $1)';
+      studentScopeWhere = ' WHERE sr.deleted_at IS NULL AND c.department_id IN (SELECT id FROM departments WHERE school_id = $1)';
       studentScopeParams.push(school_id);
+    } else {
+      studentScopeWhere = ' WHERE sr.deleted_at IS NULL';
     }
 
     const studentsResult = await pool.query(
@@ -1596,10 +1512,10 @@ router.get('/recent-sessions', async (req, res) => {
       query = `SELECT ss.session_id AS id, co.course_name, co.course_code,
                      TO_CHAR(ss.created_at, 'Mon DD, YYYY') AS date,
                      COALESCE((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id), 0) AS present_count,
-                     COALESCE((SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id), 0) AS total_students,
-                     CASE WHEN (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id) > 0
+                     COALESCE((SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL), 0) AS total_students,
+                     CASE WHEN (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL) > 0
                        THEN ROUND((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id)::numeric /
-                           (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id) * 100, 0)
+                           (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL) * 100, 0)
                        ELSE 0 END AS attendance_rate,
                      CASE WHEN ss.is_active = true THEN 'in_progress' ELSE 'completed' END AS status
               FROM active_sessions ss
@@ -1613,10 +1529,10 @@ router.get('/recent-sessions', async (req, res) => {
       query = `SELECT ss.session_id AS id, co.course_name, co.course_code,
                      TO_CHAR(ss.created_at, 'Mon DD, YYYY') AS date,
                      COALESCE((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id), 0) AS present_count,
-                     COALESCE((SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id), 0) AS total_students,
-                     CASE WHEN (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id) > 0
+                     COALESCE((SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL), 0) AS total_students,
+                     CASE WHEN (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL) > 0
                        THEN ROUND((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id)::numeric /
-                           (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id) * 100, 0)
+                           (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL) * 100, 0)
                        ELSE 0 END AS attendance_rate,
                      CASE WHEN ss.is_active = true THEN 'in_progress' ELSE 'completed' END AS status
               FROM active_sessions ss
@@ -1629,10 +1545,10 @@ router.get('/recent-sessions', async (req, res) => {
       query = `SELECT ss.session_id AS id, co.course_name, co.course_code,
                      TO_CHAR(ss.created_at, 'Mon DD, YYYY') AS date,
                      COALESCE((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id), 0) AS present_count,
-                     COALESCE((SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id), 0) AS total_students,
-                     CASE WHEN (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id) > 0
+                     COALESCE((SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL), 0) AS total_students,
+                     CASE WHEN (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL) > 0
                        THEN ROUND((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id)::numeric /
-                           (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id) * 100, 0)
+                           (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL) * 100, 0)
                        ELSE 0 END AS attendance_rate,
                      CASE WHEN ss.is_active = true THEN 'in_progress' ELSE 'completed' END AS status
               FROM active_sessions ss
@@ -1680,7 +1596,7 @@ router.get('/school-stats', async (req, res) => {
                      JOIN courses co ON co.id = ss.course_id
                      JOIN departments d ON d.id = co.department_id
                      LEFT JOIN attendance_records ar ON ar.session_id = ss.session_id
-                     LEFT JOIN student_roster sr ON sr.class_id = ss.class_id
+                     LEFT JOIN student_roster sr ON sr.class_id = ss.class_id AND sr.deleted_at IS NULL
                      WHERE d.school_id = $1
                      GROUP BY ss.session_id
                    ) subq`, [school_id]),
@@ -1713,7 +1629,7 @@ router.get('/recent-activity', async (req, res) => {
                       CASE WHEN ss.is_active THEN 'in_progress' ELSE 'completed' END AS status,
                       COALESCE(ROUND(
                         (SELECT COUNT(*) FROM attendance_records WHERE session_id = ss.session_id)::numeric
-                        / NULLIF((SELECT COUNT(*) FROM student_roster WHERE class_id = ss.class_id), 0) * 100
+                        / NULLIF((SELECT COUNT(*) FROM student_roster WHERE class_id = ss.class_id AND deleted_at IS NULL), 0) * 100
                       ), 0) AS rate
                FROM active_sessions ss
                JOIN courses co ON co.id = ss.course_id
@@ -1726,7 +1642,7 @@ router.get('/recent-activity', async (req, res) => {
                       CASE WHEN ss.is_active THEN 'in_progress' ELSE 'completed' END AS status,
                       COALESCE(ROUND(
                         (SELECT COUNT(*) FROM attendance_records WHERE session_id = ss.session_id)::numeric
-                        / NULLIF((SELECT COUNT(*) FROM student_roster WHERE class_id = ss.class_id), 0) * 100
+                        / NULLIF((SELECT COUNT(*) FROM student_roster WHERE class_id = ss.class_id AND deleted_at IS NULL), 0) * 100
                       ), 0) AS rate
                FROM active_sessions ss
                JOIN courses co ON co.id = ss.course_id

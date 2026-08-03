@@ -31,6 +31,7 @@ export default function BulkDeleteModal({ title, message, confirmLabel = 'Delete
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 1000, padding: '1rem',
       }}
+      role="presentation"
     >
       <div style={{
         background: 'var(--bg-card, #fff)', borderRadius: '8px',

@@ -73,7 +73,7 @@ router.post(
 
     try {
       let user = await pool.query(
-        'SELECT id, name, email, password_hash, \'lecturer\' AS role FROM lecturers WHERE email = $1',
+        'SELECT id, name, email, password_hash, \'lecturer\' AS role FROM lecturers WHERE email = $1 AND (deleted_at IS NULL)',
         [email]
       );
 
