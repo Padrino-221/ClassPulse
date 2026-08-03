@@ -15,6 +15,8 @@ import Spinner from '../components/Spinner';
 
 const PAGE_SIZE = 15;
 
+const isSessionActive = (s) => s.is_active && (!s.expires_at || new Date(s.expires_at) > new Date());
+
 function RollingPinDisplay({ sessionId, pinSpinning }) {
   const [pin, setPin] = useState('');
   const [expiresIn, setExpiresIn] = useState(0);
@@ -203,7 +205,7 @@ export default function LecturerLiveSession() {
       setLectureHalls(lectureHallsRes.data.lecture_halls);
       setScheduledSessions(scheduledRes.data);
 
-      const active = sessionsRes.data.sessions?.filter((s) => s.is_active && (!s.expires_at || new Date(s.expires_at) > new Date())) || [];
+      const active = sessionsRes.data.sessions?.filter(isSessionActive) || [];
       setActiveSessions(active);
     } catch {
       toast.error("Couldn't load sessions.");
@@ -694,10 +696,10 @@ export default function LecturerLiveSession() {
                         borderRadius: '6px',
                         fontSize: '0.75rem',
                         fontWeight: 600,
-                        background: s.is_active ? 'var(--success-bg)' : 'var(--bg-hover)',
-                        color: s.is_active ? 'var(--success)' : 'var(--text-secondary)',
+                        background: isSessionActive(s) ? 'var(--success-bg)' : 'var(--bg-hover)',
+                        color: isSessionActive(s) ? 'var(--success)' : 'var(--text-secondary)',
                       }}>
-                        {s.is_active ? 'Active' : 'Closed'}
+                        {isSessionActive(s) ? 'Active' : 'Closed'}
                       </span>
                     </td>
                     <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)', borderRight: '1px solid var(--border)', color: 'var(--text-secondary)' }}>{s.attendance_count}</td>

@@ -8,6 +8,8 @@ import SummaryCards from '../components/SummaryCards';
 
 const RECENT_LIMIT = 5;
 
+const isSessionActive = (s) => s.is_active && (!s.expires_at || new Date(s.expires_at) > new Date());
+
 export default function LecturerDashboard() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -38,7 +40,7 @@ export default function LecturerDashboard() {
         // sessions/scheduled may fail on production; courses/classes still load
       }
 
-      const active = sessions.filter((s) => s.is_active && (!s.expires_at || new Date(s.expires_at) > new Date()));
+      const active = sessions.filter((s) => isSessionActive(s));
       const todayTotal = sessions.reduce((sum, s) => sum + parseInt(s.attendance_count || 0), 0);
       const recent = [...sessions].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, RECENT_LIMIT);
       setData({
@@ -223,10 +225,10 @@ export default function LecturerDashboard() {
                     </div>
                     <span style={{
                       padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.6875rem',
-                      fontWeight: 600, background: s.is_active ? 'var(--success-bg)' : 'var(--bg-hover)',
-                      color: s.is_active ? 'var(--success)' : 'var(--text-secondary)',
+                      fontWeight: 600, background: isSessionActive(s) ? 'var(--success-bg)' : 'var(--bg-hover)',
+                      color: isSessionActive(s) ? 'var(--success)' : 'var(--text-secondary)',
                     }}>
-                      {s.is_active ? 'Active' : 'Closed'}
+                      {isSessionActive(s) ? 'Active' : 'Closed'}
                     </span>
                   </div>
                 ))}
