@@ -18,3 +18,4 @@ backend/delete_duplicates.js
 backend/fix_admin.js
 backend/run_migration_010.js
 backend/test_report.js
+/Book1.csv
