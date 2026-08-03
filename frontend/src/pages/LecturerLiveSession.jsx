@@ -182,15 +182,22 @@ export default function LecturerLiveSession() {
 
   const loadData = useCallback(async (page) => {
     try {
-      const [coursesRes, classesRes, sessionsRes, lectureHallsRes, scheduledRes] = await Promise.all([
+      const [coursesRes, classesRes] = await Promise.all([
         api.get('/api/lecturer/courses'),
         api.get('/api/lecturer/classes'),
+      ]);
+      setCourses(coursesRes.data.courses);
+      setClasses(classesRes.data.classes);
+    } catch {
+      toast.error("Couldn't load courses/classes.");
+    }
+
+    try {
+      const [sessionsRes, lectureHallsRes, scheduledRes] = await Promise.all([
         api.get('/api/lecturer/sessions', { params: { limit: PAGE_SIZE, offset: ((page || 1) - 1) * PAGE_SIZE } }),
         api.get('/api/lecturer/lecture-halls'),
         api.get('/api/lecturer/scheduled'),
       ]);
-      setCourses(coursesRes.data.courses);
-      setClasses(classesRes.data.classes);
       setSessions(sessionsRes.data.sessions);
       setTotal(sessionsRes.data.total || 0);
       setLectureHalls(lectureHallsRes.data.lecture_halls);
@@ -199,7 +206,7 @@ export default function LecturerLiveSession() {
       const active = sessionsRes.data.sessions?.filter((s) => s.is_active) || [];
       setActiveSessions(active);
     } catch {
-      toast.error("Couldn't load.");
+      toast.error("Couldn't load sessions.");
     }
   }, []);
 

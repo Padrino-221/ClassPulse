@@ -267,9 +267,9 @@ router.get('/scheduled', async (req, res) => {
               s.scheduled_at, s.expires_at, s.pin_spinning, s.pin_seed,
               c.course_name, cl.class_name, lh.name AS lecture_hall_name
        FROM active_sessions s
-       JOIN courses c ON c.id = s.course_id
-       JOIN classes cl ON cl.class_id = s.class_id
-       LEFT JOIN lecture_halls lh ON lh.id = s.lecture_hall_id
+       JOIN courses c ON c.id = s.course_id AND c.deleted_at IS NULL
+       JOIN classes cl ON cl.class_id = s.class_id AND cl.deleted_at IS NULL
+       LEFT JOIN lecture_halls lh ON lh.id = s.lecture_hall_id AND lh.deleted_at IS NULL
        WHERE s.lecturer_id = $1
          AND s.is_active = FALSE
          AND s.scheduled_at IS NOT NULL
@@ -345,8 +345,8 @@ router.get('/courses/:code/classes', async (req, res) => {
     const result = await pool.query(
       `SELECT DISTINCT cl.class_id, cl.class_name
        FROM active_sessions s
-       JOIN classes cl ON cl.class_id = s.class_id
-       JOIN courses c ON c.id = s.course_id
+       JOIN classes cl ON cl.class_id = s.class_id AND cl.deleted_at IS NULL
+       JOIN courses c ON c.id = s.course_id AND c.deleted_at IS NULL
        WHERE c.course_code = $1
          AND s.lecturer_id = $2
        ORDER BY cl.class_name`,
@@ -390,8 +390,8 @@ router.get('/sessions', async (req, res) => {
               as2.created_at, as2.expires_at, as2.is_active,
               (SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = as2.session_id) AS attendance_count
        FROM active_sessions as2
-       JOIN courses c ON c.id = as2.course_id
-       JOIN classes cl ON cl.class_id = as2.class_id
+       JOIN courses c ON c.id = as2.course_id AND c.deleted_at IS NULL
+       JOIN classes cl ON cl.class_id = as2.class_id AND cl.deleted_at IS NULL
        WHERE as2.lecturer_id = $1
        ORDER BY as2.created_at DESC
        LIMIT $2 OFFSET $3`,
@@ -437,7 +437,7 @@ router.get('/history', (req, res, next) => {
     const course = await pool.query(
       `SELECT c.id, c.total_weeks, c.min_attendance_pct FROM courses c
        JOIN course_lecturers cl ON cl.course_id = c.id AND cl.lecturer_id = $2
-       WHERE c.course_code = $1`,
+       WHERE c.course_code = $1 AND c.deleted_at IS NULL`,
       [course_code, req.user.id]
     );
     if (course.rows.length === 0) {
@@ -861,7 +861,7 @@ router.get('/session/:id/pin', async (req, res) => {
 
 router.get('/lecture-halls', async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, name, latitude, longitude, radius FROM lecture_halls ORDER BY name');
+    const result = await pool.query('SELECT id, name, latitude, longitude, radius FROM lecture_halls WHERE deleted_at IS NULL ORDER BY name');
     res.json({ lecture_halls: result.rows });
   } catch (err) {
     console.error('List lecture halls error:', err);
@@ -874,6 +874,7 @@ router.get('/courses', async (req, res) => {
     const result = await pool.query(
       `SELECT c.* FROM courses c
        JOIN course_lecturers cl ON cl.course_id = c.id AND cl.lecturer_id = $1
+       WHERE c.deleted_at IS NULL
        ORDER BY c.course_name`,
       [req.user.id]
     );
@@ -890,6 +891,7 @@ router.get('/classes', async (req, res) => {
       `SELECT c.*, (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = c.class_id) AS student_count
        FROM classes c
        JOIN class_lecturers cl ON cl.class_id = c.class_id AND cl.lecturer_id = $1
+       WHERE c.deleted_at IS NULL
        ORDER BY c.class_name`,
       [req.user.id]
     );

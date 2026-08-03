@@ -18,16 +18,26 @@ export default function LecturerDashboard() {
     setLoading(true);
     setError('');
     try {
-      const [coursesRes, classesRes, sessionsRes, scheduledRes] = await Promise.all([
+      const [coursesRes, classesRes] = await Promise.all([
         api.get('/api/lecturer/courses'),
         api.get('/api/lecturer/classes'),
-        api.get('/api/lecturer/sessions', { params: { limit: 100, offset: 0 } }),
-        api.get('/api/lecturer/scheduled'),
       ]);
       const courses = coursesRes.data.courses || [];
       const classes = classesRes.data.classes || [];
-      const sessions = sessionsRes.data.sessions || [];
-      const scheduled = scheduledRes.data || [];
+
+      let sessions = [];
+      let scheduled = [];
+      try {
+        const [sessionsRes, scheduledRes] = await Promise.all([
+          api.get('/api/lecturer/sessions', { params: { limit: 100, offset: 0 } }),
+          api.get('/api/lecturer/scheduled'),
+        ]);
+        sessions = sessionsRes.data.sessions || [];
+        scheduled = scheduledRes.data || [];
+      } catch {
+        // sessions/scheduled may fail on production; courses/classes still load
+      }
+
       const active = sessions.filter((s) => s.is_active);
       const todayTotal = sessions.reduce((sum, s) => sum + parseInt(s.attendance_count || 0), 0);
       const recent = [...sessions].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, RECENT_LIMIT);
