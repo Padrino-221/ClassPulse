@@ -3,6 +3,8 @@
 -- 2. Remove redundant columns that duplicate FK data
 
 -- 1a. classes: unique (department_id, class_name) — prevent duplicate class names per department
+-- schema.sql may create this as an index; drop the index first, then create the constraint
+DROP INDEX IF EXISTS uq_classes_dept_name;
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -15,6 +17,8 @@ END
 $$;
 
 -- 1b. courses: unique (department_id, course_name) — prevent duplicate course names per department
+DROP INDEX IF EXISTS uq_courses_dept_name;
+DROP INDEX IF EXISTS idx_courses_active_dept_name;
 DO $$
 BEGIN
   IF NOT EXISTS (

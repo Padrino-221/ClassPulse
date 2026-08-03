@@ -6,11 +6,21 @@
 ALTER TABLE course_lecturers DROP CONSTRAINT IF EXISTS course_lecturers_course_code_fkey;
 ALTER TABLE active_sessions DROP CONSTRAINT IF EXISTS active_sessions_course_code_fkey;
 
--- 1. Add surrogate id to courses and promote it to the PK
+-- 1. Add surrogate id to courses and promote it to the PK (only if PK is still course_code)
 ALTER TABLE courses ADD COLUMN IF NOT EXISTS id SERIAL;
 
-ALTER TABLE courses DROP CONSTRAINT IF EXISTS courses_pkey;
-ALTER TABLE courses ADD PRIMARY KEY (id);
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'courses'::regclass AND contype = 'p'
+    AND conkey = ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid = 'courses'::regclass AND attname = 'course_code')]
+  ) THEN
+    ALTER TABLE courses DROP CONSTRAINT courses_pkey;
+    ALTER TABLE courses ADD PRIMARY KEY (id);
+  END IF;
+END
+$$;
 
 -- 2. course_code is no longer globally unique; only unique among non-deleted rows (reusable after soft delete)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_courses_active_code
@@ -18,6 +28,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_courses_active_code
 
 -- 3. course_name uniqueness within a department should also be partial (was a full UNIQUE constraint)
 ALTER TABLE courses DROP CONSTRAINT IF EXISTS uq_courses_dept_name;
+DROP INDEX IF EXISTS idx_courses_active_dept_name;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_courses_active_dept_name
   ON courses(department_id, course_name) WHERE deleted_at IS NULL;
 
@@ -27,7 +38,8 @@ ALTER TABLE course_lecturers ADD COLUMN IF NOT EXISTS course_id INTEGER;
 UPDATE course_lecturers cl
 SET course_id = c.id
 FROM courses c
-WHERE c.course_code = cl.course_code;
+WHERE c.course_code = cl.course_code
+  AND cl.course_id IS NULL;
 
 ALTER TABLE course_lecturers ALTER COLUMN course_id SET NOT NULL;
 
@@ -45,7 +57,8 @@ ALTER TABLE active_sessions ADD COLUMN IF NOT EXISTS course_id INTEGER;
 UPDATE active_sessions s
 SET course_id = c.id
 FROM courses c
-WHERE c.course_code = s.course_code;
+WHERE c.course_code = s.course_code
+  AND s.course_id IS NULL;
 
 ALTER TABLE active_sessions ALTER COLUMN course_id SET NOT NULL;
 
@@ -55,5 +68,5 @@ ALTER TABLE active_sessions
 
 -- 6. Re-key the one-session-per-course+class+week uniqueness on course_id
 DROP INDEX IF EXISTS idx_active_sessions_course_class_week;
-CREATE UNIQUE INDEX idx_active_sessions_course_class_week
+CREATE UNIQUE INDEX IF NOT EXISTS idx_active_sessions_course_class_week
   ON active_sessions(course_id, class_id, week_number);
