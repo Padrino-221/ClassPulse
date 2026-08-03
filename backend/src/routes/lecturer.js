@@ -878,6 +878,10 @@ router.get('/courses', async (req, res) => {
        ORDER BY c.course_name`,
       [req.user.id]
     );
+    if (result.rows.length === 0) {
+      const check = await pool.query('SELECT COUNT(*) FROM course_lecturers WHERE lecturer_id = $1', [req.user.id]);
+      console.log(`[lecturer/courses] lecturer_id=${req.user.id} → 0 courses, junction_rows=${check.rows[0].count}`);
+    }
     res.json({ courses: result.rows });
   } catch (err) {
     console.error(err);

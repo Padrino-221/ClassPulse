@@ -15,9 +15,11 @@ CREATE TABLE IF NOT EXISTS schools (
     university_id INTEGER NOT NULL REFERENCES universities(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     code VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE(university_id, code)
+    deleted_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_schools_active_code ON schools(university_id, code) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_schools_active_name ON schools(university_id, name) WHERE deleted_at IS NULL;
 
 -- 2. Departments
 CREATE TABLE IF NOT EXISTS departments (
@@ -25,9 +27,11 @@ CREATE TABLE IF NOT EXISTS departments (
     school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     code VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE(school_id, code)
+    deleted_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_departments_active_code ON departments(school_id, code) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_departments_active_name ON departments(school_id, name) WHERE deleted_at IS NULL;
 
 -- 3. Lecture Halls
 CREATE TABLE IF NOT EXISTS lecture_halls (
@@ -68,7 +72,7 @@ CREATE TABLE IF NOT EXISTS semesters (
 CREATE TABLE IF NOT EXISTS admins (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(20) NOT NULL DEFAULT 'university',
     university_id INTEGER REFERENCES universities(id) ON DELETE SET NULL,
@@ -77,34 +81,38 @@ CREATE TABLE IF NOT EXISTS admins (
     deleted_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW()
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_admins_active_email ON admins(email) WHERE deleted_at IS NULL;
 
 -- 7. Lecturers
 CREATE TABLE IF NOT EXISTS lecturers (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     department_id INTEGER REFERENCES departments(id) ON DELETE SET NULL,
     deleted_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW()
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_lecturers_active_email ON lecturers(email) WHERE deleted_at IS NULL;
 
--- 8. Courses
+-- 8. Courses (surrogate id PK, course_code reusable after soft-delete)
 CREATE TABLE IF NOT EXISTS courses (
-    course_code VARCHAR(20) PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
+    course_code VARCHAR(20) NOT NULL,
     course_name VARCHAR(255) NOT NULL,
     total_weeks INTEGER NOT NULL CHECK (total_weeks > 0 AND total_weeks <= 52),
     min_attendance_pct INTEGER DEFAULT 70 CHECK (min_attendance_pct >= 0 AND min_attendance_pct <= 100),
     department_id INTEGER REFERENCES departments(id) ON DELETE SET NULL,
     deleted_at TIMESTAMP
 );
-CREATE UNIQUE INDEX IF NOT EXISTS uq_courses_dept_name ON courses(department_id, course_name) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_courses_active_code ON courses(course_code) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_courses_active_dept_name ON courses(department_id, course_name) WHERE deleted_at IS NULL;
 
 -- 9. Course <-> Lecturer (many-to-many)
 CREATE TABLE IF NOT EXISTS course_lecturers (
-    course_code VARCHAR(20) NOT NULL REFERENCES courses(course_code) ON DELETE CASCADE,
+    course_id INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
     lecturer_id INTEGER NOT NULL REFERENCES lecturers(id) ON DELETE CASCADE,
-    PRIMARY KEY (course_code, lecturer_id)
+    PRIMARY KEY (course_id, lecturer_id)
 );
 CREATE INDEX IF NOT EXISTS idx_course_lecturers_lecturer ON course_lecturers(lecturer_id);
 
@@ -130,15 +138,16 @@ CREATE TABLE IF NOT EXISTS student_roster (
     index_number VARCHAR(50) NOT NULL,
     student_name VARCHAR(255) NOT NULL,
     class_id INTEGER NOT NULL REFERENCES classes(class_id) ON DELETE CASCADE,
-    deleted_at TIMESTAMP,
-    UNIQUE(index_number)
+    deleted_at TIMESTAMP
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_student_roster_active_index ON student_roster(index_number) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_student_roster_class ON student_roster(class_id);
 
 -- 13. Active Sessions
 CREATE TABLE IF NOT EXISTS active_sessions (
     session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    course_code VARCHAR(20) NOT NULL REFERENCES courses(course_code) ON DELETE CASCADE,
+    course_code VARCHAR(20) NOT NULL,
+    course_id INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
     class_id INTEGER NOT NULL REFERENCES classes(class_id) ON DELETE CASCADE,
     lecturer_id INTEGER NOT NULL REFERENCES lecturers(id) ON DELETE CASCADE,
     lecture_hall_id INTEGER REFERENCES lecture_halls(id) ON DELETE SET NULL,
@@ -154,7 +163,7 @@ CREATE TABLE IF NOT EXISTS active_sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_active_sessions_pin ON active_sessions(pin_seed, course_code);
 CREATE INDEX IF NOT EXISTS idx_active_sessions_lecturer ON active_sessions(lecturer_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_active_sessions_course_class_week ON active_sessions(course_code, class_id, week_number);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_active_sessions_course_class_week ON active_sessions(course_id, class_id, week_number);
 CREATE INDEX IF NOT EXISTS idx_active_sessions_active_expires ON active_sessions(is_active, expires_at);
 
 -- 14. Attendance Records
