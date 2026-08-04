@@ -4,11 +4,12 @@ const app = require('../src/index');
 const { pool } = require('../src/config/db');
 
 const TEST_COURSE = 'TST187';
-const TEST_CLASS_ID = 3;
-const BUILDING_LAT = 7.363042;
-const BUILDING_LON = -2.351278;
 const NUM_STUDENTS = 187;
 const WAVE_SIZE = 20;
+
+let BUILDING_LAT = 7.363042;
+let BUILDING_LON = -2.351278;
+let TEST_CLASS_ID = null;
 
 const results = { total: 0, ok: 0, latencies: [], byStatus: {}, errors: {} };
 
@@ -64,6 +65,26 @@ async function checkIn(token, { name, index_number, pin, fingerprint }) {
     lecturerToken = login.body.token;
     lecturerId = login.body.user.id;
     console.log('1. Login OK');
+
+    // 1b. Resolve the class with the most roster students + its lecture hall
+    const classRes = await pool.query(
+      `SELECT class_id FROM student_roster
+       WHERE deleted_at IS NULL
+       GROUP BY class_id
+       ORDER BY COUNT(*) DESC
+       LIMIT 1`
+    );
+    TEST_CLASS_ID = classRes.rows[0].class_id;
+    const hallRes = await pool.query(
+      `SELECT latitude, longitude FROM lecture_halls
+       WHERE deleted_at IS NULL
+       ORDER BY id LIMIT 1`
+    );
+    if (hallRes.rows[0]) {
+      BUILDING_LAT = parseFloat(hallRes.rows[0].latitude);
+      BUILDING_LON = parseFloat(hallRes.rows[0].longitude);
+    }
+    console.log('1b. Using class', TEST_CLASS_ID, 'at', BUILDING_LAT + ',' + BUILDING_LON);
 
     // 2. Upsert test course + assign to lecturer
     await pool.query(

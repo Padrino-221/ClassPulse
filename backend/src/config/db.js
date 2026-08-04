@@ -4,14 +4,14 @@ require('dotenv').config();
 
 // In cluster mode, divide max connections across workers
 const cpuCount = os.cpus().length;
-const maxConnections = parseInt(process.env.DB_POOL_MAX || '20', 10);
+const maxConnections = parseInt(process.env.DB_POOL_MAX || '50', 10);
 const perWorkerMax = Math.max(2, Math.floor(maxConnections / cpuCount));
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: perWorkerMax,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 10000,
 });
 
 pool.on('error', (err) => {
