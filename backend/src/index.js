@@ -192,6 +192,7 @@ if (require.main === module) {
            WHERE is_active = FALSE
              AND scheduled_at IS NOT NULL
              AND scheduled_at <= NOW()
+             AND (expires_at IS NULL OR expires_at > NOW())
            RETURNING session_id, course_id, course_code, class_id, week_number, pin_seed,
                      pin_spinning, lecture_hall_id, expires_at`
         );
