@@ -130,11 +130,13 @@ runMigrations(pool)
   .then(() => sessionCache.reloadFromDb(pool))
   .then(() => {
     console.log('Session cache primed with active sessions.');
-    cacheInterval = setInterval(() => {
-      sessionCache.reloadFromDb(pool).catch((err) => {
-        console.error('Session cache refresh error:', err);
-      });
-    }, 30000);
+    if (require.main === module) {
+      cacheInterval = setInterval(() => {
+        sessionCache.reloadSessionsOnly(pool).catch((err) => {
+          console.error('Session cache refresh error:', err);
+        });
+      }, 30000);
+    }
   })
   .catch((err) => {
     console.error('Startup error:', err.message);

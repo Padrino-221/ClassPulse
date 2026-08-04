@@ -40,6 +40,14 @@ export default function LecturerDashboard() {
         // sessions/scheduled may fail on production; courses/classes still load
       }
 
+      // Precompute locale-aware date/time labels once per fetch instead of on
+      // every render (toLocaleDateString/TimeString are comparatively costly).
+      const scheduledFormatted = (scheduled || []).map((s) => ({
+        ...s,
+        dateLabel: new Date(s.scheduled_at).toLocaleDateString(),
+        timeLabel: new Date(s.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }));
+
       const active = sessions.filter((s) => isSessionActive(s));
       const todayTotal = sessions.reduce((sum, s) => sum + parseInt(s.attendance_count || 0), 0);
       const recent = [...sessions].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, RECENT_LIMIT);
@@ -48,6 +56,7 @@ export default function LecturerDashboard() {
         classes,
         sessions,
         scheduled,
+        scheduledFormatted,
         active,
         todayTotal,
         recent,
@@ -261,7 +270,7 @@ export default function LecturerDashboard() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {data?.scheduled.map((s) => (
+                {data?.scheduledFormatted.map((s) => (
                   <div
                     key={s.session_id}
                     style={{
@@ -281,7 +290,7 @@ export default function LecturerDashboard() {
                       </div>
                     </div>
                     <div style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', textAlign: 'right' }}>
-                      {new Date(s.scheduled_at).toLocaleDateString()} at {new Date(s.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {s.dateLabel} at {s.timeLabel}
                     </div>
                   </div>
                 ))}

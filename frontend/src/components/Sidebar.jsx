@@ -36,6 +36,7 @@ const navItems = [
       { to: '/admin', label: 'Dashboard', icon: House },
       { to: '/admin/schools', label: 'Schools', icon: Buildings, minLevel: 'university' },
       { to: '/admin/departments', label: 'Departments', icon: TreeEvergreen, minLevel: 'school' },
+      { to: '/admin/admins', label: 'Admins', icon: ShieldCheck, minLevel: 'university' },
       { to: '/admin/courses', label: 'Courses', icon: BookOpen },
       { to: '/admin/classes', label: 'Classes', icon: Users },
       { to: '/admin/lecturers', label: 'Lecturers', icon: UserCheck },

@@ -100,24 +100,28 @@ router.get('/summary', async (req, res) => {
 
     const courseResult = await pool.query(courseQuery, courseParams);
 
-    // Compute average attendance % per course using roster size
-    const coursesWithAvg = await Promise.all(
-      courseResult.rows.map(async (row) => {
-        const rosterRes = await pool.query(
-          `SELECT COUNT(*)::int AS roster_size
-           FROM student_roster sr
-           WHERE sr.deleted_at IS NULL AND sr.class_id IN (
-             SELECT DISTINCT s.class_id FROM active_sessions s WHERE s.course_id = $1
-           )`,
-          [row.course_id]
-        );
-        const rosterSize = rosterRes.rows[0]?.roster_size || 0;
-        const avgPct = rosterSize > 0 && row.total_sessions > 0
-          ? Math.round((row.total_checkins / (rosterSize * row.total_sessions)) * 1000) / 10
-          : 0;
-        return { ...row, roster_size: rosterSize, avg_attendance_pct: avgPct };
-      })
-    );
+    // Batch-fetch roster sizes for all relevant course_ids
+    const courseIds = courseResult.rows.map(r => r.course_id);
+    let rosterMap = {};
+    if (courseIds.length > 0) {
+      const rosterRes = await pool.query(
+        `SELECT s.course_id, COUNT(*)::int AS roster_size
+         FROM student_roster sr
+         JOIN active_sessions s ON s.class_id = sr.class_id
+         WHERE sr.deleted_at IS NULL AND s.course_id = ANY($1)
+         GROUP BY s.course_id`,
+        [courseIds]
+      );
+      for (const row of rosterRes.rows) rosterMap[row.course_id] = row.roster_size;
+    }
+
+    const coursesWithAvg = courseResult.rows.map((row) => {
+      const rosterSize = rosterMap[row.course_id] || 0;
+      const avgPct = rosterSize > 0 && row.total_sessions > 0
+        ? Math.round((row.total_checkins / (rosterSize * row.total_sessions)) * 1000) / 10
+        : 0;
+      return { ...row, roster_size: rosterSize, avg_attendance_pct: avgPct };
+    });
 
     // Per-class summary
     let classQuery = `
@@ -211,8 +215,7 @@ router.get('/weekly', async (req, res) => {
         co.course_code,
         cl.class_name,
         cl.class_id,
-        COUNT(DISTINCT ar.index_number)::int AS attended,
-        (SELECT COUNT(*) FROM student_roster WHERE class_id = s.class_id AND deleted_at IS NULL)::int AS total_students
+        COUNT(DISTINCT ar.index_number)::int AS attended
       FROM active_sessions s
       JOIN courses co ON co.id = s.course_id
       JOIN classes cl ON s.class_id = cl.class_id
@@ -242,12 +245,28 @@ router.get('/weekly', async (req, res) => {
 
     const result = await pool.query(query, params);
 
-    const weekly = result.rows.map((row) => ({
-      ...row,
-      attendance_pct: row.total_students > 0
-        ? Math.round((row.attended / row.total_students) * 1000) / 10
-        : 0,
-    }));
+    // Batch-fetch roster sizes
+    const classIds = [...new Set(result.rows.map(r => r.class_id))];
+    let rosterMap = {};
+    if (classIds.length > 0) {
+      const rosterRes = await pool.query(
+        `SELECT class_id, COUNT(*)::int AS total_students
+         FROM student_roster WHERE class_id = ANY($1) AND deleted_at IS NULL GROUP BY class_id`,
+        [classIds]
+      );
+      for (const row of rosterRes.rows) rosterMap[row.class_id] = row.total_students;
+    }
+
+    const weekly = result.rows.map((row) => {
+      const total_students = rosterMap[row.class_id] || 0;
+      return {
+        ...row,
+        total_students,
+        attendance_pct: total_students > 0
+          ? Math.round((row.attended / total_students) * 1000) / 10
+          : 0,
+      };
+    });
 
     res.json({ weekly });
   } catch (err) {

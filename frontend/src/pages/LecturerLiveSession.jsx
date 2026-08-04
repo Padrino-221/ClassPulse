@@ -12,6 +12,7 @@ import Select from '../components/Select';
 import EmptyState from '../components/EmptyState';
 import Pagination from '../components/Pagination';
 import Spinner from '../components/Spinner';
+import DateTimePicker from '../components/DateTimePicker';
 
 const PAGE_SIZE = 15;
 
@@ -43,7 +44,7 @@ function RollingPinDisplay({ sessionId, pinSpinning }) {
 
   useEffect(() => {
     fetchPin();
-    intervalRef.current = setInterval(fetchPin, 5000);
+    intervalRef.current = setInterval(fetchPin, 30000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
@@ -184,25 +185,12 @@ export default function LecturerLiveSession() {
 
   const loadData = useCallback(async (page) => {
     try {
-      const [coursesRes, classesRes] = await Promise.all([
-        api.get('/api/lecturer/courses'),
-        api.get('/api/lecturer/classes'),
-      ]);
-      setCourses(coursesRes.data.courses);
-      setClasses(classesRes.data.classes);
-    } catch {
-      toast.error("Couldn't load courses/classes.");
-    }
-
-    try {
-      const [sessionsRes, lectureHallsRes, scheduledRes] = await Promise.all([
+      const [sessionsRes, scheduledRes] = await Promise.all([
         api.get('/api/lecturer/sessions', { params: { limit: PAGE_SIZE, offset: ((page || 1) - 1) * PAGE_SIZE } }),
-        api.get('/api/lecturer/lecture-halls'),
         api.get('/api/lecturer/scheduled'),
       ]);
       setSessions(sessionsRes.data.sessions);
       setTotal(sessionsRes.data.total || 0);
-      setLectureHalls(lectureHallsRes.data.lecture_halls);
       setScheduledSessions(scheduledRes.data);
 
       const active = sessionsRes.data.sessions?.filter(isSessionActive) || [];
@@ -210,6 +198,25 @@ export default function LecturerLiveSession() {
     } catch {
       toast.error("Couldn't load sessions.");
     }
+  }, []);
+
+  // Load static data once on mount
+  useEffect(() => {
+    const loadStatic = async () => {
+      try {
+        const [coursesRes, classesRes, hallsRes] = await Promise.all([
+          api.get('/api/lecturer/courses'),
+          api.get('/api/lecturer/classes'),
+          api.get('/api/lecturer/lecture-halls'),
+        ]);
+        setCourses(coursesRes.data.courses);
+        setClasses(classesRes.data.classes);
+        setLectureHalls(hallsRes.data.lecture_halls);
+      } catch {
+        toast.error("Couldn't load courses/classes.");
+      }
+    };
+    loadStatic();
   }, []);
 
   useEffect(() => {
@@ -261,7 +268,7 @@ export default function LecturerLiveSession() {
         toast.success('Session scheduled!');
       }
       setForm((prev) => ({ ...prev, class_ids: [], scheduled_date: '' }));
-      loadData();
+      loadData(sessionPage);
     } catch (err) {
       toast.error(err.response?.data?.error || `Couldn't ${mode === 'now' ? 'start' : 'schedule'} session.`);
     } finally {
@@ -280,7 +287,7 @@ export default function LecturerLiveSession() {
     try {
       await api.post(`/api/lecturer/deactivate/${sessionId}`);
       setActiveSessions((prev) => prev.filter((s) => s.session_id !== sessionId));
-      loadData();
+      loadData(sessionPage);
     } catch {
       toast.error("Couldn't end session.");
     }
@@ -446,7 +453,13 @@ export default function LecturerLiveSession() {
                     {mode === 'schedule' && (
                       <div style={{ flex: 1 }}>
                         <label style={labelStyle}>Date & Time</label>
-                        <input type="datetime-local" name="scheduled_date" value={form.scheduled_date} onChange={handleChange} style={inputStyle} />
+                        <DateTimePicker
+                          value={form.scheduled_date}
+                          onChange={(val) => setForm((prev) => ({ ...prev, scheduled_date: val }))}
+                          placeholder="Select date & time"
+                          minDate={new Date()}
+                          aria-label="Scheduled date and time"
+                        />
                       </div>
                     )}
                   </div>
@@ -719,7 +732,7 @@ export default function LecturerLiveSession() {
         <ManualOverrideModal
           sessionId={manualSessionId}
           onClose={() => setManualSessionId(null)}
-          onSuccess={() => { setManualSessionId(null); loadData(); }}
+          onSuccess={() => { setManualSessionId(null); loadData(sessionPage); }}
         />
       )}
 

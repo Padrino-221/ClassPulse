@@ -19,9 +19,11 @@ router.get('/', async (req, res) => {
       query = `SELECT d.id, d.name, d.code, d.created_at,
                       s.name AS school_name, s.id AS school_id,
                       (SELECT COUNT(*) FROM courses c WHERE c.department_id = d.id AND c.deleted_at IS NULL) AS course_count,
-                      (SELECT COUNT(*) FROM lecturers l WHERE l.department_id = d.id AND l.deleted_at IS NULL) AS lecturer_count
+                      (SELECT COUNT(*) FROM lecturers l WHERE l.department_id = d.id AND l.deleted_at IS NULL) AS lecturer_count,
+                      a.name AS admin_name, a.email AS admin_email, a.id AS admin_id
                FROM departments d
                JOIN schools s ON s.id = d.school_id
+               LEFT JOIN admins a ON a.department_id = d.id AND a.role = 'department' AND a.deleted_at IS NULL
                WHERE s.university_id = $1 AND d.deleted_at IS NULL
                ORDER BY s.name, d.name`;
       params = [university_id];
@@ -29,9 +31,11 @@ router.get('/', async (req, res) => {
       query = `SELECT d.id, d.name, d.code, d.created_at,
                       s.name AS school_name, s.id AS school_id,
                       (SELECT COUNT(*) FROM courses c WHERE c.department_id = d.id AND c.deleted_at IS NULL) AS course_count,
-                      (SELECT COUNT(*) FROM lecturers l WHERE l.department_id = d.id AND l.deleted_at IS NULL) AS lecturer_count
+                      (SELECT COUNT(*) FROM lecturers l WHERE l.department_id = d.id AND l.deleted_at IS NULL) AS lecturer_count,
+                      a.name AS admin_name, a.email AS admin_email, a.id AS admin_id
                FROM departments d
                JOIN schools s ON s.id = d.school_id
+               LEFT JOIN admins a ON a.department_id = d.id AND a.role = 'department' AND a.deleted_at IS NULL
                WHERE d.school_id = $1 AND d.deleted_at IS NULL
                ORDER BY d.name`;
       params = [school_id];
@@ -211,6 +215,11 @@ router.delete('/', async (req, res) => {
       'UPDATE lecturers SET deleted_at = NOW() WHERE department_id = ANY($1) AND deleted_at IS NULL',
       [deptIds]
     );
+    // Cascade: soft-delete department admins
+    await client.query(
+      "UPDATE admins SET deleted_at = NOW() WHERE department_id = ANY($1) AND role = 'department' AND deleted_at IS NULL",
+      [deptIds]
+    );
     const result = await client.query(
       'UPDATE departments SET deleted_at = NOW() WHERE id = ANY($1) AND deleted_at IS NULL RETURNING id',
       [deptIds]
@@ -248,6 +257,11 @@ router.delete('/:id', [
       `UPDATE active_sessions SET is_active = FALSE
        WHERE course_id IN (SELECT c.id FROM courses c WHERE c.department_id = $1)
          AND is_active = TRUE`,
+      [id]
+    );
+    // Cascade: soft-delete department admin
+    await client.query(
+      "UPDATE admins SET deleted_at = NOW() WHERE department_id = $1 AND role = 'department' AND deleted_at IS NULL",
       [id]
     );
 

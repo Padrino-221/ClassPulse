@@ -49,6 +49,9 @@ export default function useGeolocation() {
       return;
     }
 
+    // Stop any existing watcher before starting a new one
+    stopWatching();
+
     setCoords(null);
     setError(null);
     setLoading(true);

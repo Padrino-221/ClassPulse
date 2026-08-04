@@ -9,7 +9,7 @@ import { useToast } from '../components/Toast';
 import {
   BookOpen, Users, UserCheck, GraduationCap, MapPin, Plus, PencilSimple, Trash,
   DownloadSimple, Warning, CalendarBlank, Buildings, TreeEvergreen, Clock, ShieldCheck,
-  Eye, EyeSlash, ChartLineUp,
+  Eye, EyeSlash, ChartLineUp, ArrowsClockwise,
 } from '@phosphor-icons/react';
 // ReportsPage pulls in recharts (~300 KB), so lazy-load it to keep the admin
 // dashboard shell fast; it only loads when the /reports tab is opened.
@@ -18,6 +18,8 @@ import PageHeader from '../components/PageHeader';
 import CreateModal from '../components/CreateModal';
 import ConfirmModal from '../components/ConfirmModal';
 import BulkDeleteModal from '../components/BulkDeleteModal';
+import BulkImportModal from '../components/BulkImportModal';
+import AccessibleModal from '../components/AccessibleModal';
 import Spinner from '../components/Spinner';
 
 const PAGE_SIZE = 20;
@@ -1409,44 +1411,7 @@ function LecturersPage() {
     }
   };
 
-  const [importingLecturers, setImportingLecturers] = useState(false);
-  const [lecturerImportResult, setLecturerImportResult] = useState(null);
-  const lecturerFileRef = useRef(null);
-
-  const handleLecturerImport = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImportingLecturers(true);
-    setLecturerImportResult(null);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await api.post('/api/admin/lecturers/bulk', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setLecturerImportResult(res.data);
-      setPage(1);
-      await load(1, filterSchool, filterDepartment);
-      notifyDataChanged();
-    } catch (err) {
-      setLecturerImportResult({ error: err.response?.data?.error || 'Import failed.' });
-    } finally {
-      setImportingLecturers(false);
-      lecturerFileRef.current.value = '';
-      setTimeout(() => setLecturerImportResult(null), 6000);
-    }
-  };
-
-  const downloadLecturerTemplate = () => {
-    const csv = 'name,email,password\nDr. Jane Doe,jane.doe@university.edu,TemporaryPass1\n';
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'lecturer_import_template.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  const [showImport, setShowImport] = useState(false);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -1460,32 +1425,11 @@ function LecturersPage() {
         actionIcon={Plus}
         right={!isReadOnly ? (
           <>
-            <input type="file" accept=".csv" ref={lecturerFileRef} onChange={handleLecturerImport} style={{ display: 'none' }} />
             <ToolbarButton
-              icon={DownloadSimple}
-              label="Download Template"
-              title="Download a CSV template with the name, email and password columns"
-              onClick={downloadLecturerTemplate}
-            />
-            <ToolbarButton
-              label={importingLecturers ? 'Importing...' : 'Import CSV'}
-              disabled={importingLecturers}
-              onClick={() => lecturerFileRef.current?.click()}
+              label="Import CSV"
+              onClick={() => setShowImport(true)}
             />
             <DeleteAllButton onClick={() => setDeletingAll(true)} />
-            {lecturerImportResult && (
-              <span style={{
-                fontSize: '0.75rem', fontWeight: 600,
-                color: '#fff',
-                background: lecturerImportResult.error ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.2)',
-                padding: '0.3rem 0.75rem', borderRadius: '6px',
-                border: '1px solid rgba(255,255,255,0.3)',
-              }}>
-                {lecturerImportResult.error
-                  ? lecturerImportResult.error
-                  : `${lecturerImportResult.added} lecturer(s) added${lecturerImportResult.skipped?.length ? `, ${lecturerImportResult.skipped.length} skipped` : ''}${lecturerImportResult.errors?.length ? `, ${lecturerImportResult.errors.length} error(s)` : ''}`}
-              </span>
-            )}
           </>
         ) : undefined}
       />
@@ -1596,6 +1540,18 @@ function LecturersPage() {
           onCancel={() => setDeletingAll(false)}
         />
       )}
+      {showImport && (
+        <BulkImportModal
+          title="Import Lecturers"
+          description="Upload a CSV file to bulk-import lecturers. Passwords must be 8-128 characters."
+          templateCsv="name,email,password\nDr. Jane Doe,jane.doe@university.edu,TemporaryPass1\n"
+          templateFileName="lecturer_import_template.csv"
+          endpoint="/api/admin/lecturers/bulk"
+          columns={['name', 'email', 'password']}
+          onImported={() => { setShowImport(false); setPage(1); load(1, filterSchool, filterDepartment); notifyDataChanged(); }}
+          onCancel={() => setShowImport(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1619,9 +1575,7 @@ function StudentsPage() {
   const isUniversity = user?.admin_level === 'university';
   const isSchoolAdmin = user?.admin_level === 'school';
 
-  const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState(null);
-  const fileRef = useRef();
+  const [showImport, setShowImport] = useState(false);
 
   const [schools, setSchools] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -1699,41 +1653,6 @@ function StudentsPage() {
     }
   };
 
-  const handleBulkImport = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImporting(true);
-    setImportResult(null);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('class_id', selectedClass);
-      const res = await api.post('/api/admin/students/bulk', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setImportResult(res.data);
-      await loadStudents(selectedClass, page, filterSchool, filterDepartment);
-      notifyDataChanged();
-    } catch (err) {
-      setImportResult({ error: err.response?.data?.error || 'Import failed.' });
-    } finally {
-      setImporting(false);
-      fileRef.current.value = '';
-      setTimeout(() => setImportResult(null), 5000);
-    }
-  };
-
-  const downloadTemplate = () => {
-    const csv = 'index_number,student_name\nUEB000000000,Example Student\n';
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'student_roster_template.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
@@ -1747,35 +1666,12 @@ function StudentsPage() {
         right={!isReadOnly ? (
           <>
             {selectedClass && (
-              <input type="file" accept=".csv" ref={fileRef} onChange={handleBulkImport} style={{ display: 'none' }} />
-            )}
-            {selectedClass && (
               <ToolbarButton
-                icon={DownloadSimple}
-                label="Download Template"
-                title="Download a CSV template with the index_number and student_name columns"
-                onClick={downloadTemplate}
-              />
-            )}
-            {selectedClass && (
-              <ToolbarButton
-                label={importing ? 'Importing...' : 'Import CSV'}
-                disabled={importing}
-                onClick={() => fileRef.current?.click()}
+                label="Import CSV"
+                onClick={() => setShowImport(true)}
               />
             )}
             <DeleteAllButton onClick={() => setDeletingAll(true)} />
-            {importResult && (
-              <span style={{
-                fontSize: '0.75rem', fontWeight: 600,
-                color: '#fff',
-                background: importResult.error ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.2)',
-                padding: '0.3rem 0.75rem', borderRadius: '6px',
-                border: importResult.error ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(255,255,255,0.3)',
-              }}>
-                {importResult.error ? importResult.error : `${importResult.added} students added`}
-              </span>
-            )}
           </>
         ) : undefined}
       />
@@ -1902,6 +1798,19 @@ function StudentsPage() {
           confirmLabel="Delete All Students"
           onConfirm={deleteAll}
           onCancel={() => setDeletingAll(false)}
+        />
+      )}
+      {showImport && selectedClass && (
+        <BulkImportModal
+          title="Import Students"
+          description={`Upload a CSV file to bulk-import students into the selected class.`}
+          templateCsv="index_number,student_name\nUEB000000000,Example Student\n"
+          templateFileName="student_roster_template.csv"
+          endpoint="/api/admin/students/bulk"
+          extraFields={{ class_id: selectedClass }}
+          columns={['index_number', 'student_name']}
+          onImported={() => { setShowImport(false); loadStudents(selectedClass, page, filterSchool, filterDepartment); notifyDataChanged(); }}
+          onCancel={() => setShowImport(false)}
         />
       )}
     </div>
@@ -2057,7 +1966,7 @@ function SchoolsPage() {
       {deleting && (
         <ConfirmModal
           title="Delete School"
-          message={`Are you sure you want to delete "${deleting.name}"? All departments under this school will be removed.`}
+          message={`Are you sure you want to delete "${deleting.name}"? All departments and the associated admin account will be removed.`}
           confirmLabel="Delete"
           danger
           onConfirm={() => handleDelete(deleting.id)}
@@ -2067,7 +1976,7 @@ function SchoolsPage() {
       {deletingAll && (
         <BulkDeleteModal
           title="Delete All Schools"
-          message={`Are you sure you want to delete all ${schools.length} school(s)? All departments under them will be removed. This cannot be undone.`}
+          message={`Are you sure you want to delete all ${schools.length} school(s)? All departments and associated admin accounts will be removed. This cannot be undone.`}
           confirmLabel="Delete All Schools"
           onConfirm={deleteAll}
           onCancel={() => setDeletingAll(false)}
@@ -2307,7 +2216,7 @@ function DepartmentsPage() {
       {!isReadOnly && deleting && (
         <ConfirmModal
           title="Delete Department"
-          message={`Are you sure you want to delete "${deleting.name}"? Courses and lecturers will be unassigned.`}
+          message={`Are you sure you want to delete "${deleting.name}"? Courses, lecturers, and the associated admin account will be removed.`}
           confirmLabel="Delete"
           danger
           onConfirm={() => handleDelete(deleting.id)}
@@ -2317,7 +2226,7 @@ function DepartmentsPage() {
       {deletingAll && (
         <BulkDeleteModal
           title="Delete All Departments"
-          message={`Are you sure you want to delete all ${filtered.length} department(s) in the current view? Courses and lecturers will be unassigned. This cannot be undone.`}
+          message={`Are you sure you want to delete all ${filtered.length} department(s) in the current view? Courses, lecturers, and associated admin accounts will be removed. This cannot be undone.`}
           confirmLabel="Delete All Departments"
           onConfirm={deleteAll}
           onCancel={() => setDeletingAll(false)}
@@ -2865,6 +2774,351 @@ function ToolsPage() {
   );
 }
 
+function AdminsPage() {
+  const [admins, setAdmins] = useState([]);
+  const [schools, setSchools] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [editForm, setEditForm] = useState({ name: '', email: '', password: '' });
+  const [editLoading, setEditLoading] = useState(false);
+  const [reassigning, setReassigning] = useState(null);
+  const [reassignForm, setReassignForm] = useState({ school_id: '', department_id: '' });
+  const [reassignLoading, setReassignLoading] = useState(false);
+  const toast = useToast();
+
+  const user = useMemo(() => {
+    try { return getStoredUser(); } catch { return null; }
+  }, []);
+  const isUniversity = user?.admin_level === 'university';
+  const isSchool = user?.admin_level === 'school';
+
+  const loadAdmins = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/api/admins');
+      setAdmins(res.data);
+    } catch {
+      toast.error("Couldn't load admins.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadAdmins(); }, [loadAdmins]);
+
+  useEffect(() => {
+    if (isUniversity) api.get('/api/schools').then(r => setSchools(r.data)).catch(() => {});
+    api.get('/api/departments').then(r => setDepartments(r.data)).catch(() => {});
+  }, [isUniversity]);
+
+  const openEdit = (admin) => {
+    setEditing(admin);
+    setEditForm({ name: admin.name, email: admin.email, password: '' });
+  };
+
+  const handleEdit = async () => {
+    if (!editing) return;
+    setEditLoading(true);
+    try {
+      const payload = {};
+      if (editForm.name !== editing.name) payload.name = editForm.name;
+      if (editForm.email !== editing.email) payload.email = editForm.email;
+      if (editForm.password) payload.password = editForm.password;
+      if (Object.keys(payload).length === 0) {
+        setEditing(null);
+        return;
+      }
+      await api.put(`/api/admins/${editing.id}`, payload);
+      toast.success(`${editing.name} updated.`);
+      setEditing(null);
+      await loadAdmins();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Update failed.');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const openReassign = (admin) => {
+    setReassigning(admin);
+    setReassignForm({
+      school_id: admin.school_id ? String(admin.school_id) : '',
+      department_id: admin.department_id ? String(admin.department_id) : '',
+    });
+  };
+
+  const handleReassign = async () => {
+    if (!reassigning) return;
+    setReassignLoading(true);
+    try {
+      const payload = {};
+      if (reassigning.role === 'school' && reassignForm.school_id) {
+        payload.school_id = parseInt(reassignForm.school_id);
+      } else if (reassigning.role === 'department' && reassignForm.department_id) {
+        payload.department_id = parseInt(reassignForm.department_id);
+      }
+      await api.put(`/api/admins/${reassigning.id}/reassign`, payload);
+      toast.success(`${reassigning.name} reassigned.`);
+      setReassigning(null);
+      await loadAdmins();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Reassignment failed.');
+    } finally {
+      setReassignLoading(false);
+    }
+  };
+
+  const handleRemove = async (admin) => {
+    if (!window.confirm(`Remove admin "${admin.name}"? This action cannot be undone.`)) return;
+    try {
+      await api.delete(`/api/admins/${admin.id}`);
+      toast.success('Admin removed.');
+      await loadAdmins();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to remove admin.');
+    }
+  };
+
+  const roleBadge = (role) => {
+    const colors = {
+      university: { bg: 'var(--brand-light)', color: 'var(--brand)' },
+      school: { bg: 'var(--warning-bg)', color: 'var(--warning)' },
+      department: { bg: 'var(--success-bg)', color: 'var(--success)' },
+    };
+    const c = colors[role] || colors.university;
+    return (
+      <span style={{
+        display: 'inline-block', padding: '0.2rem 0.625rem', fontSize: '0.6875rem',
+        fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em',
+        background: c.bg, color: c.color, borderRadius: 'var(--radius-full)',
+      }}>
+        {role}
+      </span>
+    );
+  };
+
+  const btnSmall = {
+    background: 'var(--bg-hover)', border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)', padding: '0.375rem 0.625rem',
+    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+    color: 'var(--text-secondary)', fontFamily: 'inherit',
+  };
+
+  return (
+    <div>
+      <PageHeader
+        title="Admins"
+        description={isSchool ? 'Manage department admin accounts in your school.' : 'Manage admin accounts and their school/department assignments.'}
+      />
+      <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+        <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
+          <table className="matrix-table table-hover" style={{ border: 'none', borderRadius: 0 }}>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Assigned To</th>
+                <th style={{ textAlign: 'center' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem' }}>
+                    <Spinner />
+                  </td>
+                </tr>
+              ) : admins.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                    No admins found.
+                  </td>
+                </tr>
+              ) : admins.map((a) => (
+                <tr key={a.id}>
+                  <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-light)', fontWeight: 600 }}>{a.name}</td>
+                  <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}>{a.email}</td>
+                  <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-light)' }}>{roleBadge(a.role)}</td>
+                  <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-light)', color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
+                    {a.role === 'university' && <span>—</span>}
+                    {a.role === 'school' && <span>{a.school_name || `School #${a.school_id}`}</span>}
+                    {a.role === 'department' && (
+                      <span>
+                        {a.department_name ? `${a.department_name}` : `Dept #${a.department_id}`}
+                        {a.school_name && <span style={{ color: 'var(--text-muted)' }}> · {a.school_name}</span>}
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-light)', textAlign: 'center' }}>
+                    {a.role !== 'university' && (
+                      <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
+                        <button
+                          onClick={() => openEdit(a)}
+                          title="Edit admin"
+                          style={{
+                            background: 'transparent', border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius-sm)', padding: '0.375rem',
+                            cursor: 'pointer', color: 'var(--text-secondary)',
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          }}
+                        >
+                          <PencilSimple size={14} weight="bold" />
+                        </button>
+                        <button
+                          onClick={() => openReassign(a)}
+                          title="Reassign admin"
+                          style={{
+                            background: 'transparent', border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius-sm)', padding: '0.375rem',
+                            cursor: 'pointer', color: 'var(--text-secondary)',
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          }}
+                        >
+                          <ArrowsClockwise size={14} weight="bold" />
+                        </button>
+                        <button
+                          onClick={() => handleRemove(a)}
+                          title="Remove admin"
+                          style={{
+                            background: 'var(--error-bg)', border: '1px solid rgba(220,38,38,0.15)',
+                            borderRadius: 'var(--radius-sm)', padding: '0.375rem',
+                            cursor: 'pointer', color: 'var(--error)',
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          }}
+                        >
+                          <Trash size={14} weight="bold" />
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Edit modal */}
+      {editing && (
+        <AccessibleModal onClose={() => setEditing(null)} title="Edit Admin" maxWidth={420}>
+          <div className="form-group">
+            <label>Name</label>
+            <input
+              type="text"
+              value={editForm.name}
+              onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+              style={{ height: '42px', padding: '0 0.875rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', background: 'var(--bg-input)', color: 'var(--text-primary)', width: '100%', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              value={editForm.email}
+              onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+              style={{ height: '42px', padding: '0 0.875rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', background: 'var(--bg-input)', color: 'var(--text-primary)', width: '100%', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div className="form-group">
+            <label>New Password <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(leave blank to keep current)</span></label>
+            <input
+              type="password"
+              value={editForm.password}
+              onChange={(e) => setEditForm(prev => ({ ...prev, password: e.target.value }))}
+              placeholder="Min 8 characters"
+              style={{ height: '42px', padding: '0 0.875rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', background: 'var(--bg-input)', color: 'var(--text-primary)', width: '100%', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+            <button
+              onClick={() => setEditing(null)}
+              disabled={editLoading}
+              style={{
+                padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 600,
+                color: 'var(--text-secondary)', background: 'var(--bg-hover)',
+                border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleEdit}
+              disabled={editLoading || !editForm.name || !editForm.email}
+              style={{
+                padding: '0.5rem 1.25rem', fontSize: '0.8125rem', fontWeight: 600,
+                color: 'var(--text-inverse)', background: 'var(--brand)',
+                border: 'none', borderRadius: '6px', cursor: (editLoading || !editForm.name || !editForm.email) ? 'not-allowed' : 'pointer',
+                opacity: (editLoading || !editForm.name || !editForm.email) ? 0.5 : 1,
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                fontFamily: 'inherit', transition: 'all 0.15s',
+              }}
+            >
+              {editLoading && <Spinner size={14} />}
+              {editLoading ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </AccessibleModal>
+      )}
+
+      {/* Reassign modal */}
+      {reassigning && (
+        <AccessibleModal onClose={() => setReassigning(null)} title="Reassign Admin" maxWidth={420}>
+          <p style={{ margin: '0 0 1rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+            Move <strong>{reassigning.name}</strong> ({reassigning.email}) to a different {reassigning.role === 'school' ? 'school' : 'department'}.
+          </p>
+          {reassigning.role === 'school' ? (
+            <div className="form-group">
+              <label>School</label>
+              <Select value={reassignForm.school_id} onChange={(e) => setReassignForm(prev => ({ ...prev, school_id: e.target.value }))}>
+                <option value="">Select school</option>
+                {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </Select>
+            </div>
+          ) : (
+            <div className="form-group">
+              <label>Department</label>
+              <Select value={reassignForm.department_id} onChange={(e) => setReassignForm(prev => ({ ...prev, department_id: e.target.value }))}>
+                <option value="">Select department</option>
+                {departments.map(d => <option key={d.id} value={d.id}>{d.name} ({d.school_name})</option>)}
+              </Select>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
+            <button
+              onClick={() => setReassigning(null)}
+              disabled={reassignLoading}
+              style={{
+                padding: '0.5rem 1rem', fontSize: '0.8125rem', fontWeight: 600,
+                color: 'var(--text-secondary)', background: 'var(--bg-hover)',
+                border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleReassign}
+              disabled={reassignLoading || (reassigning.role === 'school' ? !reassignForm.school_id : !reassignForm.department_id)}
+              style={{
+                padding: '0.5rem 1.25rem', fontSize: '0.8125rem', fontWeight: 600,
+                color: 'var(--text-inverse)', background: 'var(--brand)',
+                border: 'none', borderRadius: '6px', cursor: 'pointer',
+                opacity: (reassignLoading || (reassigning.role === 'school' ? !reassignForm.school_id : !reassignForm.department_id)) ? 0.5 : 1,
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                fontFamily: 'inherit', transition: 'all 0.15s',
+              }}
+            >
+              {reassignLoading && <Spinner size={14} />}
+              {reassignLoading ? 'Saving...' : 'Reassign'}
+            </button>
+          </div>
+        </AccessibleModal>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const [courses, setCourses] = useState([]);
   const [lecturers, setLecturers] = useState([]);
@@ -2923,6 +3177,7 @@ export default function AdminDashboard() {
           <Route path="academic-terms" element={<AcademicTermsPage />} />
           <Route path="schools" element={<SchoolsPage />} />
           <Route path="departments" element={<DepartmentsPage />} />
+          <Route path="admins" element={<AdminsPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="tools" element={<ToolsPage />} />
         </Routes>

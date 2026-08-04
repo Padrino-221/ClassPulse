@@ -7,6 +7,7 @@ const { namesMatch } = require('../services/nameMatch');
 const { validatePin } = require('../services/pin');
 const { verifyToken } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = rateLimit;
 const sessionCache = require('../services/sessionCache');
 
 const router = express.Router();
@@ -14,22 +15,40 @@ const router = express.Router();
 // Name matching (exact after normalization + common-suffix stripping) is shared
 // with the admin CSV import via services/nameMatch.js.
 
+// Per-student rate-limit key: IP + course code prefix + index number.
+// Students in the same course behind NAT share an IP. Keying on the student's
+// own index number gives each individual an independent budget, so an entire
+// lecture hall is no longer throttled as a single shared bucket — only one
+// person hammering the API is limited at a time.
+function studentKeyFromReq(req) {
+  const ip = ipKeyGenerator(req);
+  const pin = (req.body && req.body.pin) || '';
+  const dash = pin.indexOf('-');
+  const courseCode = dash > 0 ? pin.substring(0, dash) : 'unknown';
+  const indexNumber = (req.body && req.body.index_number) || 'unknown';
+  return `${ip}:${courseCode}:${indexNumber}`;
+}
+
 const attendanceLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 100 : 5,
+  // Per-student budget: generous retry allowance without splitting the whole
+  // hall into one shared bucket.
+  max: process.env.NODE_ENV === 'test' ? 200 : 10,
   message: { error: 'Too many attempts. Please wait a minute and try again.' },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: studentKeyFromReq,
 });
 
 // ---- POST /validate-pin ----
 // Validate a session PIN without requiring GPS. Used by the attend page to validate before acquiring location.
 const validatePinLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 100 : 5,
+  max: process.env.NODE_ENV === 'test' ? 200 : 10,
   message: { error: 'Too many PIN attempts. Wait a minute.' },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: studentKeyFromReq,
 });
 
 router.post(
@@ -127,12 +146,25 @@ router.post(
       }
 
       // 2. Roster membership + exact name validation against the session's class
-      const studentCheck = await pool.query(
-        `SELECT student_name FROM student_roster
-         WHERE index_number = $1 AND class_id = $2 AND deleted_at IS NULL
-         LIMIT 1`,
-        [index_number, session.class_id]
-      );
+      // 4. Device fingerprint proxy check
+      // Run both in parallel since they're independent
+      const fingerprintHash = hashDeviceFingerprint(device_fingerprint);
+      const [studentCheck, proxyCheck] = await Promise.all([
+        pool.query(
+          `SELECT student_name FROM student_roster
+           WHERE index_number = $1 AND class_id = $2 AND deleted_at IS NULL
+           LIMIT 1`,
+          [index_number, session.class_id]
+        ),
+        pool.query(
+          `SELECT COUNT(DISTINCT index_number) AS cnt
+           FROM attendance_records
+           WHERE device_fingerprint_hash = $1
+             AND session_id = $2
+             AND index_number != $3`,
+          [fingerprintHash, session.session_id, index_number]
+        ),
+      ]);
 
       if (studentCheck.rows.length === 0) {
         return res.status(403).json({ error: 'Your index number is not registered in this class. Contact your lecturer.' });
@@ -166,18 +198,6 @@ router.post(
         });
       }
 
-      // 4. Device fingerprint proxy check
-      const fingerprintHash = hashDeviceFingerprint(device_fingerprint);
-
-      const proxyCheck = await pool.query(
-        `SELECT COUNT(DISTINCT index_number) AS cnt
-         FROM attendance_records
-         WHERE device_fingerprint_hash = $1
-           AND session_id = $2
-           AND index_number != $3`,
-        [fingerprintHash, session.session_id, index_number]
-      );
-
       if (parseInt(proxyCheck.rows[0].cnt) > 0) {
         return res.status(429).json({ error: 'Device used for another student.' });
       }
@@ -207,177 +227,6 @@ router.post(
         return res.status(404).json({ error: 'Session not found or has ended.' });
       }
       console.error('Check-in error:', err);
-      res.status(500).json({ error: 'Something went wrong. Please try again.' });
-    }
-  }
-);
-
-// ---- GET /hall-info ----
-// Public endpoint: returns active session lecture hall info for the attend page.
-const hallInfoLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 30,
-  message: { error: 'Too many requests.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-router.get('/hall-info', hallInfoLimiter, async (req, res) => {
-  const { pin: submittedPin } = req.query;
-
-  if (!submittedPin) {
-    return res.status(400).json({ error: 'pin required.' });
-  }
-
-  // Parse pin prefix: "CS101-482916" → courseCode="CS101", numericPin="482916"
-  const dashIndex = submittedPin.indexOf('-');
-  let course_code, numericPin;
-  if (dashIndex > 0) {
-    course_code = submittedPin.substring(0, dashIndex);
-    numericPin = submittedPin.substring(dashIndex + 1);
-  } else {
-    course_code = null;
-    numericPin = submittedPin;
-  }
-
-  try {
-    const session = sessionCache.findActiveByPinAndCourse(numericPin, course_code, validatePin);
-
-    if (!session || !session.lecture_hall_name) {
-      return res.status(404).json({ error: 'Session not found or has ended.' });
-    }
-
-    res.json({
-      lecture_hall_name: session.lecture_hall_name,
-      course_code: session.course_code,
-      week_number: session.week_number,
-    });
-  } catch (err) {
-    console.error('Hall info error:', err);
-    res.status(500).json({ error: 'Something went wrong. Please try again.' });
-  }
-});
-
-// ---- POST / (legacy) ----
-// Kept for backward compatibility. Uses lecture hall geofence when available, falls back to session coords.
-router.post(
-  '/',
-  attendanceLimiter,
-  [
-    body('name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty().withMessage('Enter your full name.'),
-    body('index_number').isString().trim().isLength({ min: 1, max: 50 }).notEmpty().withMessage('Enter your index number.'),
-    body('pin').isString().trim().isLength({ min: 4, max: 30 }).withMessage('PIN must be 4–30 characters (e.g. CS101-482916).'),
-    body('latitude').isFloat({ min: -90, max: 90 }).withMessage('Enter a valid latitude.'),
-    body('longitude').isFloat({ min: -180, max: 180 }).withMessage('Enter a valid longitude.'),
-    body('accuracy').optional().isFloat({ min: 0 }).withMessage('Accuracy must be a positive number.'),
-    body('device_fingerprint').isString().isLength({ min: 1, max: 512 }).notEmpty().withMessage('Device fingerprint is required.'),
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { name, index_number, pin: submittedPin, latitude, longitude, accuracy, device_fingerprint } = req.body;
-
-    // Parse pin prefix
-    const dashIndex = submittedPin.indexOf('-');
-    let course_code, numericPin;
-    if (dashIndex > 0) {
-      course_code = submittedPin.substring(0, dashIndex);
-      numericPin = submittedPin.substring(dashIndex + 1);
-    } else {
-      course_code = null;
-      numericPin = submittedPin;
-    }
-
-    try {
-      // Reject poor accuracy readings (GPS > 100m is unreliable) — only if provided
-      if (accuracy !== undefined && parseFloat(accuracy) > 100) {
-        return res.status(400).json({ error: `GPS accuracy is too low (${Math.round(parseFloat(accuracy))}m). Move outdoors or near a window.` });
-      }
-
-      const session = sessionCache.findActiveByPinAndCourse(numericPin, course_code, validatePin);
-
-      if (!session) {
-        return res.status(404).json({ error: 'Session not found or has ended.' });
-      }
-
-      // Roster membership + exact name validation against the session's class
-      const studentCheck = await pool.query(
-        `SELECT student_name FROM student_roster
-         WHERE index_number = $1 AND class_id = $2 AND deleted_at IS NULL
-         LIMIT 1`,
-        [index_number, session.class_id]
-      );
-
-      if (studentCheck.rows.length === 0) {
-        return res.status(403).json({ error: 'Your index number is not registered in this class. Contact your lecturer.' });
-      }
-
-      const rosterName = studentCheck.rows[0].student_name;
-      if (!namesMatch(name, rosterName)) {
-        return res.status(400).json({ error: 'Name does not match your index number.' });
-      }
-
-      // Use lecture hall geofence
-      const refLat = session.lecture_hall_latitude;
-      const refLon = session.lecture_hall_longitude;
-      const refRadius = session.lecture_hall_radius || 400;
-
-      if (!refLat || !refLon) {
-        return res.status(500).json({ error: 'Lecture hall location not configured. Contact your lecturer.' });
-      }
-
-      const { within, distance } = isWithinRange(
-        parseFloat(latitude),
-        parseFloat(longitude),
-        refLat,
-        refLon,
-        refRadius
-      );
-
-      if (!within) {
-        return res.status(403).json({ error: `You are too far (${refRadius}m limit).` });
-      }
-
-      const fingerprintHash = hashDeviceFingerprint(device_fingerprint);
-
-      const proxyCheck = await pool.query(
-        `SELECT COUNT(DISTINCT index_number) AS cnt
-         FROM attendance_records
-         WHERE device_fingerprint_hash = $1
-           AND session_id = $2
-           AND index_number != $3`,
-        [fingerprintHash, session.session_id, index_number]
-      );
-
-      if (parseInt(proxyCheck.rows[0].cnt) > 0) {
-        return res.status(429).json({ error: 'Device used for another student.' });
-      }
-
-      const insertResult = await pool.query(
-        `INSERT INTO attendance_records (session_id, index_number, verification_method, device_fingerprint_hash, marked_by)
-         VALUES ($1, $2, 'GPS', $3, NULL)
-         RETURNING record_id, timestamp`,
-        [session.session_id, index_number, fingerprintHash]
-      );
-
-      sessionCache.invalidateMatricesForCourse(session.course_code, session.class_id);
-
-      res.status(201).json({
-        message: 'Marked.',
-        record: insertResult.rows[0],
-        session_id: session.session_id,
-      });
-    } catch (err) {
-      if (err.code === '23505') {
-        return res.status(409).json({ error: 'This student has already been marked for this session.' });
-      }
-      if (err.code === '23503') {
-        return res.status(404).json({ error: 'Session not found or has ended.' });
-      }
-      console.error('Attendance error:', err);
       res.status(500).json({ error: 'Something went wrong. Please try again.' });
     }
   }

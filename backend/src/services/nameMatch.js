@@ -24,10 +24,15 @@ function stripNameSuffix(normalized) {
   return words.join(' ');
 }
 
-// True when both names match after normalization and suffix stripping.
-// Word-order or extra/missing words are rejected.
+// True when both names contain the same words after normalization and suffix
+// stripping.  Word order does not matter; every submitted word must appear in
+// the roster name (and vice-versa), so initials or abbreviations are rejected.
 function namesMatch(submitted, roster) {
-  return stripNameSuffix(normalizeName(submitted)) === stripNameSuffix(normalizeName(roster));
+  const aWords = stripNameSuffix(normalizeName(submitted)).split(' ').filter(Boolean);
+  const bWords = stripNameSuffix(normalizeName(roster)).split(' ').filter(Boolean);
+  if (aWords.length !== bWords.length) return false;
+  const bSet = new Set(bWords);
+  return aWords.every(w => bSet.has(w));
 }
 
 module.exports = { normalizeName, stripNameSuffix, namesMatch };

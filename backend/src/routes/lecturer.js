@@ -362,18 +362,32 @@ router.get('/courses/:code/classes', async (req, res) => {
 
 router.get('/session/:id/live', async (req, res) => {
   const { id } = req.params;
+  const since = req.query.since; // ISO timestamp cursor
 
   try {
-    const result = await pool.query(
-      `SELECT ar.record_id, ar.index_number, COALESCE(sr.student_name, 'Deleted Student') AS student_name, ar.verification_method, ar.timestamp
+    let query, params;
+    if (since) {
+      query = `SELECT ar.record_id, ar.index_number, COALESCE(sr.student_name, 'Deleted Student') AS student_name, ar.verification_method, ar.timestamp
+       FROM attendance_records ar
+       LEFT JOIN student_roster sr ON sr.index_number = ar.index_number AND sr.deleted_at IS NULL
+       WHERE ar.session_id = $1 AND ar.timestamp > $2
+       ORDER BY ar.timestamp DESC`;
+      params = [id, since];
+    } else {
+      query = `SELECT ar.record_id, ar.index_number, COALESCE(sr.student_name, 'Deleted Student') AS student_name, ar.verification_method, ar.timestamp
        FROM attendance_records ar
        LEFT JOIN student_roster sr ON sr.index_number = ar.index_number AND sr.deleted_at IS NULL
        WHERE ar.session_id = $1
-       ORDER BY ar.timestamp DESC`,
-      [id]
-    );
+       ORDER BY ar.timestamp DESC`;
+      params = [id];
+    }
 
-    res.json({ records: result.rows, count: result.rows.length });
+    const [result, countResult] = await Promise.all([
+      pool.query(query, params),
+      pool.query('SELECT COUNT(*)::int AS cnt FROM attendance_records WHERE session_id = $1', [id]),
+    ]);
+
+    res.json({ records: result.rows, count: countResult.rows[0].cnt });
   } catch (err) {
     console.error('Live tracker error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
@@ -389,10 +403,16 @@ router.get('/sessions', async (req, res) => {
       `SELECT as2.session_id, c.course_code, c.course_name, cl.class_name,
               as2.week_number, as2.pin_seed, as2.pin_spinning,
               as2.created_at, as2.expires_at, as2.is_active,
-              (SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = as2.session_id) AS attendance_count
+              COALESCE(ac.cnt, 0) AS attendance_count
        FROM active_sessions as2
        JOIN courses c ON c.id = as2.course_id AND c.deleted_at IS NULL
        JOIN classes cl ON cl.class_id = as2.class_id AND cl.deleted_at IS NULL
+       LEFT JOIN (
+         SELECT session_id, COUNT(*)::int AS cnt
+         FROM attendance_records
+         WHERE session_id IN (SELECT session_id FROM active_sessions WHERE lecturer_id = $1)
+         GROUP BY session_id
+       ) ac ON ac.session_id = as2.session_id
        WHERE as2.lecturer_id = $1
        ORDER BY as2.created_at DESC
        LIMIT $2 OFFSET $3`,
@@ -400,10 +420,14 @@ router.get('/sessions', async (req, res) => {
     );
 
     const rows = result.rows.map((s) => {
+      // Use precomputed PIN from cache when available, fall back to computing
+      const cached = sessionCache.get(s.session_id);
       let currentPin = null;
-      if (s.is_active && s.pin_seed) {
+      if (cached && cached.current_pin) {
+        currentPin = cached.current_pin;
+      } else if (s.is_active && s.pin_seed) {
         currentPin = s.pin_spinning !== false
-          ? getCurrentPin(s.pin_seed)
+          ? sessionCache.getSpinPin(s.session_id, s.pin_seed)
           : staticPinFromSeed(s.pin_seed);
       }
       const { pin_seed: _, ...rest } = s;
@@ -893,9 +917,14 @@ router.get('/courses', async (req, res) => {
 router.get('/classes', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT c.*, (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = c.class_id AND sr.deleted_at IS NULL) AS student_count
+      `SELECT c.*, COALESCE(rc.cnt, 0) AS student_count
        FROM classes c
        JOIN class_lecturers cl ON cl.class_id = c.class_id AND cl.lecturer_id = $1
+       LEFT JOIN (
+         SELECT class_id, COUNT(*)::int AS cnt
+         FROM student_roster WHERE deleted_at IS NULL
+         GROUP BY class_id
+       ) rc ON rc.class_id = c.class_id
        WHERE c.deleted_at IS NULL
        ORDER BY c.class_name`,
       [req.user.id]

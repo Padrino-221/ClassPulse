@@ -19,8 +19,10 @@ router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT s.id, s.name, s.code, s.created_at,
-              (SELECT COUNT(*) FROM departments d WHERE d.school_id = s.id AND d.deleted_at IS NULL) AS department_count
+              (SELECT COUNT(*) FROM departments d WHERE d.school_id = s.id AND d.deleted_at IS NULL) AS department_count,
+              a.name AS admin_name, a.email AS admin_email, a.id AS admin_id
        FROM schools s
+       LEFT JOIN admins a ON a.school_id = s.id AND a.role = 'school' AND a.deleted_at IS NULL
        WHERE s.university_id = $1 AND s.deleted_at IS NULL
        ORDER BY s.name`,
       [university_id]
@@ -181,6 +183,11 @@ router.delete('/', async (req, res) => {
       'UPDATE departments SET deleted_at = NOW() WHERE school_id = ANY($1) AND deleted_at IS NULL',
       [ids]
     );
+    // Cascade: soft-delete school admins
+    await client.query(
+      "UPDATE admins SET deleted_at = NOW() WHERE school_id = ANY($1) AND role = 'school' AND deleted_at IS NULL",
+      [ids]
+    );
     const result = await client.query(
       'UPDATE schools SET deleted_at = NOW() WHERE university_id = $1 AND deleted_at IS NULL RETURNING id',
       [university_id]
@@ -239,6 +246,11 @@ router.delete('/:id', [
     );
     await client.query(
       'UPDATE departments SET deleted_at = NOW() WHERE school_id = $1 AND deleted_at IS NULL',
+      [id]
+    );
+    // Cascade: soft-delete school admin
+    await client.query(
+      "UPDATE admins SET deleted_at = NOW() WHERE school_id = $1 AND role = 'school' AND deleted_at IS NULL",
       [id]
     );
     const result = await client.query(

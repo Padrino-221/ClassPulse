@@ -6,6 +6,124 @@ import { CheckCircle, XCircle, Check, MapPin, ArrowLeft } from '@phosphor-icons/
 import ClassPulseLogo from '../components/ClassPulseLogo';
 import InstallPrompt from '../components/InstallPrompt';
 
+const STYLES = {
+  page: {
+    minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: '1.5rem', background: 'var(--bg-hover)',
+  },
+  container: {
+    maxWidth: '480px', width: '100%', display: 'flex', flexDirection: 'column',
+    alignItems: 'center', gap: '1.25rem',
+  },
+  logoSection: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', paddingBottom: '0.5rem',
+  },
+  logoCircle: {
+    width: '56px', height: '56px', borderRadius: '50%', background: 'var(--brand)',
+    color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '1.5rem', fontWeight: '800',
+  },
+  brandText: { fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.02em' },
+  subtitle: { fontSize: '0.8125rem', color: 'var(--text-muted)', fontWeight: '500', marginTop: '-0.25rem' },
+  card: {
+    background: 'var(--bg-card)', border: '1px solid var(--border)',
+    borderRadius: '8px', width: '100%',
+  },
+  formCard: { padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' },
+  label: {
+    display: 'block', fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-primary)',
+    marginBottom: '0.375rem',
+  },
+  input: {
+    width: '100%', padding: '0.6875rem 0.875rem', background: 'var(--bg-hover)',
+    border: '1px solid transparent', borderRadius: '8px', fontSize: '0.875rem',
+    color: 'var(--text-primary)', outline: 'none', transition: 'all 0.2s', fontFamily: 'inherit',
+  },
+  btn: {
+    width: '100%', padding: '0.8125rem', background: 'var(--brand)', color: '#fff',
+    border: 'none', borderRadius: '6px', fontSize: '0.9375rem', fontWeight: '700',
+    cursor: 'pointer', transition: 'background 0.15s',
+  },
+  confirmBtn: {
+    width: '100%', padding: '0.8125rem', background: 'var(--brand)', color: '#fff',
+    border: 'none', borderRadius: '6px', fontSize: '0.9375rem', fontWeight: '700',
+    cursor: 'pointer', transition: 'background 0.15s',
+  },
+  backBtn: {
+    width: '100%', padding: '0.625rem', background: 'transparent', color: 'var(--text-secondary)',
+    border: '1px solid var(--border)', borderRadius: '6px', fontSize: '0.8125rem', fontWeight: '600',
+    cursor: 'pointer', transition: 'all 0.15s',
+  },
+  formNote: {
+    textAlign: 'center', fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: '500',
+  },
+  confirmCard: { padding: '1.5rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' },
+  confirmTitle: {
+    fontSize: '0.9375rem', fontWeight: '700', color: 'var(--text-primary)', textAlign: 'center',
+  },
+  confirmGrid: {
+    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem',
+  },
+  confirmItem: {
+    display: 'flex', flexDirection: 'column', gap: '0.125rem',
+  },
+  confirmLabel: { fontSize: '0.6875rem', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  confirmValue: { fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)' },
+  confirmFull: { gridColumn: '1 / -1' },
+  gpsStatus: {
+    display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem',
+    borderRadius: '6px', fontSize: '0.75rem', fontWeight: 500,
+  },
+  loadingCard: {
+    padding: '3rem 1.25rem', display: 'flex', flexDirection: 'column',
+    alignItems: 'center', gap: '1rem',
+  },
+  spinner: {
+    width: '40px', height: '40px', border: '3px solid var(--border)',
+    borderTopColor: 'var(--brand)', borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+  },
+  loadingText: { fontSize: '0.9375rem', fontWeight: '600', color: 'var(--text-primary)' },
+  successCard: {
+    padding: '3rem 1.25rem', display: 'flex', flexDirection: 'column',
+    alignItems: 'center', gap: '0.75rem',
+  },
+  successIcon: {
+    width: '56px', height: '56px', borderRadius: '50%', background: 'var(--success-bg)',
+    color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '1.75rem',
+  },
+  successTitle: { fontSize: '1.0625rem', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.02em' },
+  successDesc: { fontSize: '0.8125rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.5' },
+  successTime: { fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '500', marginTop: '0.25rem' },
+  errorCard: {
+    padding: '3rem 1.25rem', display: 'flex', flexDirection: 'column',
+    alignItems: 'center', gap: '0.75rem',
+  },
+  errorIcon: {
+    width: '56px', height: '56px', borderRadius: '50%', background: 'var(--error-bg)',
+    color: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '1.75rem',
+  },
+  errorTitle: { fontSize: '1.0625rem', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.02em' },
+  errorDesc: { fontSize: '0.8125rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.5' },
+  retryBtn: {
+    marginTop: '0.5rem', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)',
+    background: 'none', border: '1px solid var(--border)', borderRadius: '6px',
+    padding: '0.375rem 1rem', cursor: 'pointer', transition: 'all 0.15s',
+  },
+  footer: { fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: '500', paddingTop: '0.5rem' },
+};
+
+const ATTEND_STYLES = `
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .att-input:focus { border-color: var(--brand, #DC2626) !important; background: var(--bg-card) !important; }
+  .att-input::placeholder { color: var(--text-muted); }
+  .att-btn:hover:not(:disabled) { background: var(--brand-dark, #B91C1C) !important; }
+  .att-btn:disabled { background: var(--error-border, #FCA5A5) !important; cursor: not-allowed; }
+  .att-confirm-btn:hover:not(:disabled) { background: var(--brand-dark, #B91C1C) !important; }
+  .att-confirm-btn:disabled { background: var(--error-border, #FCA5A5) !important; cursor: not-allowed; }
+`;
+
 export default function Attend() {
   const { coords, error: geoError, accuracy, startWatching } = useGeolocation();
 
@@ -25,7 +143,10 @@ export default function Attend() {
     setValidating(true);
 
     try {
-      const pinRes = await api.post('/api/attendance/validate-pin', { pin: form.pin });
+      const pinRes = await api.post('/api/attendance/validate-pin', {
+        pin: form.pin,
+        index_number: form.index_number,
+      });
       setSessionInfo(pinRes.data);
       setStep('confirm');
       startWatching();
@@ -89,125 +210,11 @@ export default function Attend() {
   const minutes = String(now.getMinutes()).padStart(2, '0');
   const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
 
-  const s = {
-    page: {
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '1.5rem', background: 'var(--bg-hover)',
-    },
-    container: {
-      maxWidth: '480px', width: '100%', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', gap: '1.25rem',
-    },
-    logoSection: {
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', paddingBottom: '0.5rem',
-    },
-    logoCircle: {
-      width: '56px', height: '56px', borderRadius: '50%', background: 'var(--brand)',
-      color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: '1.5rem', fontWeight: '800',
-    },
-    brandText: { fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.02em' },
-    subtitle: { fontSize: '0.8125rem', color: 'var(--text-muted)', fontWeight: '500', marginTop: '-0.25rem' },
-    card: {
-      background: 'var(--bg-card)', border: '1px solid var(--border)',
-      borderRadius: '8px', width: '100%',
-    },
-    formCard: { padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' },
-    label: {
-      display: 'block', fontSize: '0.8125rem', fontWeight: '600', color: 'var(--text-primary)',
-      marginBottom: '0.375rem',
-    },
-    input: {
-      width: '100%', padding: '0.6875rem 0.875rem', background: 'var(--bg-hover)',
-      border: '1px solid transparent', borderRadius: '8px', fontSize: '0.875rem',
-      color: 'var(--text-primary)', outline: 'none', transition: 'all 0.2s', fontFamily: 'inherit',
-    },
-    btn: {
-      width: '100%', padding: '0.8125rem', background: 'var(--brand)', color: '#fff',
-      border: 'none', borderRadius: '6px', fontSize: '0.9375rem', fontWeight: '700',
-      cursor: 'pointer', transition: 'background 0.15s',
-    },
-    confirmBtn: {
-      width: '100%', padding: '0.8125rem', background: 'var(--brand)', color: '#fff',
-      border: 'none', borderRadius: '6px', fontSize: '0.9375rem', fontWeight: '700',
-      cursor: 'pointer', transition: 'background 0.15s',
-    },
-    backBtn: {
-      width: '100%', padding: '0.625rem', background: 'transparent', color: 'var(--text-secondary)',
-      border: '1px solid var(--border)', borderRadius: '6px', fontSize: '0.8125rem', fontWeight: '600',
-      cursor: 'pointer', transition: 'all 0.15s',
-    },
-    formNote: {
-      textAlign: 'center', fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: '500',
-    },
-    confirmCard: { padding: '1.5rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' },
-    confirmTitle: {
-      fontSize: '0.9375rem', fontWeight: '700', color: 'var(--text-primary)', textAlign: 'center',
-    },
-    confirmGrid: {
-      display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem',
-    },
-    confirmItem: {
-      display: 'flex', flexDirection: 'column', gap: '0.125rem',
-    },
-    confirmLabel: { fontSize: '0.6875rem', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' },
-    confirmValue: { fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)' },
-    confirmFull: { gridColumn: '1 / -1' },
-    gpsStatus: {
-      display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem',
-      borderRadius: '6px', fontSize: '0.75rem', fontWeight: 500,
-    },
-    loadingCard: {
-      padding: '3rem 1.25rem', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', gap: '1rem',
-    },
-    spinner: {
-      width: '40px', height: '40px', border: '3px solid var(--border)',
-      borderTopColor: 'var(--brand)', borderRadius: '50%', animation: 'spin 0.8s linear infinite',
-    },
-    loadingText: { fontSize: '0.9375rem', fontWeight: '600', color: 'var(--text-primary)' },
-    successCard: {
-      padding: '3rem 1.25rem', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', gap: '0.75rem',
-    },
-    successIcon: {
-      width: '56px', height: '56px', borderRadius: '50%', background: 'var(--success-bg)',
-      color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: '1.75rem',
-    },
-    successTitle: { fontSize: '1.0625rem', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.02em' },
-    successDesc: { fontSize: '0.8125rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.5' },
-    successTime: { fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: '500', marginTop: '0.25rem' },
-    errorCard: {
-      padding: '3rem 1.25rem', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', gap: '0.75rem',
-    },
-    errorIcon: {
-      width: '56px', height: '56px', borderRadius: '50%', background: 'var(--error-bg)',
-      color: 'var(--brand)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: '1.75rem',
-    },
-    errorTitle: { fontSize: '1.0625rem', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.02em' },
-    errorDesc: { fontSize: '0.8125rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.5' },
-    retryBtn: {
-      marginTop: '0.5rem', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)',
-      background: 'none', border: '1px solid var(--border)', borderRadius: '6px',
-      padding: '0.375rem 1rem', cursor: 'pointer', transition: 'all 0.15s',
-    },
-    footer: { fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: '500', paddingTop: '0.5rem' },
-  };
+  const s = STYLES;
 
   return (
     <>
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .att-input:focus { border-color: var(--brand, #DC2626) !important; background: var(--bg-card) !important; }
-        .att-input::placeholder { color: var(--text-muted); }
-        .att-btn:hover:not(:disabled) { background: var(--brand-dark, #B91C1C) !important; }
-        .att-btn:disabled { background: var(--error-border, #FCA5A5) !important; cursor: not-allowed; }
-        .att-confirm-btn:hover:not(:disabled) { background: var(--brand-dark, #B91C1C) !important; }
-        .att-confirm-btn:disabled { background: var(--error-border, #FCA5A5) !important; cursor: not-allowed; }
-      `}</style>
+      <style>{ATTEND_STYLES}</style>
       <div style={s.page}>
         <div style={s.container}>
           <div style={s.logoSection}>
@@ -319,9 +326,9 @@ export default function Attend() {
                 <button
                   className="att-confirm-btn" style={s.confirmBtn}
                   onClick={handleCheckIn}
-                  disabled={!coords}
+                  disabled={!coords || step === 'loading'}
                 >
-                  {!coords ? 'Waiting for GPS...' : 'Mark Attendance'}
+                  {!coords ? 'Waiting for GPS...' : step === 'loading' ? 'Marking...' : 'Mark Attendance'}
                 </button>
                 <button style={s.backBtn} onClick={handleBack}>
                   <ArrowLeft weight="duotone" size={14} style={{ verticalAlign: 'middle', marginRight: '0.375rem' }} />

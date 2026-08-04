@@ -440,14 +440,19 @@ router.get('/classes', async (req, res) => {
     const qParams = [...params, limit, offset];
     const result = await pool.query(
       `SELECT c.*,
-              (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = c.class_id AND sr.deleted_at IS NULL) AS student_count,
+              COALESCE(rc.cnt, 0) AS student_count,
               COALESCE(json_agg(json_build_object('id', l.id, 'name', l.name))
                 FILTER (WHERE l.id IS NOT NULL), '[]') AS lecturers
        FROM classes c
        LEFT JOIN class_lecturers cl ON cl.class_id = c.class_id
        LEFT JOIN lecturers l ON l.id = cl.lecturer_id
+       LEFT JOIN (
+         SELECT class_id, COUNT(*)::int AS cnt
+         FROM student_roster WHERE deleted_at IS NULL
+         GROUP BY class_id
+       ) rc ON rc.class_id = c.class_id
        ${whereClause}
-       GROUP BY c.class_id
+       GROUP BY c.class_id, rc.cnt
        ORDER BY c.class_name
        LIMIT $${idx++} OFFSET $${idx++}`,
       qParams
@@ -1505,18 +1510,12 @@ router.get('/university-stats', async (req, res) => {
 router.get('/recent-sessions', async (req, res) => {
   try {
     const { university_id, school_id, department_id } = req.scope;
-    let query;
+    let baseQuery;
     let params;
 
     if (req.scope.level === 'university') {
-      query = `SELECT ss.session_id AS id, co.course_name, co.course_code,
+      baseQuery = `SELECT ss.session_id AS id, ss.class_id, co.course_name, co.course_code,
                      TO_CHAR(ss.created_at, 'Mon DD, YYYY') AS date,
-                     COALESCE((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id), 0) AS present_count,
-                     COALESCE((SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL), 0) AS total_students,
-                     CASE WHEN (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL) > 0
-                       THEN ROUND((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id)::numeric /
-                           (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL) * 100, 0)
-                       ELSE 0 END AS attendance_rate,
                      CASE WHEN ss.is_active = true THEN 'in_progress' ELSE 'completed' END AS status
               FROM active_sessions ss
               JOIN courses co ON co.id = ss.course_id
@@ -1526,14 +1525,8 @@ router.get('/recent-sessions', async (req, res) => {
               ORDER BY ss.created_at DESC LIMIT 7`;
       params = [university_id];
     } else if (req.scope.level === 'school') {
-      query = `SELECT ss.session_id AS id, co.course_name, co.course_code,
+      baseQuery = `SELECT ss.session_id AS id, ss.class_id, co.course_name, co.course_code,
                      TO_CHAR(ss.created_at, 'Mon DD, YYYY') AS date,
-                     COALESCE((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id), 0) AS present_count,
-                     COALESCE((SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL), 0) AS total_students,
-                     CASE WHEN (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL) > 0
-                       THEN ROUND((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id)::numeric /
-                           (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL) * 100, 0)
-                       ELSE 0 END AS attendance_rate,
                      CASE WHEN ss.is_active = true THEN 'in_progress' ELSE 'completed' END AS status
               FROM active_sessions ss
               JOIN courses co ON co.id = ss.course_id
@@ -1542,14 +1535,8 @@ router.get('/recent-sessions', async (req, res) => {
               ORDER BY ss.created_at DESC LIMIT 7`;
       params = [school_id];
     } else {
-      query = `SELECT ss.session_id AS id, co.course_name, co.course_code,
+      baseQuery = `SELECT ss.session_id AS id, ss.class_id, co.course_name, co.course_code,
                      TO_CHAR(ss.created_at, 'Mon DD, YYYY') AS date,
-                     COALESCE((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id), 0) AS present_count,
-                     COALESCE((SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL), 0) AS total_students,
-                     CASE WHEN (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL) > 0
-                       THEN ROUND((SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = ss.session_id)::numeric /
-                           (SELECT COUNT(*) FROM student_roster sr WHERE sr.class_id = ss.class_id AND sr.deleted_at IS NULL) * 100, 0)
-                       ELSE 0 END AS attendance_rate,
                      CASE WHEN ss.is_active = true THEN 'in_progress' ELSE 'completed' END AS status
               FROM active_sessions ss
               JOIN courses co ON co.id = ss.course_id
@@ -1558,8 +1545,40 @@ router.get('/recent-sessions', async (req, res) => {
       params = [department_id];
     }
 
-    const result = await pool.query(query, params);
-    res.json(result.rows);
+    const sessionsResult = await pool.query(baseQuery, params);
+    const sessions = sessionsResult.rows;
+    if (sessions.length === 0) return res.json([]);
+
+    const sessionIds = sessions.map(s => s.id);
+    const classIds = [...new Set(sessions.map(s => s.class_id))];
+
+    const [attCountRes, rosterCountRes] = await Promise.all([
+      pool.query(
+        `SELECT session_id, COUNT(*)::int AS present_count
+         FROM attendance_records WHERE session_id = ANY($1) GROUP BY session_id`,
+        [sessionIds]
+      ),
+      pool.query(
+        `SELECT class_id, COUNT(*)::int AS total_students
+         FROM student_roster WHERE class_id = ANY($1) AND deleted_at IS NULL GROUP BY class_id`,
+        [classIds]
+      ),
+    ]);
+
+    const attMap = {};
+    for (const row of attCountRes.rows) attMap[row.session_id] = row.present_count;
+    const rosterMap = {};
+    for (const row of rosterCountRes.rows) rosterMap[row.class_id] = row.total_students;
+
+    const result = sessions.map(s => {
+      const present_count = attMap[s.id] || 0;
+      const total_students = rosterMap[s.class_id] || 0;
+      const attendance_rate = total_students > 0 ? Math.round((present_count / total_students) * 100) : 0;
+      const { class_id, ...rest } = s;
+      return { ...rest, present_count, total_students, attendance_rate };
+    });
+
+    res.json(result);
   } catch (err) {
     console.error('Recent sessions error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
@@ -1622,15 +1641,11 @@ router.get('/recent-activity', async (req, res) => {
   }
   try {
     const { level, school_id, department_id } = req.scope;
-    let query, params;
+    let baseQuery, params;
 
     if (level === 'school') {
-      query = `SELECT 'session' AS type, co.course_name, ss.created_at,
-                      CASE WHEN ss.is_active THEN 'in_progress' ELSE 'completed' END AS status,
-                      COALESCE(ROUND(
-                        (SELECT COUNT(*) FROM attendance_records WHERE session_id = ss.session_id)::numeric
-                        / NULLIF((SELECT COUNT(*) FROM student_roster WHERE class_id = ss.class_id AND deleted_at IS NULL), 0) * 100
-                      ), 0) AS rate
+      baseQuery = `SELECT 'session' AS type, ss.session_id, ss.class_id, co.course_name, ss.created_at,
+                      CASE WHEN ss.is_active THEN 'in_progress' ELSE 'completed' END AS status
                FROM active_sessions ss
                JOIN courses co ON co.id = ss.course_id
                JOIN departments d ON d.id = co.department_id
@@ -1638,12 +1653,8 @@ router.get('/recent-activity', async (req, res) => {
                ORDER BY ss.created_at DESC LIMIT 10`;
       params = [school_id];
     } else {
-      query = `SELECT 'session' AS type, co.course_name, ss.created_at,
-                      CASE WHEN ss.is_active THEN 'in_progress' ELSE 'completed' END AS status,
-                      COALESCE(ROUND(
-                        (SELECT COUNT(*) FROM attendance_records WHERE session_id = ss.session_id)::numeric
-                        / NULLIF((SELECT COUNT(*) FROM student_roster WHERE class_id = ss.class_id AND deleted_at IS NULL), 0) * 100
-                      ), 0) AS rate
+      baseQuery = `SELECT 'session' AS type, ss.session_id, ss.class_id, co.course_name, ss.created_at,
+                      CASE WHEN ss.is_active THEN 'in_progress' ELSE 'completed' END AS status
                FROM active_sessions ss
                JOIN courses co ON co.id = ss.course_id
                WHERE co.department_id = $1 AND ss.created_at >= NOW() - INTERVAL '7 days'
@@ -1651,8 +1662,40 @@ router.get('/recent-activity', async (req, res) => {
       params = [department_id];
     }
 
-    const result = await pool.query(query, params);
-    res.json(result.rows);
+    const sessionsResult = await pool.query(baseQuery, params);
+    const sessions = sessionsResult.rows;
+    if (sessions.length === 0) return res.json([]);
+
+    const sessionIds = sessions.map(s => s.session_id);
+    const classIds = [...new Set(sessions.map(s => s.class_id))];
+
+    const [attCountRes, rosterCountRes] = await Promise.all([
+      pool.query(
+        `SELECT session_id, COUNT(*)::int AS present_count
+         FROM attendance_records WHERE session_id = ANY($1) GROUP BY session_id`,
+        [sessionIds]
+      ),
+      pool.query(
+        `SELECT class_id, COUNT(*)::int AS total_students
+         FROM student_roster WHERE class_id = ANY($1) AND deleted_at IS NULL GROUP BY class_id`,
+        [classIds]
+      ),
+    ]);
+
+    const attMap = {};
+    for (const row of attCountRes.rows) attMap[row.session_id] = row.present_count;
+    const rosterMap = {};
+    for (const row of rosterCountRes.rows) rosterMap[row.class_id] = row.total_students;
+
+    const result = sessions.map(s => {
+      const present_count = attMap[s.session_id] || 0;
+      const total_students = rosterMap[s.class_id] || 0;
+      const rate = total_students > 0 ? Math.round((present_count / total_students) * 100) : 0;
+      const { session_id, class_id, ...rest } = s;
+      return { ...rest, rate };
+    });
+
+    res.json(result);
   } catch (err) {
     console.error('Recent activity error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });

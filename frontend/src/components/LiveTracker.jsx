@@ -1,36 +1,59 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { UserCheck } from '@phosphor-icons/react';
 import api from '../utils/api';
 import Pagination from './Pagination';
 
 const PAGE_SIZE = 15;
+const MAX_RECORDS = 500; // Cap to prevent unbounded growth in long sessions
 
 export default function LiveTracker({ sessionId }) {
   const [records, setRecords] = useState([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
   const intervalRef = useRef(null);
+  const cursorRef = useRef(null);
 
   useEffect(() => { setPage(1); }, [records.length]);
 
-  useEffect(() => {
-    const fetchLive = async () => {
-      try {
-        const res = await api.get(`/api/lecturer/session/${sessionId}/live`);
-        setRecords(res.data.records);
-        setCount(res.data.count);
-      } catch {
-        // Silently ignore polling errors
-      }
-    };
+  const fetchLive = useCallback(async () => {
+    try {
+      const params = {};
+      if (cursorRef.current) params.since = cursorRef.current;
 
+      const res = await api.get(`/api/lecturer/session/${sessionId}/live`, { params });
+      const newRecords = res.data.records || [];
+      setCount(res.data.count || 0);
+
+      if (cursorRef.current && newRecords.length > 0) {
+        setRecords(prev => {
+          const existingIds = new Set(prev.map(r => r.record_id));
+          const unique = newRecords.filter(r => !existingIds.has(r.record_id));
+          if (unique.length === 0) return prev;
+          const merged = [...unique, ...prev];
+          // Cap to prevent unbounded growth in long sessions
+          return merged.length > MAX_RECORDS ? merged.slice(0, MAX_RECORDS) : merged;
+        });
+      } else if (!cursorRef.current) {
+        setRecords(newRecords.length > MAX_RECORDS ? newRecords.slice(0, MAX_RECORDS) : newRecords);
+      }
+
+      if (newRecords.length > 0) {
+        cursorRef.current = newRecords[0].timestamp;
+      }
+    } catch {
+      // Silently ignore polling errors
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    cursorRef.current = null;
     fetchLive();
     intervalRef.current = setInterval(fetchLive, 5000);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [sessionId]);
+  }, [fetchLive]);
 
   const totalPages = Math.ceil(records.length / PAGE_SIZE);
   const startIdx = (page - 1) * PAGE_SIZE;

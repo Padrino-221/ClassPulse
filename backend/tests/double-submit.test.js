@@ -38,8 +38,8 @@ beforeAll(async () => {
   lecturerId = loginRes.body.user.id;
 
   // Clean up stale test data from previous runs
-  await pool.query("DELETE FROM attendance_records WHERE index_number IN ('TEST001', 'TEST002', 'TEST003')");
-  await pool.query("DELETE FROM student_roster WHERE index_number IN ('TEST001', 'TEST002', 'TEST003')");
+  await pool.query("DELETE FROM attendance_records WHERE index_number IN ('TEST001', 'TEST002', 'TEST003', 'TEST004')");
+  await pool.query("DELETE FROM student_roster WHERE index_number IN ('TEST001', 'TEST002', 'TEST003', 'TEST004')");
 
   testCourseId = await upsertTestCourse();
   await pool.query(
@@ -70,6 +70,13 @@ beforeAll(async () => {
      DO NOTHING`,
     ['TEST003', 'Test Student Three (ms)', TEST_CLASS_ID]
   );
+  await pool.query(
+    `INSERT INTO student_roster (index_number, student_name, class_id)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (index_number) WHERE deleted_at IS NULL
+     DO NOTHING`,
+    ['TEST004', 'Swap Name Order', TEST_CLASS_ID]
+  );
 
   const activateRes = await request(app)
     .post('/api/lecturer/activate')
@@ -91,8 +98,8 @@ afterAll(async () => {
     await pool.query('DELETE FROM active_sessions WHERE session_id = $1', [sessionId]);
     await pool.query('DELETE FROM active_sessions WHERE course_code = $1 AND session_id != $2', [TEST_COURSE, sessionId]);
   }
-  await pool.query("DELETE FROM attendance_records WHERE index_number IN ('TEST001', 'TEST002', 'TEST003')");
-  await pool.query("DELETE FROM student_roster WHERE index_number IN ('TEST001', 'TEST002', 'TEST003')");
+  await pool.query("DELETE FROM attendance_records WHERE index_number IN ('TEST001', 'TEST002', 'TEST003', 'TEST004')");
+  await pool.query("DELETE FROM student_roster WHERE index_number IN ('TEST001', 'TEST002', 'TEST003', 'TEST004')");
   await pool.query('DELETE FROM course_lecturers WHERE course_id = $1', [testCourseId]);
   await pool.query('DELETE FROM courses WHERE course_code = $1', [TEST_COURSE]);
   await pool.end();
@@ -101,7 +108,7 @@ afterAll(async () => {
 describe('Double Submission Prevention', () => {
   test('first submission succeeds', async () => {
     const res = await request(app)
-      .post('/api/attendance')
+      .post('/api/attendance/check-in')
       .send({
         name: 'Test Student',
         index_number: 'TEST001',
@@ -112,12 +119,12 @@ describe('Double Submission Prevention', () => {
         device_fingerprint: 'test-double-fp-1',
       });
     expect(res.status).toBe(201);
-    expect(res.body.message).toContain('Marked');
+    expect(res.body.message).toContain('Attendance recorded');
   });
 
   test('same index_number for same session returns 409', async () => {
     const res = await request(app)
-      .post('/api/attendance')
+      .post('/api/attendance/check-in')
       .send({
         name: 'Test Student',
         index_number: 'TEST001',
@@ -133,7 +140,7 @@ describe('Double Submission Prevention', () => {
 
   test('different index_number with same device fingerprint returns 429', async () => {
     const res = await request(app)
-      .post('/api/attendance')
+      .post('/api/attendance/check-in')
       .send({
         name: 'Another Student',
         index_number: 'TEST002',
@@ -149,7 +156,7 @@ describe('Double Submission Prevention', () => {
 
   test('index number not in the class roster returns 403', async () => {
     const res = await request(app)
-      .post('/api/attendance')
+      .post('/api/attendance/check-in')
       .send({
         name: 'Ghost Student',
         index_number: 'GHOST001',
@@ -163,26 +170,26 @@ describe('Double Submission Prevention', () => {
     expect(res.body.error).toContain('not registered');
   });
 
-  test('name that is not an exact roster match returns 400', async () => {
+  test('name with swapped word order is accepted', async () => {
     const res = await request(app)
-      .post('/api/attendance')
+      .post('/api/attendance/check-in')
       .send({
-        name: 'Student Test', // swapped word order — no longer accepted
-        index_number: 'TEST001',
+        name: 'Name Order Swap', // swapped word order — still accepted
+        index_number: 'TEST004',
         course_code: TEST_COURSE,
         pin: `${TEST_COURSE}-${sessionPin}`,
         latitude: BUILDING_LAT,
         longitude: BUILDING_LON,
         device_fingerprint: 'test-double-fp-name',
       });
-    expect(res.status).toBe(400);
-    expect(res.body.error).toContain('Name does not match');
+    expect(res.status).toBe(201);
+    expect(res.body.message).toContain('Attendance recorded');
   });
 
   test('roster name suffix like (ms) is ignored when matching', async () => {
     // Roster entry is 'Test Student Three (ms)'; checking in without the suffix is accepted
     const res = await request(app)
-      .post('/api/attendance')
+      .post('/api/attendance/check-in')
       .send({
         name: 'Test Student Three',
         index_number: 'TEST003',
@@ -193,6 +200,22 @@ describe('Double Submission Prevention', () => {
         device_fingerprint: 'test-double-fp-suffix',
       });
     expect(res.status).toBe(201);
+  });
+
+  test('partial name missing words returns 400', async () => {
+    const res = await request(app)
+      .post('/api/attendance/check-in')
+      .send({
+        name: 'Swap', // missing "Name Order" — rejected
+        index_number: 'TEST004',
+        course_code: TEST_COURSE,
+        pin: `${TEST_COURSE}-${sessionPin}`,
+        latitude: BUILDING_LAT,
+        longitude: BUILDING_LON,
+        device_fingerprint: 'test-double-fp-partial',
+      });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain('Name does not match');
   });
 
   test('same index_number for different session succeeds', async () => {
@@ -210,7 +233,7 @@ describe('Double Submission Prevention', () => {
     const newSessionId = activateRes.body.sessions[0].session_id;
 
     const res = await request(app)
-      .post('/api/attendance')
+      .post('/api/attendance/check-in')
       .send({
         name: 'Test Student',
         index_number: 'TEST001',

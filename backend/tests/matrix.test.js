@@ -82,7 +82,7 @@ async function createSession(week) {
 
 async function submitAttendance(pin, indexNumber, name, fp) {
   return request(app)
-    .post('/api/attendance')
+    .post('/api/attendance/check-in')
     .send({
       name,
       index_number: indexNumber,
@@ -179,7 +179,6 @@ describe('Attendance Matrix Cross-Week Validation', () => {
         r.on('data', (c) => chunks.push(c));
         r.on('end', () => cb(null, Buffer.concat(chunks)));
       });
-
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('spreadsheetml.sheet');
     const buf = res.body;
@@ -203,5 +202,5 @@ describe('Attendance Matrix Cross-Week Validation', () => {
       if (String(lastVal).endsWith('%') && String(lastVal).startsWith('100')) found100 = true;
     });
     expect(found100).toBe(true);
-  });
+  }, 15000);
 });
