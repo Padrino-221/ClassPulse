@@ -234,8 +234,17 @@ export default React.memo(function TopBar() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const debounceRef = useRef(null);
+  const [userVersion, setUserVersion] = useState(0);
 
-  const user = useMemo(getUser, []);
+  const user = useMemo(getUser, [userVersion]);
+
+  useEffect(() => {
+    function handleDataChanged() {
+      setUserVersion((v) => v + 1);
+    }
+    window.addEventListener('attendance-data-changed', handleDataChanged);
+    return () => window.removeEventListener('attendance-data-changed', handleDataChanged);
+  }, []);
 
   useEffect(() => {
     function handleClick(e) {

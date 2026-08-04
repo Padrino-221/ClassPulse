@@ -224,6 +224,32 @@ router.post(
 
 // ── Profile ──
 
+function institutionInfo(user) {
+  if (user.role !== 'admin') return null;
+  const { admin_level, university_id, school_id, department_id } = user;
+  if (admin_level === 'university' && university_id) {
+    return { table: 'universities', id: university_id };
+  }
+  if (admin_level === 'school' && school_id) {
+    return { table: 'schools', id: school_id };
+  }
+  if (admin_level === 'department' && department_id) {
+    return { table: 'departments', id: department_id };
+  }
+  return null;
+}
+
+async function fetchInstitutionName(user) {
+  const info = institutionInfo(user);
+  if (!info) return null;
+  try {
+    const res = await pool.query(`SELECT name FROM ${info.table} WHERE id = $1`, [info.id]);
+    return res.rows[0]?.name ?? null;
+  } catch {
+    return null;
+  }
+}
+
 router.get('/profile', verifyToken(), async (req, res) => {
   try {
     const table = resolveTable(req.user.role);
@@ -232,7 +258,12 @@ router.get('/profile', verifyToken(), async (req, res) => {
       [req.user.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'User not found.' });
-    res.json({ user: { ...result.rows[0], role: req.user.role } });
+    const user = { ...result.rows[0], role: req.user.role };
+    if (req.user.role === 'admin') {
+      user.admin_level = req.user.admin_level;
+      user.institution_name = await fetchInstitutionName(req.user);
+    }
+    res.json({ user });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
@@ -245,6 +276,7 @@ router.put(
   [
     body('name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty(),
     body('email').isEmail().normalizeEmail().isLength({ max: 255 }),
+    body('institution_name').optional().isString().trim().isLength({ min: 1, max: 255 }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -258,13 +290,33 @@ router.put(
         [req.body.name, req.body.email, req.user.id]
       );
       if (result.rows.length === 0) return res.status(404).json({ error: 'User not found.' });
-      const user = result.rows[0];
+      const user = { ...result.rows[0], role: req.user.role };
+
+      if (req.body.institution_name && req.user.role === 'admin') {
+        const info = institutionInfo(req.user);
+        if (info) {
+          await pool.query(`UPDATE ${info.table} SET name = $1 WHERE id = $2`, [
+            req.body.institution_name,
+            info.id,
+          ]);
+        }
+        user.admin_level = req.user.admin_level;
+        user.institution_name = req.body.institution_name;
+      }
+
+      const tokenPayload = { id: user.id, name: user.name, email: user.email, role: req.user.role };
+      if (req.user.role === 'admin') {
+        tokenPayload.admin_level = req.user.admin_level;
+        tokenPayload.university_id = req.user.university_id;
+        tokenPayload.school_id = req.user.school_id;
+        tokenPayload.department_id = req.user.department_id;
+      }
       const token = jwt.sign(
-        { id: user.id, name: user.name, email: user.email, role: req.user.role },
+        tokenPayload,
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
       );
-      res.json({ user: { ...user, role: req.user.role }, token });
+      res.json({ user, token });
     } catch (err) {
       if (err.code === '23505') return res.status(409).json({ error: 'An account with this email already exists.' });
       console.error(err);

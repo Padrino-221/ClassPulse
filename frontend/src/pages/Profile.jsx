@@ -12,6 +12,8 @@ export default function Profile() {
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState('');
+  const [institutionName, setInstitutionName] = useState('');
   const [saving, setSaving] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
@@ -29,6 +31,10 @@ export default function Profile() {
         const res = await api.get('/api/auth/profile');
         setName(res.data.user.name);
         setEmail(res.data.user.email);
+        setRole(res.data.user.role);
+        if (res.data.user.role === 'admin') {
+          setInstitutionName(res.data.user.institution_name || '');
+        }
       } catch {
         toast.error("Couldn't load profile.");
       } finally {
@@ -41,10 +47,13 @@ export default function Profile() {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await api.put('/api/auth/profile', { name, email });
+      const payload = { name, email };
+      if (role === 'admin') payload.institution_name = institutionName;
+      const res = await api.put('/api/auth/profile', payload);
       const storage = localStorage.getItem('token') ? localStorage : sessionStorage;
       storage.setItem('user', JSON.stringify(res.data.user));
       if (res.data.token) storage.setItem('token', res.data.token);
+      window.dispatchEvent(new Event('attendance-data-changed'));
       toast.success('Profile updated.');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to update profile.');
@@ -152,6 +161,29 @@ export default function Profile() {
                     }}
                   />
                 </div>
+                {role === 'admin' && (
+                  <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.375rem', fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Institution Name</label>
+                    <input
+                      type="text"
+                      value={institutionName}
+                      onChange={(e) => setInstitutionName(e.target.value)}
+                      placeholder="Your university, school, or department name"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border)',
+                        background: 'var(--bg-input)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.875rem',
+                        outline: 'none',
+                        transition: 'border-color 0.15s ease',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                )}
                 <button
                   type="submit"
                   disabled={saving}
