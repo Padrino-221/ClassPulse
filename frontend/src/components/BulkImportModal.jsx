@@ -4,6 +4,8 @@ import AccessibleModal from './AccessibleModal';
 import Spinner from './Spinner';
 import { getStoredToken } from '../utils/api';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export default function BulkImportModal({
   title,
   description,
@@ -68,8 +70,14 @@ export default function BulkImportModal({
       const token = getStoredToken();
       const headers = {};
       if (token) headers.Authorization = `Bearer ${token}`;
-      const res = await fetch(endpoint, { method: 'POST', headers, body: formData });
-      const data = await res.json();
+      const res = await fetch(`${API_BASE}${endpoint}`, { method: 'POST', headers, body: formData });
+      let data;
+      try {
+        data = await res.clone().json();
+      } catch {
+        const text = await res.text();
+        throw new Error(text || `Request failed (${res.status}).`);
+      }
       if (!res.ok) throw new Error(data.error || 'Import failed.');
       setResult(data);
       onImported?.(data);
