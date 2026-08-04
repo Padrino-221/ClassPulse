@@ -852,6 +852,12 @@ input, select, button, textarea {
   font-family: inherit;
 }
 
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
 .form-group {
   margin-bottom: 1rem;
   display: flex;
@@ -965,6 +971,10 @@ input, select, button, textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.custom-select-placeholder {
+  color: var(--text-muted);
 }
 
 .custom-select:hover {

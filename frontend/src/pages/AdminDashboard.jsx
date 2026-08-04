@@ -2335,7 +2335,7 @@ function AcademicTermsPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
         <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>Academic Years</h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <DeleteAllButton label="Delete All Years" onClick={() => setDeletingAllYears(true)} />
+          <DeleteAllButton label="Delete All Years" variant="content" onClick={() => setDeletingAllYears(true)} />
           <ToolbarButton icon={Plus} label="New Year" variant="content" onClick={() => setShowCreateYear(true)} />
         </div>
       </div>
@@ -2375,7 +2375,7 @@ function AcademicTermsPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
         <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>Semesters</h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <DeleteAllButton label="Delete All Semesters" onClick={() => setDeletingAllSemesters(true)} />
+          <DeleteAllButton label="Delete All Semesters" variant="content" onClick={() => setDeletingAllSemesters(true)} />
           <ToolbarButton icon={Plus} label="New Semester" variant="content" onClick={() => setShowCreateSemester(true)} />
         </div>
       </div>

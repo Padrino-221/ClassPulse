@@ -113,7 +113,7 @@ export default function Select({ children, className = '', style, name, value, o
         aria-label={ariaLabel}
         id="custom-select-trigger"
       >
-        <span className="custom-select-label">{selectedLabel}</span>
+        <span className={`custom-select-label${value === '' || value == null ? ' custom-select-placeholder' : ''}`}>{selectedLabel}</span>
       </button>
       <svg
         className={`custom-select-chevron${open ? ' open' : ''}`}
