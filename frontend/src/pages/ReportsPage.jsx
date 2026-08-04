@@ -239,32 +239,29 @@ export default function ReportsPage() {
       ? filters.lecturers.filter(l => visibleDepartments.some(d => d.id === l.department_id))
       : filters.lecturers;
 
-  const handleExport = () => {
+  const handleExport = async () => {
     setExporting(true);
-    const params = new URLSearchParams();
-    if (selectedSchool) params.set('school_id', selectedSchool);
-    if (selectedDepartment) params.set('department_id', selectedDepartment);
-    if (selectedCourse) params.set('course_code', selectedCourse);
-    if (selectedClass) params.set('class_id', selectedClass);
-    if (selectedLecturer) params.set('lecturer_id', selectedLecturer);
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    const url = `${api.defaults.baseURL}/api/reports/export?${params.toString()}`;
+    try {
+      const params = new URLSearchParams();
+      if (selectedSchool) params.set('school_id', selectedSchool);
+      if (selectedDepartment) params.set('department_id', selectedDepartment);
+      if (selectedCourse) params.set('course_code', selectedCourse);
+      if (selectedClass) params.set('class_id', selectedClass);
+      if (selectedLecturer) params.set('lecturer_id', selectedLecturer);
 
-    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
-        if (!res.ok) throw new Error();
-        return res.blob();
-      })
-      .then((blob) => {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'attendance_report.csv';
-        a.click();
-        URL.revokeObjectURL(a.href);
-        toast.success('Report downloaded.');
-      })
-      .catch(() => toast.error('Export failed.'))
-      .finally(() => setExporting(false));
+      const res = await api.get(`/api/reports/export?${params.toString()}`, { responseType: 'blob' });
+      const blob = res.data;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'attendance_report.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast.success('Report downloaded.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || err.message || 'Export failed.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const overall = summary?.overall || {};

@@ -2,9 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { FileCsv, DownloadSimple, X, CheckCircle, Warning } from '@phosphor-icons/react';
 import AccessibleModal from './AccessibleModal';
 import Spinner from './Spinner';
-import { getStoredToken } from '../utils/api';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import api from '../utils/api';
 
 export default function BulkImportModal({
   title,
@@ -67,18 +65,11 @@ export default function BulkImportModal({
       Object.entries(extraFields).forEach(([k, v]) => {
         if (v !== undefined && v !== null && v !== '') formData.append(k, v);
       });
-      const token = getStoredToken();
-      const headers = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-      const res = await fetch(`${API_BASE}${endpoint}`, { method: 'POST', headers, body: formData });
-      let data;
-      try {
-        data = await res.clone().json();
-      } catch {
-        const text = await res.text();
-        throw new Error(text || `Request failed (${res.status}).`);
-      }
-      if (!res.ok) throw new Error(data.error || 'Import failed.');
+      const res = await api.post(endpoint, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const data = res.data;
+      if (!data || data.error) throw new Error(data?.error || 'Import failed.');
       setResult(data);
       onImported?.(data);
     } catch (err) {
