@@ -1594,8 +1594,10 @@ router.get('/school-stats', async (req, res) => {
     const { school_id } = req.scope;
     if (!school_id) return res.status(400).json({ error: 'School ID required.' });
 
-    const [deptRes, lecturerRes, studentRes, sessionRes, avgAttRes] = await Promise.all([
+    const [deptRes, courseRes, classRes, lecturerRes, studentRes, sessionRes, avgAttRes] = await Promise.all([
       pool.query('SELECT COUNT(*) FROM departments WHERE school_id = $1', [school_id]),
+      pool.query('SELECT COUNT(*) FROM courses co JOIN departments d ON d.id = co.department_id WHERE d.school_id = $1 AND co.deleted_at IS NULL', [school_id]),
+      pool.query('SELECT COUNT(*) FROM classes cl JOIN departments d ON d.id = cl.department_id WHERE d.school_id = $1 AND cl.deleted_at IS NULL', [school_id]),
       pool.query('SELECT COUNT(*) FROM lecturers l JOIN departments d ON d.id = l.department_id WHERE d.school_id = $1 AND l.deleted_at IS NULL', [school_id]),
       pool.query(`SELECT COUNT(*) FROM student_roster sr
                    JOIN classes cl ON cl.class_id = sr.class_id
@@ -1623,6 +1625,8 @@ router.get('/school-stats', async (req, res) => {
 
     res.json({
       departments: parseInt(deptRes.rows[0].count),
+      courses: parseInt(courseRes.rows[0].count),
+      classes: parseInt(classRes.rows[0].count),
       lecturers: parseInt(lecturerRes.rows[0].count),
       students: parseInt(studentRes.rows[0].count),
       active_sessions: parseInt(sessionRes.rows[0].count),

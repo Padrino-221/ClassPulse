@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Eye, EyeSlash } from '@phosphor-icons/react';
 import MultiSelect from './MultiSelect';
 import Select from './Select';
+import DateTimePicker from './DateTimePicker';
 
 export default function CreateModal({ entityLabel, fields, onSave, onClose }) {
   const [form, setForm] = useState(() => {
@@ -15,6 +16,15 @@ export default function CreateModal({ entityLabel, fields, onSave, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const missing = fields.find((f) =>
+      !f.optional &&
+      (form[f.name] === '' || form[f.name] == null ||
+       (Array.isArray(form[f.name]) && form[f.name].length === 0))
+    );
+    if (missing) {
+      setError(`${missing.label} is required.`);
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
@@ -111,12 +121,12 @@ export default function CreateModal({ entityLabel, fields, onSave, onClose }) {
               ) : f.type === 'date' ? (
                 <>
                   <label style={labelStyle}>{f.label}</label>
-                  <input
-                    type="date"
+                  <DateTimePicker
+                    mode="date"
                     value={form[f.name]}
-                    onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-                    required={!f.optional}
-                    style={inputStyle}
+                    onChange={(val) => setForm({ ...form, [f.name]: val || '' })}
+                    placeholder={`Select ${f.label.toLowerCase()}`}
+                    aria-label={f.label}
                   />
                 </>
               ) : (

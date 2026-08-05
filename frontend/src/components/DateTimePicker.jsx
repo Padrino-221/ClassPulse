@@ -56,14 +56,44 @@ export default function DateTimePicker({
   minDate,
   disabled = false,
   name,
+  mode = 'datetime',
   'aria-label': ariaLabel,
 }) {
+  const isDateOnly = mode === 'date';
   const [open, setOpen] = useState(false);
   const triggerRef = useRef(null);
   const dropdownRef = useRef(null);
   const [dropdownStyle, setDropdownStyle] = useState({});
 
-  const initial = value ? new Date(value) : null;
+  const parseInput = (val) => {
+    if (!val) return null;
+    if (isDateOnly) {
+      const [y, m, d] = val.slice(0, 10).split('-').map(Number);
+      return new Date(y, (m || 1) - 1, d || 1);
+    }
+    return fromLocalInputValue(val);
+  };
+
+  const toOutput = (date) => {
+    if (isDateOnly) {
+      const y = date.getFullYear();
+      const m = (date.getMonth() + 1).toString().padStart(2, '0');
+      const d = date.getDate().toString().padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return toLocalInputValue(date);
+  };
+
+  const toDisplay = (date) => {
+    if (isDateOnly) {
+      const d = date.getDate();
+      const m = MONTHS[date.getMonth()].slice(0, 3);
+      return `${d} ${m} ${date.getFullYear()}`;
+    }
+    return formatDateDisplay(date);
+  };
+
+  const initial = parseInput(value);
   const [viewDate, setViewDate] = useState(initial || new Date());
   const [selected, setSelected] = useState(initial);
   const [hours, setHours] = useState(initial ? initial.getHours() : 9);
@@ -75,42 +105,53 @@ export default function DateTimePicker({
   const firstDay = getFirstDayOfMonth(year, month);
   const today = new Date();
 
+  const dropHeight = isDateOnly ? 316 : 348;
+
   const positionDropdown = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
-    const flipUp = spaceBelow < 340;
+    const flipUp = spaceBelow < dropHeight;
     setDropdownStyle({
       position: 'fixed',
-      top: flipUp ? rect.top - 340 - 6 : rect.bottom + 6,
+      top: flipUp ? rect.top - dropHeight - 6 : rect.bottom + 6,
       left: Math.min(rect.left, window.innerWidth - 316),
       zIndex: 9999,
     });
-  }, []);
+  }, [dropHeight]);
 
   const handleDayClick = useCallback((day) => {
     const d = new Date(year, month, day);
     if (minDate && d < new Date(minDate)) return;
     setSelected(d);
     setViewDate(new Date(d));
-    const result = new Date(d);
-    result.setHours(hours, minutes, 0, 0);
-    if (minDate && result < new Date(minDate)) return;
-    onChange?.(toLocalInputValue(result));
+    if (isDateOnly) {
+      onChange?.(toOutput(d));
+    } else {
+      const result = new Date(d);
+      result.setHours(hours, minutes, 0, 0);
+      if (minDate && result < new Date(minDate)) return;
+      onChange?.(toOutput(result));
+    }
     setOpen(false);
-  }, [year, month, hours, minutes, minDate, onChange]);
+  }, [year, month, hours, minutes, minDate, onChange, isDateOnly, toOutput]);
 
   const handleToday = useCallback(() => {
     const now = new Date();
     setViewDate(now);
     setSelected(now);
-    setHours(now.getHours());
-    setMinutes(now.getMinutes());
-    now.setSeconds(0, 0);
-    if (minDate && now < new Date(minDate)) return;
-    onChange?.(toLocalInputValue(now));
+    if (isDateOnly) {
+      if (minDate && now < new Date(minDate)) return;
+      onChange?.(toOutput(now));
+    } else {
+      setHours(now.getHours());
+      setMinutes(now.getMinutes());
+      now.setSeconds(0, 0);
+      if (minDate && now < new Date(minDate)) return;
+      onChange?.(toOutput(now));
+    }
     setOpen(false);
-  }, [minDate, onChange]);
+  }, [minDate, onChange, isDateOnly, toOutput]);
 
   const handleClear = useCallback((e) => {
     e.stopPropagation();
@@ -203,7 +244,7 @@ export default function DateTimePicker({
         name={name}
       >
         {selected ? (
-          <span>{formatDateDisplay(selected)}</span>
+          <span>{toDisplay(selected)}</span>
         ) : (
           <span className="dtp-trigger-placeholder">{placeholder}</span>
         )}
@@ -272,30 +313,34 @@ export default function DateTimePicker({
             })}
           </div>
 
-          <div className="dtp-divider" />
+          {!isDateOnly && (
+            <>
+              <div className="dtp-divider" />
 
-          {/* Time */}
-          <div className="dtp-time">
-            <div className="dtp-time-col">
-              <span className="dtp-time-label">Hour</span>
-              <div className="dtp-time-spinner">
-                <button type="button" onClick={() => adjustTime('hours', -1)} aria-label="Decrease hour">&lsaquo;</button>
-                <span>{hours.toString().padStart(2, '0')}</span>
-                <button type="button" onClick={() => adjustTime('hours', 1)} aria-label="Increase hour">&rsaquo;</button>
+              {/* Time */}
+              <div className="dtp-time">
+                <div className="dtp-time-col">
+                  <span className="dtp-time-label">Hour</span>
+                  <div className="dtp-time-spinner">
+                    <button type="button" onClick={() => adjustTime('hours', -1)} aria-label="Decrease hour">&lsaquo;</button>
+                    <span>{hours.toString().padStart(2, '0')}</span>
+                    <button type="button" onClick={() => adjustTime('hours', 1)} aria-label="Increase hour">&rsaquo;</button>
+                  </div>
+                </div>
+
+                <span style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: '1rem', paddingBottom: '1rem' }}>:</span>
+
+                <div className="dtp-time-col">
+                  <span className="dtp-time-label">Min</span>
+                  <div className="dtp-time-spinner">
+                    <button type="button" onClick={() => adjustTime('minutes', -5)} aria-label="Decrease minutes">&lsaquo;</button>
+                    <span>{minutes.toString().padStart(2, '0')}</span>
+                    <button type="button" onClick={() => adjustTime('minutes', 5)} aria-label="Increase minutes">&rsaquo;</button>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            <span style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: '1rem', paddingBottom: '1rem' }}>:</span>
-
-            <div className="dtp-time-col">
-              <span className="dtp-time-label">Min</span>
-              <div className="dtp-time-spinner">
-                <button type="button" onClick={() => adjustTime('minutes', -5)} aria-label="Decrease minutes">&lsaquo;</button>
-                <span>{minutes.toString().padStart(2, '0')}</span>
-                <button type="button" onClick={() => adjustTime('minutes', 5)} aria-label="Increase minutes">&rsaquo;</button>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
 
           {/* Footer */}
           <div className="dtp-footer">

@@ -4,6 +4,7 @@ import api, { getStoredUser } from '../utils/api';
 import DashboardLayout from '../components/DashboardLayout';
 import Select from '../components/Select';
 import MultiSelect from '../components/MultiSelect';
+import DateTimePicker from '../components/DateTimePicker';
 import Pagination from '../components/Pagination';
 import { useToast } from '../components/Toast';
 import {
@@ -51,6 +52,15 @@ function EditModal({ entityLabel, fields, data, onSave, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const missing = fields.find((f) =>
+      !f.optional &&
+      (form[f.name] === '' || form[f.name] == null ||
+       (Array.isArray(form[f.name]) && form[f.name].length === 0))
+    );
+    if (missing) {
+      setError(`${missing.label} is required.`);
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -121,6 +131,15 @@ function EditModal({ entityLabel, fields, data, onSave, onClose }) {
                       {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </Select>
                   ) : (
+                    f.type === 'date' ? (
+                      <DateTimePicker
+                        mode="date"
+                        value={form[f.name]}
+                        onChange={(val) => setForm((prev) => ({ ...prev, [f.name]: val || '' }))}
+                        placeholder={`Select ${f.label.toLowerCase()}`}
+                        aria-label={f.label}
+                      />
+                    ) : (
                     f.type === 'password' ? (
                       <div style={{ position: 'relative' }}>
                         <input
@@ -181,11 +200,12 @@ function EditModal({ entityLabel, fields, data, onSave, onClose }) {
                         }}
                       />
                     )
-                  )}
-                </>
-              )}
-            </div>
-          ))}
+                  )
+                )}
+              </>
+            )}
+          </div>
+        ))}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-light, #F5F5F5)' }}>
             <button
               type="button"
@@ -589,6 +609,8 @@ function AdminOverviewPage({ courses, lecturers, classes, students, lectureHalls
 
   const schoolTiles = [
     { to: '/admin/departments', icon: <TreeEvergreen weight="duotone" size={20} />, title: 'Departments', count: schoolStats?.departments ?? 0, desc: 'Across all academic divisions.', color: '#DC2626', bg: 'var(--brand-light)' },
+    { to: '/admin/courses', icon: <BookOpen weight="duotone" size={20} />, title: 'Courses', count: schoolStats?.courses ?? 0, desc: 'Active offerings.', color: '#DC2626', bg: 'var(--brand-light)' },
+    { to: '/admin/classes', icon: <Users weight="duotone" size={20} />, title: 'Classes', count: schoolStats?.classes ?? 0, desc: 'Active groups.', color: '#DC2626', bg: 'var(--brand-light)' },
     { to: '/admin/lecturers', icon: <UserCheck weight="duotone" size={20} />, title: 'Lecturers', count: schoolStats?.lecturers ?? 0, desc: 'Assigned across departments.', color: '#DC2626', bg: 'var(--brand-light)' },
     { to: '/admin/students', icon: <GraduationCap weight="duotone" size={20} />, title: 'Students', count: schoolStats?.students ?? 0, desc: 'Currently enrolled.', color: '#DC2626', bg: 'var(--brand-light)' },
     { to: null, icon: <ChartLineUp weight="duotone" size={20} />, title: 'Avg Attendance', count: schoolStats?.avg_attendance != null ? `${Math.round(schoolStats.avg_attendance)}%` : '—', desc: 'This semester.', color: '#DC2626', bg: 'var(--brand-light)' },
@@ -2656,16 +2678,12 @@ function ToolsPage() {
                 color: 'var(--text-muted)', marginBottom: '0.375rem', textTransform: 'uppercase',
                 letterSpacing: '0.04em',
               }}>Start Date</label>
-              <input
-                type="date"
+              <DateTimePicker
+                mode="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                style={{
-                  width: '100%', padding: '0.625rem 0.875rem', fontSize: '0.875rem',
-                  border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-                  outline: 'none', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)',
-                  height: '42px', boxSizing: 'border-box',
-                }}
+                onChange={(val) => setStartDate(val || '')}
+                placeholder="Select start date"
+                aria-label="Start date"
               />
             </div>
             <div style={{ flex: '1 1 180px', minWidth: '160px' }}>
@@ -2674,16 +2692,12 @@ function ToolsPage() {
                 color: 'var(--text-muted)', marginBottom: '0.375rem', textTransform: 'uppercase',
                 letterSpacing: '0.04em',
               }}>End Date</label>
-              <input
-                type="date"
+              <DateTimePicker
+                mode="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                style={{
-                  width: '100%', padding: '0.625rem 0.875rem', fontSize: '0.875rem',
-                  border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-                  outline: 'none', backgroundColor: 'var(--bg-input)', color: 'var(--text-primary)',
-                  height: '42px', boxSizing: 'border-box',
-                }}
+                onChange={(val) => setEndDate(val || '')}
+                placeholder="Select end date"
+                aria-label="End date"
               />
             </div>
             <button
