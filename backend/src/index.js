@@ -31,6 +31,7 @@ const schoolRoutes = require('./routes/school');
 const departmentRoutes = require('./routes/department');
 const invitationRoutes = require('./routes/invitation');
 const searchRoutes = require('./routes/search');
+const { setBackendUrl } = require('./services/mailer');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -86,6 +87,12 @@ function coerceBodyNumbers(req, res, next) {
   next();
 }
 app.use(coerceBodyNumbers);
+
+// ── Auto-detect backend URL for email icon links ──
+app.use((req, res, next) => {
+  setBackendUrl(`${req.protocol}://${req.get('host')}`);
+  next();
+});
 
 // ── Health check (no DB) ──
 app.get('/api/ping', (req, res) => {

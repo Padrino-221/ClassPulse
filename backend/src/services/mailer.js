@@ -21,9 +21,18 @@ const BG = '#F5F5F5';
 const CARD = '#FFFFFF';
 const FONT = "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
+let cachedBackendUrl = null;
+
+function setBackendUrl(url) {
+  if (!cachedBackendUrl) cachedBackendUrl = url;
+}
+
+function getBackendUrl() {
+  return cachedBackendUrl || process.env.BACKEND_URL || 'http://localhost:5000';
+}
+
 function iconImg(name, size = 18) {
-  const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-  const src = `${backendUrl}/api/assets/icons/${name}.svg`;
+  const src = `${getBackendUrl()}/api/assets/icons/${name}.svg`;
   return `<img src="${src}" alt="" width="${size}" height="${size}" style="display:block;border:0;" />`;
 }
 
@@ -239,4 +248,4 @@ async function sendWelcomeEmail(to, userName, userEmail, token) {
   return data;
 }
 
-module.exports = { sendResetEmail, sendWelcomeEmail };
+module.exports = { sendResetEmail, sendWelcomeEmail, setBackendUrl };
