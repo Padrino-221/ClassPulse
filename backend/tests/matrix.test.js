@@ -3,6 +3,11 @@ const { pool } = require('../src/config/db');
 const app = require('../src/index');
 require('dotenv').config();
 
+// The beforeAll hooks here do login + DB setup + session activations, which can
+// exceed Jest's default 5s hook timeout on slower CI runners (4 vCPU + cold
+// Postgres container). Without this, CI killed the whole suite in its beforeAll.
+jest.setTimeout(30000);
+
 const TEST_COURSE = 'TMATRIX';
 const TEST_CLASS_ID = 1;
 // Coordinates of lecture hall 1 in the test DB (must be inside its 100m geofence)
