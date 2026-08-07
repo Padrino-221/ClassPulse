@@ -175,6 +175,7 @@ export default function LecturerLiveSession() {
     week_number: '',
     lecture_hall_id: '',
     pin_spinning: true,
+    geofencing_enabled: true,
     duration_minutes: 120,
     scheduled_date: '',
   });
@@ -253,6 +254,7 @@ export default function LecturerLiveSession() {
           week_number: parseInt(form.week_number),
           lecture_hall_id: parseInt(form.lecture_hall_id),
           pin_spinning: form.pin_spinning,
+          geofencing_enabled: form.geofencing_enabled,
           duration_minutes: parseInt(form.duration_minutes),
         });
         toast.success('Session started!');
@@ -264,6 +266,7 @@ export default function LecturerLiveSession() {
           duration_minutes: parseInt(form.duration_minutes),
           week_number: parseInt(form.week_number),
           lecture_hall_id: parseInt(form.lecture_hall_id),
+          geofencing_enabled: form.geofencing_enabled,
         });
         toast.success('Session scheduled!');
       }
@@ -463,17 +466,30 @@ export default function LecturerLiveSession() {
                       </div>
                     )}
                   </div>
-                  {mode === 'now' && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', marginTop: '0.25rem' }}>
+                  <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                    {mode === 'now' && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={form.pin_spinning}
+                          onChange={(e) => setForm((prev) => ({ ...prev, pin_spinning: e.target.checked }))}
+                          style={{ width: '18px', height: '18px', accentColor: '#667eea' }}
+                        />
+                        <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Rolling PIN</span>
+                      </label>
+                    )}
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer' }}>
                       <input
                         type="checkbox"
-                        checked={form.pin_spinning}
-                        onChange={(e) => setForm((prev) => ({ ...prev, pin_spinning: e.target.checked }))}
+                        checked={form.geofencing_enabled}
+                        onChange={(e) => setForm((prev) => ({ ...prev, geofencing_enabled: e.target.checked }))}
                         style={{ width: '18px', height: '18px', accentColor: '#667eea' }}
                       />
-                      <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Rolling PIN</span>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                        Geofencing <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>— require location check-in</span>
+                      </span>
                     </label>
-                  )}
+                  </div>
                   <button
                     onClick={handleSubmit}
                     disabled={submitting}
@@ -593,6 +609,22 @@ export default function LecturerLiveSession() {
                         letterSpacing: '0.03em',
                       }}>
                         Static PIN
+                      </span>
+                    )}
+                    {s.geofencing_enabled === false && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '0.25rem 0.75rem',
+                        background: 'var(--warning-bg, #fef3c7)',
+                        color: 'var(--warning, #92400e)',
+                        borderRadius: 'var(--radius-full, 6px)',
+                        fontSize: '0.6875rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.03em',
+                      }}>
+                        No Geofence
                       </span>
                     )}
                   </div>

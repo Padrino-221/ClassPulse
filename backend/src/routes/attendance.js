@@ -89,6 +89,7 @@ router.post(
         class_name: session.class_name,
         lecture_hall_name: session.lecture_hall_name,
         week_number: session.week_number,
+        geofencing_enabled: session.geofencing_enabled !== false,
       });
     } catch (err) {
       console.error('Validate pin error:', err);
@@ -106,8 +107,11 @@ router.post(
     body('name').isString().trim().isLength({ min: 1, max: 255 }).notEmpty().withMessage('Enter your full name.'),
     body('index_number').isString().trim().isLength({ min: 1, max: 50 }).notEmpty().withMessage('Enter your index number.'),
     body('pin').isString().trim().isLength({ min: 4, max: 30 }).withMessage('PIN must be 4–30 characters (e.g. CS101-482916).'),
-    body('latitude').isFloat({ min: -90, max: 90 }).withMessage('Enter a valid latitude.'),
-    body('longitude').isFloat({ min: -180, max: 180 }).withMessage('Enter a valid longitude.'),
+    // Latitude/longitude are optional at validation time: sessions with
+    // geofencing disabled accept PIN-only check-ins. When geofencing is on,
+    // they are enforced below with a friendly error message.
+    body('latitude').optional().isFloat({ min: -90, max: 90 }).withMessage('Enter a valid latitude.'),
+    body('longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Enter a valid longitude.'),
     body('accuracy').optional().isFloat({ min: 0 }).withMessage('Accuracy must be a positive number.'),
     body('device_fingerprint').isString().isLength({ min: 1, max: 512 }).notEmpty().withMessage('Device fingerprint is required.'),
   ],
@@ -132,17 +136,21 @@ router.post(
     }
 
     try {
-      // 0. Reject poor accuracy readings (only if provided)
-      if (accuracy !== undefined && parseFloat(accuracy) > 100) {
-        return res.status(400).json({ error: `GPS accuracy is too low (${Math.round(parseFloat(accuracy))}m). Move outdoors or near a window.` });
-      }
-
       // 1. Rolling PIN validation via cache-first lookup
       //    (validated first so roster membership is never disclosed without a valid PIN)
       const session = sessionCache.findActiveByPinAndCourse(numericPin, course_code, validatePin);
 
       if (!session) {
         return res.status(404).json({ error: 'Session not found or has ended.' });
+      }
+
+      // Geofencing defaults ON; only sessions explicitly opted out by the
+      // lecturer skip the location check (records are stamped 'PIN' instead).
+      const geofencingEnabled = session.geofencing_enabled !== false;
+
+      // 0. Reject poor accuracy readings (only if provided and geofencing is on)
+      if (geofencingEnabled && accuracy !== undefined && parseFloat(accuracy) > 100) {
+        return res.status(400).json({ error: `GPS accuracy is too low (${Math.round(parseFloat(accuracy))}m). Move outdoors or near a window.` });
       }
 
       // 2. Roster membership + exact name validation against the session's class
@@ -175,39 +183,49 @@ router.post(
         return res.status(400).json({ error: 'Name does not match your index number.' });
       }
 
-      // 3. Lecture hall geofence check
-      if (!session.lecture_hall_latitude || !session.lecture_hall_longitude || !session.lecture_hall_radius) {
-        console.error(`Session ${session.session_id} has no lecture hall geofence configured.`);
-        return res.status(500).json({ error: 'Lecture hall location not configured. Contact your lecturer.' });
-      }
+      // 3. Lecture hall geofence check (skipped when the lecturer disabled it)
+      let distance = null;
+      if (geofencingEnabled) {
+        if (!session.lecture_hall_latitude || !session.lecture_hall_longitude || !session.lecture_hall_radius) {
+          console.error(`Session ${session.session_id} has no lecture hall geofence configured.`);
+          return res.status(500).json({ error: 'Lecture hall location not configured. Contact your lecturer.' });
+        }
 
-      const { within, distance } = isWithinRange(
-        parseFloat(latitude),
-        parseFloat(longitude),
-        session.lecture_hall_latitude,
-        session.lecture_hall_longitude,
-        session.lecture_hall_radius
-      );
+        if (latitude === undefined || longitude === undefined) {
+          return res.status(400).json({ error: 'Location is required for this session. Please enable GPS and try again.' });
+        }
 
-      if (!within) {
-        console.log(
-          `Geofence reject: student ${index_number} is ${distance}m from lecture hall (limit: ${session.lecture_hall_radius}m)`
+        const check = isWithinRange(
+          parseFloat(latitude),
+          parseFloat(longitude),
+          session.lecture_hall_latitude,
+          session.lecture_hall_longitude,
+          session.lecture_hall_radius
         );
-        return res.status(403).json({
-          error: `You are ${distance}m from the lecture hall. Must be within ${session.lecture_hall_radius}m.`,
-        });
+        distance = check.distance;
+
+        if (!check.within) {
+          console.log(
+            `Geofence reject: student ${index_number} is ${distance}m from lecture hall (limit: ${session.lecture_hall_radius}m)`
+          );
+          return res.status(403).json({
+            error: `You are ${distance}m from the lecture hall. Must be within ${session.lecture_hall_radius}m.`,
+          });
+        }
       }
 
       if (parseInt(proxyCheck.rows[0].cnt) > 0) {
         return res.status(429).json({ error: 'Device used for another student.' });
       }
 
-      // 5. Write attendance record
+      // 5. Write attendance record. Stamp 'PIN' when the lecturer opted out of
+      //    geofencing so reports stay auditable — no coordinates are persisted.
+      const verificationMethod = geofencingEnabled ? 'GPS' : 'PIN';
       const insertResult = await pool.query(
         `INSERT INTO attendance_records (session_id, index_number, verification_method, device_fingerprint_hash, marked_by)
-         VALUES ($1, $2, 'GPS', $3, NULL)
+         VALUES ($1, $2, $3, $4, NULL)
          RETURNING record_id, timestamp`,
-        [session.session_id, index_number, fingerprintHash]
+        [session.session_id, index_number, verificationMethod, fingerprintHash]
       );
 
       sessionCache.invalidateMatricesForCourse(session.course_code, session.class_id);
@@ -217,6 +235,7 @@ router.post(
         record: insertResult.rows[0],
         session_id: session.session_id,
         lecture_hall: session.lecture_hall_name,
+        geofencing_enabled: geofencingEnabled,
         distance,
       });
     } catch (err) {

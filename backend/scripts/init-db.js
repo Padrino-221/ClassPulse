@@ -13,7 +13,7 @@ function splitSql(sql) {
 }
 
 async function main() {
-  const schemaSql = fs.readFileSync(path.join(__dirname, 'src', 'db', 'schema.sql'), 'utf8');
+  const schemaSql = fs.readFileSync(path.join(__dirname, '..', 'src', 'db', 'schema.sql'), 'utf8');
   const statements = splitSql(schemaSql);
 
   await pool.query('CREATE EXTENSION IF NOT EXISTS pgcrypto;');

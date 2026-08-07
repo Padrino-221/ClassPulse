@@ -1,21 +1,30 @@
+# ── Dependencies ──
 node_modules/
 backend/node_modules/
 frontend/node_modules/
+
+# ── Environment (never commit secrets) ──
 .env
 backend/.env
 frontend/.env
-*.log
+*.local
+
+# ── Build / dev artifacts ──
 dist/
-certs/
+frontend/dev-dist/
 backend/coverage/
+coverage/
+
+# ── Logs ──
+*.log
+logs/
+
+# ── Misc ──
+.DS_Store
+certs/
 .opencode/
+
+# Internal planning docs (not for the public repo)
 ARCHITECTURE_PLAN.md
 IMPLEMENTATION_PLAN.md
 TASK.md
-backend/check_admin.js
-backend/check_cols.js
-backend/delete_duplicates.js
-backend/fix_admin.js
-backend/run_migration_010.js
-backend/test_report.js
-/Book1.csv

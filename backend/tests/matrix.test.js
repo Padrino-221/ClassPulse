@@ -61,7 +61,9 @@ afterAll(async () => {
   await pool.query("DELETE FROM active_sessions WHERE course_code = $1", [TEST_COURSE]);
   await pool.query("DELETE FROM student_roster WHERE index_number = 'MATRIX001'");
   await pool.query('DELETE FROM course_lecturers WHERE course_id = $1', [testCourseId]);
-  await pool.query('DELETE FROM class_lecturers WHERE class_id = $1 AND lecturer_id = $2', [TEST_CLASS_ID, lecturerId]);
+  // NOTE: the (class 1, lecturer 1) class_lecturers row is seeded data — do
+  // NOT delete it here. Removing it breaks other suites (e.g. /lecturer/history)
+  // that run in parallel and rely on the lecturer owning class 1.
   await pool.query("DELETE FROM courses WHERE course_code = $1", [TEST_COURSE]);
   await pool.end();
 });

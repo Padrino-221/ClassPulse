@@ -171,7 +171,7 @@ CREATE TABLE IF NOT EXISTS attendance_records (
     record_id SERIAL PRIMARY KEY,
     session_id UUID NOT NULL REFERENCES active_sessions(session_id) ON DELETE CASCADE,
     index_number VARCHAR(50) NOT NULL,
-    verification_method VARCHAR(10) NOT NULL CHECK (verification_method IN ('GPS', 'MANUAL')),
+    verification_method VARCHAR(10) NOT NULL CHECK (verification_method IN ('GPS', 'MANUAL', 'PIN')),
     marked_by INTEGER REFERENCES lecturers(id) ON DELETE SET NULL,
     device_fingerprint_hash VARCHAR(64),
     timestamp TIMESTAMP DEFAULT NOW(),

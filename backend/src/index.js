@@ -218,7 +218,7 @@ if (require.main === module) {
              AND scheduled_at <= NOW()
              AND (expires_at IS NULL OR expires_at > NOW())
            RETURNING session_id, course_id, course_code, class_id, week_number, pin_seed,
-                     pin_spinning, lecture_hall_id, expires_at`
+                     pin_spinning, geofencing_enabled, lecture_hall_id, expires_at`
         );
 
         // Fetch class names and course names for activated sessions
@@ -252,6 +252,7 @@ if (require.main === module) {
               pin_seed: row.pin_seed,
               static_pin: staticPin,
               pin_spinning: row.pin_spinning,
+              geofencing_enabled: row.geofencing_enabled !== false,
               course_code: row.course_code,
               course_name: (courseMap[row.course_id] && courseMap[row.course_id].course_name) || null,
               class_id: row.class_id,

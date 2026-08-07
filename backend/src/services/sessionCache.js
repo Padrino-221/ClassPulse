@@ -87,6 +87,7 @@ class SessionCache {
       lecture_hall_latitude: lectureHall ? lectureHall.latitude : null,
       lecture_hall_longitude: lectureHall ? lectureHall.longitude : null,
       lecture_hall_radius: lectureHall ? lectureHall.radius : null,
+      geofencing_enabled: session.geofencing_enabled !== false,
       course_code: session.course_code,
       course_name: session.course_name || null,
       class_id: session.class_id,
@@ -177,7 +178,7 @@ class SessionCache {
 
   async reloadSessionsOnly(pool) {
     const res = await pool.query(
-      `SELECT s.session_id, s.pin_seed, s.pin_spinning,
+      `SELECT s.session_id, s.pin_seed, s.pin_spinning, s.geofencing_enabled,
               s.lecture_hall_id, s.course_code, c.course_name, s.class_id, cl.class_name, s.week_number, s.is_active, s.expires_at
        FROM active_sessions s
        LEFT JOIN classes cl ON cl.class_id = s.class_id

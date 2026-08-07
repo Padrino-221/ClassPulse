@@ -17,6 +17,7 @@ router.post(
     body('week_number').isInt({ min: 1 }).withMessage('Enter a valid week number.'),
     body('lecture_hall_id').isInt({ min: 1 }).withMessage('Select a lecture hall.'),
     body('pin_spinning').optional().isBoolean(),
+    body('geofencing_enabled').optional().isBoolean(),
     body('duration_minutes').isInt({ min: 1, max: 480 }).withMessage('Enter a valid duration in minutes.'),
   ],
   async (req, res) => {
@@ -25,10 +26,12 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { course_code, class_ids, week_number, lecture_hall_id, pin_spinning, duration_minutes } = req.body;
+    const { course_code, class_ids, week_number, lecture_hall_id, pin_spinning, geofencing_enabled, duration_minutes } = req.body;
     const lecturerId = req.user.id;
     const duration = duration_minutes || 120;
     const spinning = pin_spinning !== false;
+    // Geofencing defaults ON; lecturers opt out explicitly.
+    const geofencing = geofencing_enabled !== false;
 
     try {
     const lectureHall = sessionCache.getLectureHall(lecture_hall_id);
@@ -76,9 +79,9 @@ router.post(
           const result = await client.query(
             `INSERT INTO active_sessions (
                course_id, course_code, class_id, lecturer_id, week_number, pin_seed,
-               pin_spinning, lecture_hall_id, semester_id, expires_at
+               pin_spinning, geofencing_enabled, lecture_hall_id, semester_id, expires_at
              )
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW() + INTERVAL '1 minute' * $10)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW() + INTERVAL '1 minute' * $11)
              RETURNING session_id, pin_seed, created_at, expires_at`,
             [
               courseId,
@@ -88,6 +91,7 @@ router.post(
               week_number,
               pinSeed,
               spinning,
+              geofencing,
               lecture_hall_id,
               activeSemester.id,
               duration,
@@ -101,6 +105,7 @@ router.post(
             pin_seed: session.pin_seed,
             static_pin: staticPin,
             pin_spinning: spinning,
+            geofencing_enabled: geofencing,
             course_code,
             course_name: courseName,
             class_id: classId,
@@ -114,6 +119,7 @@ router.post(
             session_id: session.session_id,
             pin: staticPin || getCurrentPin(pinSeed),
             pin_spinning: spinning,
+            geofencing_enabled: geofencing,
             course_code,
             class_id: classId,
             lecture_hall: lectureHall.name,
@@ -153,6 +159,7 @@ router.post(
     body('duration_minutes').isInt({ min: 1, max: 480 }).withMessage('Enter a valid duration in minutes.'),
     body('week_number').isInt({ min: 1, max: 52 }).withMessage('Enter a valid week number.'),
     body('lecture_hall_id').isInt({ min: 1 }).withMessage('Select a lecture hall.'),
+    body('geofencing_enabled').optional().isBoolean(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -162,8 +169,10 @@ router.post(
 
     const {
       course_code, class_ids, scheduled_date, duration_minutes, week_number, lecture_hall_id,
+      geofencing_enabled,
     } = req.body;
     const lecturerId = req.user.id;
+    const geofencing = geofencing_enabled !== false;
 
     try {
       const lectureHall = sessionCache.getLectureHall(lecture_hall_id);
@@ -218,14 +227,14 @@ router.post(
           const result = await client.query(
             `INSERT INTO active_sessions (
                course_id, course_code, class_id, lecturer_id, week_number, pin_seed,
-               pin_spinning, lecture_hall_id,
+               pin_spinning, geofencing_enabled, lecture_hall_id,
                semester_id, scheduled_at, expires_at, is_active
              )
-             VALUES ($1, $2, $3, $4, $5, $6, FALSE, $7, $8, $9::timestamptz, $9::timestamptz + INTERVAL '1 minute' * $10, FALSE)
+             VALUES ($1, $2, $3, $4, $5, $6, FALSE, $7, $8, $9, $10::timestamptz, $10::timestamptz + INTERVAL '1 minute' * $11, FALSE)
              RETURNING session_id, created_at, expires_at`,
             [
               courseId, course_code, classId, lecturerId, week_number, pinSeed,
-              lecture_hall_id,
+              geofencing, lecture_hall_id,
               activeSemester.id, scheduled_date, duration_minutes,
             ]
           );
@@ -235,6 +244,7 @@ router.post(
             course_code,
             class_id: classId,
             week_number: week_number,
+            geofencing_enabled: geofencing,
             scheduled_date: scheduled_date,
             expires_at: result.rows[0].expires_at,
           });
@@ -401,7 +411,7 @@ router.get('/sessions', async (req, res) => {
     const count = await pool.query('SELECT COUNT(*) FROM active_sessions WHERE lecturer_id = $1', [req.user.id]);
     const result = await pool.query(
       `SELECT as2.session_id, c.course_code, c.course_name, cl.class_name,
-              as2.week_number, as2.pin_seed, as2.pin_spinning,
+              as2.week_number, as2.pin_seed, as2.pin_spinning, as2.geofencing_enabled,
               as2.created_at, as2.expires_at, as2.is_active,
               COALESCE(ac.cnt, 0) AS attendance_count
        FROM active_sessions as2

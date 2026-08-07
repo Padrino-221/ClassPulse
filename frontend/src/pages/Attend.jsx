@@ -137,6 +137,10 @@ export default function Attend() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  // Sessions where the lecturer disabled geofencing accept PIN-only check-ins,
+  // so we never ask the browser for location permission in that case.
+  const geofenceEnabled = sessionInfo ? sessionInfo.geofencing_enabled !== false : true;
+
   const handleVerifyPin = async (e) => {
     e.preventDefault();
     setErrorMessage('');
@@ -149,7 +153,9 @@ export default function Attend() {
       });
       setSessionInfo(pinRes.data);
       setStep('confirm');
-      startWatching();
+      if (pinRes.data.geofencing_enabled !== false) {
+        startWatching();
+      }
     } catch (err) {
       setErrorMessage(err.response?.data?.error || 'Invalid PIN. Try again.');
     } finally {
@@ -161,7 +167,7 @@ export default function Attend() {
     setStep('loading');
     setErrorMessage('');
 
-    if (!coords) {
+    if (geofenceEnabled && !coords) {
       startWatching();
       setErrorMessage('Waiting for GPS signal. Please allow location access and try again.');
       setStep('confirm');
@@ -176,15 +182,19 @@ export default function Attend() {
         fingerprint = `${navigator.userAgent}-${Date.now()}`;
       }
 
-      await api.post('/api/attendance/check-in', {
+      const payload = {
         name: form.name,
         index_number: form.index_number,
         pin: form.pin,
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        accuracy: coords.accuracy,
         device_fingerprint: fingerprint,
-      });
+      };
+      if (coords) {
+        payload.latitude = coords.latitude;
+        payload.longitude = coords.longitude;
+        payload.accuracy = coords.accuracy;
+      }
+
+      await api.post('/api/attendance/check-in', payload);
 
       setStep('success');
     } catch (err) {
@@ -300,19 +310,30 @@ export default function Attend() {
                   </div>
                 </div>
 
-                <div style={{
-                  ...s.gpsStatus,
-                  background: geoError ? 'var(--error-bg)' : coords ? 'var(--success-bg)' : 'var(--at-risk-row)',
-                  color: geoError ? 'var(--brand)' : coords ? 'var(--success)' : 'var(--warning)',
-                }}>
-                  <MapPin weight="duotone" size={16} />
-                  {coords
-                    ? `GPS Ready (${Math.round(accuracy)}m accuracy)`
-                    : geoError
-                      ? geoError
-                      : 'Acquiring GPS...'
-                  }
-                </div>
+                {geofenceEnabled ? (
+                  <div style={{
+                    ...s.gpsStatus,
+                    background: geoError ? 'var(--error-bg)' : coords ? 'var(--success-bg)' : 'var(--at-risk-row)',
+                    color: geoError ? 'var(--brand)' : coords ? 'var(--success)' : 'var(--warning)',
+                  }}>
+                    <MapPin weight="duotone" size={16} />
+                    {coords
+                      ? `GPS Ready (${Math.round(accuracy)}m accuracy)`
+                      : geoError
+                        ? geoError
+                        : 'Acquiring GPS...'
+                    }
+                  </div>
+                ) : (
+                  <div style={{
+                    ...s.gpsStatus,
+                    background: 'var(--bg-hover)',
+                    color: 'var(--text-secondary)',
+                  }}>
+                    <MapPin weight="duotone" size={16} />
+                    Location check disabled by lecturer — PIN check only
+                  </div>
+                )}
 
                 {errorMessage && (
                   <div style={{
@@ -326,9 +347,9 @@ export default function Attend() {
                 <button
                   className="att-confirm-btn" style={s.confirmBtn}
                   onClick={handleCheckIn}
-                  disabled={!coords || step === 'loading'}
+                  disabled={step === 'loading' || (geofenceEnabled && !coords)}
                 >
-                  {!coords ? 'Waiting for GPS...' : step === 'loading' ? 'Marking...' : 'Mark Attendance'}
+                  {(geofenceEnabled && !coords) ? 'Waiting for GPS...' : step === 'loading' ? 'Marking...' : 'Mark Attendance'}
                 </button>
                 <button style={s.backBtn} onClick={handleBack}>
                   <ArrowLeft weight="duotone" size={14} style={{ verticalAlign: 'middle', marginRight: '0.375rem' }} />
